@@ -97,7 +97,7 @@ public class TestGenerator {
         w.writeLine("                <artifactId>maven-surefire-plugin</artifactId>");
         w.writeLine("                <version>3.2.2</version>");
         w.writeLine("                <configuration>");
-        w.writeLine("                    <forkCount>4</forkCount>");
+        w.writeLine("                    <forkCount>1</forkCount>");
         w.writeLine("                    <reuseForks>true</reuseForks>");
         w.writeLine("                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>");
         w.writeLine("                </configuration>");
