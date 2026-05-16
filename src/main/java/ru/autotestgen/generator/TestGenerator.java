@@ -204,6 +204,27 @@ public class TestGenerator {
 
         // initialize()
         w.openBlock("private static void initialize()");
+        w.writeLine("setupDriver();");
+        w.writeLine("performLogin();");
+        w.writeLine();
+        w.openBlock("if (TestData.SMOKE_ALL_SUBSYSTEMS)");
+        w.writeLine("runSmokeAllSubsystems();");
+        w.closeBlock();
+        w.writeLine();
+        w.openBlock("if (TestData.SUBSYSTEM_NAME != null && !TestData.SUBSYSTEM_NAME.isEmpty())");
+        w.writeLine("selectSubsystem(TestData.SUBSYSTEM_NAME);");
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("initialized = true;");
+        w.writeLine("Runtime.getRuntime().addShutdownHook(new Thread(() -> {");
+        w.writeLine("    if (driver != null) driver.quit();");
+        w.writeLine("}));");
+        w.closeBlock(); // end initialize()
+        w.writeLine();
+
+        // setupDriver() — extracted so we can call it again after a quit() between subsystems
+        w.writeLine("/** Creates a fresh WebDriver / WebDriverWait, replacing any existing one. */");
+        w.openBlock("private static void setupDriver()");
         w.writeLine("String browser = System.getProperty(\"browser\", \"" + config.getBrowserType() + "\");");
         w.openBlock("if (\"firefox\".equalsIgnoreCase(browser))");
         w.writeLine("WebDriverManager.firefoxdriver().setup();");
@@ -222,22 +243,22 @@ public class TestGenerator {
         w.writeLine("driver.manage().window().maximize();");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.writeLine("wait = new WebDriverWait(driver, Duration.ofSeconds(3));");
+        w.closeBlock();
         w.writeLine();
+
+        // restartBrowserAndLogin() — quit the current driver, recreate, log in fresh
+        w.writeLine("/** Quits the current driver, recreates it, and logs in. Used to isolate each smoke iteration. */");
+        w.openBlock("private static void restartBrowserAndLogin()");
+        w.openBlock("try");
+        w.openBlock("if (driver != null)");
+        w.writeLine("driver.quit();");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("setupDriver();");
         w.writeLine("performLogin();");
-        w.writeLine();
-        w.openBlock("if (TestData.SMOKE_ALL_SUBSYSTEMS)");
-        w.writeLine("runSmokeAllSubsystems();");
         w.closeBlock();
-        w.writeLine();
-        w.openBlock("if (TestData.SUBSYSTEM_NAME != null && !TestData.SUBSYSTEM_NAME.isEmpty())");
-        w.writeLine("selectSubsystem(TestData.SUBSYSTEM_NAME);");
-        w.closeBlock();
-        w.writeLine();
-        w.writeLine("initialized = true;");
-        w.writeLine("Runtime.getRuntime().addShutdownHook(new Thread(() -> {");
-        w.writeLine("    if (driver != null) driver.quit();");
-        w.writeLine("}));");
-        w.closeBlock(); // end initialize()
         w.writeLine();
 
         // performLogin()
@@ -390,49 +411,26 @@ public class TestGenerator {
         w.closeBlock(); // end selectSubsystem
         w.writeLine();
 
-        // returnToLauncher()
-        w.writeLine("/** Returns to the launcher screen by reloading BASE_URL and waiting for the launcher header. */");
-        w.openBlock("private static void returnToLauncher()");
-        w.writeLine("driver.get(TestData.BASE_URL);");
-        w.openBlock("try");
-        w.writeLine("Thread.sleep(1500);");
-        w.closeBlock();
-        w.openBlock("catch (InterruptedException ignored)");
-        w.closeBlock();
-        w.writeLine("// performLogin is idempotent: if the form isn't visible, it returns immediately.");
-        w.writeLine("performLogin();");
-        // Wait up to ~5s for "Доступные подсистемы" header to appear
-        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
-        w.openBlock("try");
-        w.openBlock("while (System.currentTimeMillis() < deadline)");
-        w.writeLine("List<WebElement> header = driver.findElements(By.xpath(\"//*[contains(text(), '\\u0414\\u043e\\u0441\\u0442\\u0443\\u043f\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u044b')]\"));");
-        w.openBlock("if (header.stream().anyMatch(WebElement::isDisplayed))");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.openBlock("try");
-        w.writeLine("Thread.sleep(200);");
-        w.closeBlock();
-        w.openBlock("catch (InterruptedException ignored)");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("finally");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
-        w.closeBlock();
-        w.closeBlock(); // end returnToLauncher
-        w.writeLine();
-
         // runSmokeAllSubsystems()
-        w.writeLine("/** Discovers all subsystems, opens each one, and records a SmokeResult. */");
+        w.writeLine("/**");
+        w.writeLine(" * Discovers all subsystems on the launcher, then opens each one in an isolated browser session:");
+        w.writeLine(" * the browser is fully restarted between subsystems so leftover state from one cannot mask the next.");
+        w.writeLine(" * After smoke, the browser is restarted one final time so entity tests start from the launcher.");
+        w.writeLine(" */");
         w.openBlock("private static void runSmokeAllSubsystems()");
         w.writeLine("List<String> names = discoverSubsystems();");
         w.writeLine("System.out.println(\"Discovered \" + names.size() + \" subsystem(s): \" + names);");
-        w.openBlock("for (String name : names)");
+        w.openBlock("for (int i = 0; i < names.size(); i++)");
+        w.writeLine("String name = names.get(i);");
         w.writeLine("boolean ok = false;");
         w.writeLine("String error = null;");
         w.openBlock("try");
+        // Restart browser before every iteration after the first — first iteration uses the
+        // already-logged-in session that initialize() set up.
+        w.openBlock("if (i > 0)");
+        w.writeLine("System.out.println(\"Restarting browser for subsystem #\" + (i + 1) + \": \" + name);");
+        w.writeLine("restartBrowserAndLogin();");
+        w.closeBlock();
         w.writeLine("ok = selectSubsystem(name);");
         w.openBlock("if (!ok)");
         w.writeLine("error = \"Subsystem did not open. URL=\" + safeUrl() + \" screenshot=\" + dumpFailureScreenshot(name);");
@@ -442,7 +440,11 @@ public class TestGenerator {
         w.writeLine("error = e.getMessage() + \" (URL=\" + safeUrl() + \" screenshot=\" + dumpFailureScreenshot(name) + \")\";");
         w.closeBlock();
         w.writeLine("smokeResults.add(new SmokeResult(name, ok, error));");
-        w.writeLine("returnToLauncher();");
+        w.closeBlock();
+        // Final restart so entity tests get a clean session on the launcher
+        w.openBlock("if (!names.isEmpty())");
+        w.writeLine("System.out.println(\"Smoke phase done — restarting browser for entity tests\");");
+        w.writeLine("restartBrowserAndLogin();");
         w.closeBlock();
         w.closeBlock(); // end runSmokeAllSubsystems
         w.writeLine();
