@@ -391,36 +391,36 @@ public class TestGenerator {
         w.writeLine();
 
         // returnToLauncher()
-        w.writeLine("/** Best-effort: returns to the launcher screen. Falls back to reloading BASE_URL and re-login. */");
+        w.writeLine("/** Returns to the launcher screen by reloading BASE_URL and waiting for the launcher header. */");
         w.openBlock("private static void returnToLauncher()");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
+        w.writeLine("driver.get(TestData.BASE_URL);");
         w.openBlock("try");
-        // Try closing active tab via .x-tool-close on the active tab
-        w.writeLine("List<WebElement> closeBtns = driver.findElements(By.cssSelector(\".x-tab-strip-active .x-tab-strip-close, .x-tab-strip-active .x-tool-close\"));");
-        w.openBlock("for (WebElement btn : closeBtns)");
+        w.writeLine("Thread.sleep(1500);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.writeLine("// performLogin is idempotent: if the form isn't visible, it returns immediately.");
+        w.writeLine("performLogin();");
+        // Wait up to ~5s for "Доступные подсистемы" header to appear
+        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.openBlock("if (btn.isDisplayed())");
-        w.writeLine("btn.click();");
-        w.writeLine("Thread.sleep(500);");
-        w.writeLine("break;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("List<WebElement> header = driver.findElements(By.xpath(\"//*[contains(text(), '\\u0414\\u043e\\u0441\\u0442\\u0443\\u043f\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u044b')]\"));");
+        w.openBlock("if (header.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("return;");
         w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(200);");
         w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
-        // Check launcher tiles are back
-        w.writeLine("List<WebElement> tiles = driver.findElements(By.xpath(\"//b\"));");
-        w.openBlock("if (tiles.stream().anyMatch(WebElement::isDisplayed))");
+        w.openBlock("catch (InterruptedException ignored)");
         w.writeLine("return;");
         w.closeBlock();
         w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
-        // Fallback: reload and re-login
-        w.writeLine("performLogin();");
         w.closeBlock(); // end returnToLauncher
         w.writeLine();
 
@@ -428,18 +428,51 @@ public class TestGenerator {
         w.writeLine("/** Discovers all subsystems, opens each one, and records a SmokeResult. */");
         w.openBlock("private static void runSmokeAllSubsystems()");
         w.writeLine("List<String> names = discoverSubsystems();");
-        w.writeLine("System.out.println(\"Discovered \" + names.size() + \" subsystem(s)\");");
+        w.writeLine("System.out.println(\"Discovered \" + names.size() + \" subsystem(s): \" + names);");
         w.openBlock("for (String name : names)");
+        w.writeLine("boolean ok = false;");
+        w.writeLine("String error = null;");
         w.openBlock("try");
-        w.writeLine("boolean ok = selectSubsystem(name);");
-        w.writeLine("smokeResults.add(new SmokeResult(name, ok, ok ? null : \"Subsystem did not open (no menu button found)\"));");
+        w.writeLine("ok = selectSubsystem(name);");
+        w.openBlock("if (!ok)");
+        w.writeLine("error = \"Subsystem did not open. URL=\" + safeUrl() + \" screenshot=\" + dumpFailureScreenshot(name);");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("smokeResults.add(new SmokeResult(name, false, e.getMessage()));");
+        w.writeLine("error = e.getMessage() + \" (URL=\" + safeUrl() + \" screenshot=\" + dumpFailureScreenshot(name) + \")\";");
         w.closeBlock();
+        w.writeLine("smokeResults.add(new SmokeResult(name, ok, error));");
         w.writeLine("returnToLauncher();");
         w.closeBlock();
         w.closeBlock(); // end runSmokeAllSubsystems
+        w.writeLine();
+
+        // safeUrl()
+        w.openBlock("private static String safeUrl()");
+        w.openBlock("try");
+        w.writeLine("return driver.getCurrentUrl();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return \"?\";");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // dumpFailureScreenshot()
+        w.openBlock("private static String dumpFailureScreenshot(String name)");
+        w.openBlock("try");
+        w.writeLine("java.io.File src = ((org.openqa.selenium.TakesScreenshot) driver).getScreenshotAs(org.openqa.selenium.OutputType.FILE);");
+        w.writeLine("java.nio.file.Path dir = java.nio.file.Path.of(\"target/screenshots\");");
+        w.writeLine("java.nio.file.Files.createDirectories(dir);");
+        w.writeLine("String fname = \"smoke-failed-\" + name.replaceAll(\"[^a-zA-Z0-9\\u0400-\\u04FF]+\", \"_\") + \".png\";");
+        w.writeLine("java.nio.file.Path target = dir.resolve(fname);");
+        w.writeLine("java.nio.file.Files.copy(src.toPath(), target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);");
+        w.writeLine("return \"target/screenshots/\" + fname;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return \"(screenshot failed: \" + e.getMessage() + \")\";");
+        w.closeBlock();
+        w.closeBlock();
 
         w.closeBlock(); // end class
 
@@ -542,9 +575,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // E3Core navigation: ExtJS cascading menus
+        // E3Core navigation: ExtJS cascading menus with recursive submenu descent
         w.openBlock("private void navigateE3Core(String entityName)");
-        w.writeLine("// Reduce implicit wait for fast menu scanning");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
@@ -553,23 +585,7 @@ public class TestGenerator {
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
         w.writeLine("menuBtn.click();");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("String itemXpath = \"//span[contains(@class, 'x-menu-item-text')][contains(text(), '\" + entityName + \"')]\"");
-        w.writeLine("    + \" | //a[contains(@class, 'x-menu-item')][contains(text(), '\" + entityName + \"')]\"");
-        w.writeLine("    + \" | //div[contains(@class, 'x-menu')]//*[contains(text(), '\" + entityName + \"')]\";");
-        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(itemXpath));");
-        w.openBlock("if (!items.isEmpty())");
-        w.writeLine("new Actions(driver).moveToElement(items.get(0)).perform();");
-        w.writeLine("Thread.sleep(300);");
-        w.writeLine("List<WebElement> findBtns = driver.findElements(By.xpath(\"//span[contains(@class, 'x-menu-item-text')][contains(text(), '\\u041d\\u0430\\u0439\\u0442\\u0438')] | //a[contains(@class, 'x-menu-item')][contains(text(), '\\u041d\\u0430\\u0439\\u0442\\u0438')]\"));");
-        w.openBlock("if (!findBtns.isEmpty())");
-        w.writeLine("findBtns.get(findBtns.size() - 1).click();");
-        w.writeLine("Thread.sleep(1000);");
-        w.writeLine("navigationOk = true;");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.writeLine("items.get(0).click();");
-        w.writeLine("wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(\"body\")));");
-        w.writeLine("Thread.sleep(500);");
+        w.openBlock("if (descendMenu(entityName, 3, new java.util.HashSet<>()))");
         w.writeLine("navigationOk = true;");
         w.writeLine("return;");
         w.closeBlock();
@@ -589,6 +605,106 @@ public class TestGenerator {
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock(); // end navigateE3Core
+        w.writeLine();
+
+        // descendMenu: recursive submenu walker
+        w.writeLine("/**");
+        w.writeLine(" * Searches the currently open ExtJS menus (and their submenus, up to maxDepth)");
+        w.writeLine(" * for an item whose text contains entityName. If found, hovers it and clicks the");
+        w.writeLine(" * \"\\u041d\\u0430\\u0439\\u0442\\u0438\" submenu item; falls back to a direct click on the item.");
+        w.writeLine(" */");
+        w.openBlock("private boolean descendMenu(String entityName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
+        // Step 1: try to find the entity directly in any visible menu
+        w.writeLine("String itemXpath = \"//div[contains(@class,'x-menu')]\"");
+        w.writeLine("    + \"//*[(contains(@class,'x-menu-item-text') or contains(@class,'x-menu-item'))\"");
+        w.writeLine("    + \" and contains(text(), '\" + entityName + \"')]\";");
+        w.writeLine("List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));");
+        w.openBlock("for (WebElement item : directHits)");
+        w.openBlock("try");
+        w.openBlock("if (!item.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(item).perform();");
+        w.writeLine("Thread.sleep(300);");
+        // Look for "Найти" submenu — take the last VISIBLE one (most recently opened submenu)
+        w.writeLine("List<WebElement> findBtns = driver.findElements(By.xpath(\"//span[contains(@class,'x-menu-item-text')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')] | //a[contains(@class,'x-menu-item')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')]\"));");
+        w.writeLine("WebElement findBtn = null;");
+        w.openBlock("for (WebElement b : findBtns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed())");
+        w.writeLine("findBtn = b;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (findBtn != null)");
+        w.writeLine("findBtn.click();");
+        w.writeLine("Thread.sleep(1000);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // No "Найти" — click the item itself
+        w.writeLine("item.click();");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Step 2: not found directly — find submenu parents and recurse
+        w.openBlock("if (maxDepth <= 0)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Parents: any visible menu item (snapshot texts to avoid stale references)
+        w.writeLine("String parentXpath = \"//div[contains(@class,'x-menu')]\"");
+        w.writeLine("    + \"//a[contains(@class,'x-menu-item')]\";");
+        w.writeLine("List<WebElement> parents = driver.findElements(By.xpath(parentXpath));");
+        w.writeLine("java.util.LinkedHashSet<String> parentTexts = new java.util.LinkedHashSet<>();");
+        w.openBlock("for (WebElement p : parents)");
+        w.openBlock("try");
+        w.openBlock("if (!p.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String t = p.getText().trim();");
+        w.openBlock("if (t.isEmpty() || t.contains(entityName) || tried.contains(t))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("parentTexts.add(t);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("for (String parentText : parentTexts)");
+        w.writeLine("tried.add(parentText);");
+        w.openBlock("try");
+        // Re-find the parent (DOM may have changed)
+        w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')][normalize-space(text())='\" + parentText + \"']\"));");
+        w.writeLine("WebElement candidate = null;");
+        w.openBlock("for (WebElement c : candidates)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("candidate = c;");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (candidate == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(candidate).perform();");
+        w.writeLine("Thread.sleep(250);");
+        w.openBlock("if (descendMenu(entityName, maxDepth - 1, tried))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock(); // end descendMenu
         w.writeLine();
 
         // Generic navigation
