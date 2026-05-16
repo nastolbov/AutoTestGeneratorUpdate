@@ -614,10 +614,12 @@ public class TestGenerator {
         w.writeLine(" * \"\\u041d\\u0430\\u0439\\u0442\\u0438\" submenu item; falls back to a direct click on the item.");
         w.writeLine(" */");
         w.openBlock("private boolean descendMenu(String entityName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
-        // Step 1: try to find the entity directly in any visible menu
+        // Step 1: try to find the entity directly in any visible menu — match the SPAN that
+        // holds the menu-item text, or any <a class="x-menu-item"> whose descendant text contains it.
         w.writeLine("String itemXpath = \"//div[contains(@class,'x-menu')]\"");
-        w.writeLine("    + \"//*[(contains(@class,'x-menu-item-text') or contains(@class,'x-menu-item'))\"");
-        w.writeLine("    + \" and contains(text(), '\" + entityName + \"')]\";");
+        w.writeLine("    + \"//span[contains(@class,'x-menu-item-text')][contains(text(), '\" + entityName + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-menu')]\"");
+        w.writeLine("    + \"//a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + entityName + \"')]\";");
         w.writeLine("List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));");
         w.openBlock("for (WebElement item : directHits)");
         w.openBlock("try");
@@ -626,7 +628,6 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
         w.writeLine("Thread.sleep(300);");
-        // Look for "Найти" submenu — take the last VISIBLE one (most recently opened submenu)
         w.writeLine("List<WebElement> findBtns = driver.findElements(By.xpath(\"//span[contains(@class,'x-menu-item-text')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')] | //a[contains(@class,'x-menu-item')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')]\"));");
         w.writeLine("WebElement findBtn = null;");
         w.openBlock("for (WebElement b : findBtns)");
@@ -643,7 +644,6 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(1000);");
         w.writeLine("return true;");
         w.closeBlock();
-        // No "Найти" — click the item itself
         w.writeLine("item.click();");
         w.writeLine("Thread.sleep(500);");
         w.writeLine("return true;");
@@ -655,7 +655,6 @@ public class TestGenerator {
         w.openBlock("if (maxDepth <= 0)");
         w.writeLine("return false;");
         w.closeBlock();
-        // Parents: any visible menu item (snapshot texts to avoid stale references)
         w.writeLine("String parentXpath = \"//div[contains(@class,'x-menu')]\"");
         w.writeLine("    + \"//a[contains(@class,'x-menu-item')]\";");
         w.writeLine("List<WebElement> parents = driver.findElements(By.xpath(parentXpath));");
@@ -677,9 +676,13 @@ public class TestGenerator {
         w.openBlock("for (String parentText : parentTexts)");
         w.writeLine("tried.add(parentText);");
         w.openBlock("try");
-        // Re-find the parent (DOM may have changed)
+        // Re-find by full visible text. Text lives in nested <span class="x-menu-item-text">,
+        // so we look at the concatenated descendant text via normalize-space(.).
+        w.openBlock("if (parentText.contains(\"'\"))");
+        w.writeLine("continue;");
+        w.closeBlock();
         w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
-        w.writeLine("    \"//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')][normalize-space(text())='\" + parentText + \"']\"));");
+        w.writeLine("    \"//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + parentText + \"')]\"));");
         w.writeLine("WebElement candidate = null;");
         w.openBlock("for (WebElement c : candidates)");
         w.openBlock("try");
