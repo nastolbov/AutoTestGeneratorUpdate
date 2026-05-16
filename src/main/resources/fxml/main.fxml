@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="ru.autotestgen.ui.MainController"
+            prefWidth="1000" prefHeight="700">
+
+    <!-- Top: Input Parameters -->
+    <top>
+        <VBox spacing="10" style="-fx-padding: 15; -fx-background-color: #f5f5f5;">
+            <Label text="Генератор автотестов из XML-модели" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="XML-файл:" prefWidth="120"/>
+                <TextField fx:id="xmlPathField" HBox.hgrow="ALWAYS" promptText="Путь к XML-файлу метаданных"/>
+                <Button fx:id="btnSelectXml" text="Обзор..." onAction="#onSelectXml"/>
+                <Button fx:id="btnParse" text="Разобрать XML" onAction="#onParse" style="-fx-background-color: #4CAF50; -fx-text-fill: white;"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="URL сайта:" prefWidth="120"/>
+                <TextField fx:id="urlField" prefWidth="300" promptText="http://example.com"/>
+                <Label text="Логин:"/>
+                <TextField fx:id="loginField" prefWidth="120" promptText="login"/>
+                <Label text="Пароль:"/>
+                <PasswordField fx:id="passwordField" prefWidth="120" promptText="password"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Каталог вывода:" prefWidth="120"/>
+                <TextField fx:id="outputDirField" HBox.hgrow="ALWAYS" promptText="Каталог для генерации тестового проекта"/>
+                <Button fx:id="btnSelectOutputDir" text="Обзор..." onAction="#onSelectOutputDir"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Уровень тестов:"/>
+                <ComboBox fx:id="testLevelCombo" prefWidth="130"/>
+                <Button fx:id="btnGenerate" text="Сгенерировать тесты" onAction="#onGenerate"
+                        style="-fx-background-color: #2196F3; -fx-text-fill: white;"/>
+                <Button fx:id="btnRunTests" text="Запустить тесты" onAction="#onRunTests"
+                        style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
+                <Button fx:id="btnShowHistory" text="История прогонов" onAction="#onShowHistory"/>
+                <ProgressBar fx:id="progressBar" prefWidth="150"/>
+                <Label fx:id="statusLabel" text="Готово"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- Center: Split - Entity List + Results -->
+    <center>
+        <SplitPane dividerPositions="0.25" orientation="HORIZONTAL">
+            <!-- Left: Entity list -->
+            <VBox spacing="5" style="-fx-padding: 10;">
+                <Label text="Сущности модели:" style="-fx-font-weight: bold;"/>
+                <ListView fx:id="entityListView" VBox.vgrow="ALWAYS"/>
+            </VBox>
+
+            <!-- Right: Results + Log -->
+            <SplitPane dividerPositions="0.55" orientation="VERTICAL">
+                <!-- Top: Results table -->
+                <VBox spacing="5" style="-fx-padding: 10;">
+                    <HBox spacing="15">
+                        <Label text="Результаты тестов:" style="-fx-font-weight: bold;"/>
+                        <Label fx:id="totalLabel" text="Всего: 0"/>
+                        <Label fx:id="passedLabel" text="Успешно: 0" style="-fx-text-fill: green;"/>
+                        <Label fx:id="failedLabel" text="Ошибки: 0" style="-fx-text-fill: red;"/>
+                    </HBox>
+                    <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colClass" text="Класс" prefWidth="180"/>
+                            <TableColumn fx:id="colMethod" text="Метод" prefWidth="180"/>
+                            <TableColumn fx:id="colStatus" text="Статус" prefWidth="60"/>
+                            <TableColumn fx:id="colDuration" text="Время" prefWidth="80"/>
+                            <TableColumn fx:id="colMessage" text="Сообщение" prefWidth="250"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+
+                <!-- Bottom: Log -->
+                <VBox spacing="5" style="-fx-padding: 10;">
+                    <Label text="Лог:" style="-fx-font-weight: bold;"/>
+                    <TextArea fx:id="logArea" VBox.vgrow="ALWAYS" editable="false"
+                              style="-fx-font-family: monospace; -fx-font-size: 12;"/>
+                </VBox>
+            </SplitPane>
+        </SplitPane>
+    </center>
+</BorderPane>
