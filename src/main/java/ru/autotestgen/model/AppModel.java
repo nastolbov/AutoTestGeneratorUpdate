@@ -27,4 +27,16 @@ public class AppModel {
                 .findFirst()
                 .orElse(null);
     }
+
+    /**
+     * Returns the last segment of CategoryName after "::" — typically the subsystem name.
+     * For "Logical View::Гаражно-строительные кооперативы" returns "Гаражно-строительные кооперативы".
+     * Returns an empty string if CategoryName is not set or contains no "::".
+     */
+    public String getSubsystemNameFromCategory() {
+        if (categoryName == null || categoryName.isEmpty()) return "";
+        int sep = categoryName.lastIndexOf("::");
+        if (sep < 0) return categoryName.trim();
+        return categoryName.substring(sep + 2).trim();
+    }
 }

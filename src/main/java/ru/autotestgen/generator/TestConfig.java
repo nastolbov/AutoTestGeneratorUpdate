@@ -12,6 +12,7 @@ public class TestConfig {
     private String siteType = "e3core"; // "e3core", "generic", "custom"
     private String subsystemName = ""; // E3Core: name of subsystem to select after login
     private String testLevel = "basic"; // "smoke", "basic", "full"
+    private boolean smokeAllSubsystems = true; // E3Core: auto-discover and smoke-test all subsystems
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
@@ -39,4 +40,7 @@ public class TestConfig {
 
     public String getTestLevel() { return testLevel; }
     public void setTestLevel(String testLevel) { this.testLevel = testLevel; }
+
+    public boolean isSmokeAllSubsystems() { return smokeAllSubsystems; }
+    public void setSmokeAllSubsystems(boolean smokeAllSubsystems) { this.smokeAllSubsystems = smokeAllSubsystems; }
 }

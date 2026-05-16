@@ -51,6 +51,11 @@ public class TestGenerator {
             pageWriter.write(entity, srcDir);
             testWriter.write(entity, model, srcDir);
         }
+
+        // Generate SubsystemsSmokeTest (only when smoke-all-subsystems is enabled)
+        if (config.isSmokeAllSubsystems()) {
+            generateSubsystemsSmokeTest(srcDir, basePackage);
+        }
     }
 
     private void generatePom(Path outputDir) throws IOException {
@@ -137,16 +142,36 @@ public class TestGenerator {
         w.writeLine("import org.openqa.selenium.support.ui.WebDriverWait;");
         w.writeLine("import io.github.bonigarcia.wdm.WebDriverManager;");
         w.writeLine("import java.time.Duration;");
+        w.writeLine("import java.util.ArrayList;");
+        w.writeLine("import java.util.Collections;");
+        w.writeLine("import java.util.LinkedHashSet;");
+        w.writeLine("import java.util.List;");
         w.writeLine();
         w.writeLine("/**");
         w.writeLine(" * Shared browser instance for all test classes.");
-        w.writeLine(" * Login and subsystem selection happen once; the driver is reused across all tests.");
+        w.writeLine(" * Login, optional smoke of all subsystems, and selection of the configured");
+        w.writeLine(" * subsystem all happen once; the driver is reused across all tests.");
         w.writeLine(" */");
         w.openBlock("public class SharedDriver");
         w.writeLine();
         w.writeLine("private static WebDriver driver;");
         w.writeLine("private static WebDriverWait wait;");
         w.writeLine("private static boolean initialized = false;");
+        w.writeLine("private static final List<SmokeResult> smokeResults = new ArrayList<>();");
+        w.writeLine();
+
+        // SmokeResult inner class
+        w.writeLine("/** Result of opening one subsystem during the smoke phase. */");
+        w.openBlock("public static class SmokeResult");
+        w.writeLine("public final String name;");
+        w.writeLine("public final boolean ok;");
+        w.writeLine("public final String error;");
+        w.openBlock("public SmokeResult(String name, boolean ok, String error)");
+        w.writeLine("this.name = name;");
+        w.writeLine("this.ok = ok;");
+        w.writeLine("this.error = error;");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine();
 
         // getDriver()
@@ -167,10 +192,18 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // getSmokeResults()
+        w.writeLine("/** Returns the immutable list of smoke results recorded during initialize(). */");
+        w.openBlock("public static synchronized List<SmokeResult> getSmokeResults()");
+        w.openBlock("if (!initialized)");
+        w.writeLine("initialize();");
+        w.closeBlock();
+        w.writeLine("return Collections.unmodifiableList(smokeResults);");
+        w.closeBlock();
+        w.writeLine();
+
         // initialize()
         w.openBlock("private static void initialize()");
-
-        // Browser setup
         w.writeLine("String browser = System.getProperty(\"browser\", \"" + config.getBrowserType() + "\");");
         w.openBlock("if (\"firefox\".equalsIgnoreCase(browser))");
         w.writeLine("WebDriverManager.firefoxdriver().setup();");
@@ -190,19 +223,43 @@ public class TestGenerator {
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.writeLine("wait = new WebDriverWait(driver, Duration.ofSeconds(3));");
         w.writeLine();
+        w.writeLine("performLogin();");
+        w.writeLine();
+        w.openBlock("if (TestData.SMOKE_ALL_SUBSYSTEMS)");
+        w.writeLine("runSmokeAllSubsystems();");
+        w.closeBlock();
+        w.writeLine();
+        w.openBlock("if (TestData.SUBSYSTEM_NAME != null && !TestData.SUBSYSTEM_NAME.isEmpty())");
+        w.writeLine("selectSubsystem(TestData.SUBSYSTEM_NAME);");
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("initialized = true;");
+        w.writeLine("Runtime.getRuntime().addShutdownHook(new Thread(() -> {");
+        w.writeLine("    if (driver != null) driver.quit();");
+        w.writeLine("}));");
+        w.closeBlock(); // end initialize()
+        w.writeLine();
 
-        // Login
-        w.writeLine("// Login");
+        // performLogin()
+        w.writeLine("/** Navigates to BASE_URL and submits the login form if it is visible. Idempotent. */");
+        w.openBlock("private static void performLogin()");
         w.writeLine("driver.get(TestData.BASE_URL);");
-        w.openBlock("if (!TestData.LOGIN.isEmpty())");
+        w.openBlock("if (TestData.LOGIN.isEmpty())");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
         w.openBlock("try");
-        w.writeLine("WebElement loginField = wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(\"input[name='login'], input[name='username'], input[type='text']\")));");
+        w.writeLine("List<WebElement> loginFields = driver.findElements(By.cssSelector(\"input[name='login'], input[name='username'], input[type='text']\"));");
+        w.writeLine("WebElement loginField = loginFields.stream().filter(WebElement::isDisplayed).findFirst().orElse(null);");
+        w.openBlock("if (loginField == null)");
+        w.writeLine("// Already logged in — no form visible");
+        w.writeLine("return;");
+        w.closeBlock();
         w.writeLine("loginField.clear();");
         w.writeLine("loginField.sendKeys(TestData.LOGIN);");
         w.writeLine("WebElement passField = driver.findElement(By.cssSelector(\"input[name='password'], input[type='password']\"));");
         w.writeLine("passField.clear();");
         w.writeLine("passField.sendKeys(TestData.PASSWORD);");
-        w.writeLine("// Try multiple selectors for login button");
         w.writeLine("WebElement submitBtn = null;");
         w.openBlock("try");
         w.writeLine("submitBtn = driver.findElement(By.cssSelector(\"button[type='submit'], input[type='submit']\"));");
@@ -218,7 +275,6 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("if (submitBtn == null)");
         w.openBlock("try");
-        w.writeLine("// Fallback: find any button or input[type=button] on the page");
         w.writeLine("submitBtn = driver.findElement(By.cssSelector(\"button, input[type='button']\"));");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
@@ -232,32 +288,132 @@ public class TestGenerator {
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"Login form not found or login failed: \" + e.getMessage());");
         w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        w.closeBlock(); // end performLogin
         w.writeLine();
 
-        // Subsystem selection
-        w.writeLine("// Select subsystem after login (E3Core-specific)");
-        w.writeLine("String subsystemName = TestData.SUBSYSTEM_NAME;");
-        w.openBlock("if (subsystemName != null && !subsystemName.isEmpty())");
+        // discoverSubsystems()
+        w.writeLine("/** Returns names of all visible subsystem tiles on the launcher screen. */");
+        w.openBlock("private static List<String> discoverSubsystems()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
         w.openBlock("try");
-        w.writeLine("WebElement subsystem = wait.until(ExpectedConditions.elementToBeClickable(");
-        w.writeLine("    By.xpath(\"//b[contains(text(), '\" + subsystemName + \"')]\")));");
-        w.writeLine("new Actions(driver).doubleClick(subsystem).perform();");
-        w.writeLine("System.out.println(\"Subsystem '\" + subsystemName + \"' selected\");");
-        w.writeLine("Thread.sleep(2000);");
+        w.writeLine("List<WebElement> tiles = driver.findElements(By.xpath(\"//b\"));");
+        w.writeLine("LinkedHashSet<String> names = new LinkedHashSet<>();");
+        w.openBlock("for (WebElement tile : tiles)");
+        w.openBlock("try");
+        w.openBlock("if (!tile.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String text = tile.getText();");
+        w.openBlock("if (text == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String trimmed = text.trim();");
+        // Filter: non-empty, length 3+ (skips decorative <b>1</b> etc.), contains at least one letter
+        w.openBlock("if (trimmed.length() < 3)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.openBlock("if (!trimmed.chars().anyMatch(Character::isLetter))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("names.add(trimmed);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return new ArrayList<>(names);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Subsystem selection failed: \" + e.getMessage());");
+        w.writeLine("System.out.println(\"Subsystem discovery failed: \" + e.getMessage());");
+        w.writeLine("return new ArrayList<>();");
         w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        w.closeBlock(); // end discoverSubsystems
         w.writeLine();
 
-        w.writeLine("initialized = true;");
-        w.writeLine("Runtime.getRuntime().addShutdownHook(new Thread(() -> {");
-        w.writeLine("    if (driver != null) driver.quit();");
-        w.writeLine("}));");
+        // selectSubsystem(name)
+        w.writeLine("/** Double-clicks the tile of the given subsystem and verifies its menu button appears. */");
+        w.openBlock("private static boolean selectSubsystem(String name)");
+        w.openBlock("try");
+        w.writeLine("WebElement tile = wait.until(ExpectedConditions.elementToBeClickable(");
+        w.writeLine("    By.xpath(\"//b[contains(text(), '\" + name + \"')]\")));");
+        w.writeLine("new Actions(driver).doubleClick(tile).perform();");
+        w.writeLine("Thread.sleep(2000);");
+        // Verify menu button appeared
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> menuBtns = driver.findElements(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + name + \"')]\"));");
+        w.writeLine("boolean ok = menuBtns.stream().anyMatch(WebElement::isDisplayed);");
+        w.openBlock("if (ok)");
+        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected\");");
+        w.closeBlock();
+        w.writeLine("return ok;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"Subsystem selection failed for '\" + name + \"': \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock(); // end selectSubsystem
+        w.writeLine();
 
-        w.closeBlock(); // end initialize()
+        // returnToLauncher()
+        w.writeLine("/** Best-effort: returns to the launcher screen. Falls back to reloading BASE_URL and re-login. */");
+        w.openBlock("private static void returnToLauncher()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
+        w.openBlock("try");
+        // Try closing active tab via .x-tool-close on the active tab
+        w.writeLine("List<WebElement> closeBtns = driver.findElements(By.cssSelector(\".x-tab-strip-active .x-tab-strip-close, .x-tab-strip-active .x-tool-close\"));");
+        w.openBlock("for (WebElement btn : closeBtns)");
+        w.openBlock("try");
+        w.openBlock("if (btn.isDisplayed())");
+        w.writeLine("btn.click();");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Check launcher tiles are back
+        w.writeLine("List<WebElement> tiles = driver.findElements(By.xpath(\"//b\"));");
+        w.openBlock("if (tiles.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        // Fallback: reload and re-login
+        w.writeLine("performLogin();");
+        w.closeBlock(); // end returnToLauncher
+        w.writeLine();
+
+        // runSmokeAllSubsystems()
+        w.writeLine("/** Discovers all subsystems, opens each one, and records a SmokeResult. */");
+        w.openBlock("private static void runSmokeAllSubsystems()");
+        w.writeLine("List<String> names = discoverSubsystems();");
+        w.writeLine("System.out.println(\"Discovered \" + names.size() + \" subsystem(s)\");");
+        w.openBlock("for (String name : names)");
+        w.openBlock("try");
+        w.writeLine("boolean ok = selectSubsystem(name);");
+        w.writeLine("smokeResults.add(new SmokeResult(name, ok, ok ? null : \"Subsystem did not open (no menu button found)\"));");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("smokeResults.add(new SmokeResult(name, false, e.getMessage()));");
+        w.closeBlock();
+        w.writeLine("returnToLauncher();");
+        w.closeBlock();
+        w.closeBlock(); // end runSmokeAllSubsystems
 
         w.closeBlock(); // end class
 
@@ -737,10 +893,47 @@ public class TestGenerator {
         w.writeLine("public static final String SITE_TYPE = \"" + config.getSiteType() + "\";");
         w.writeLine("public static final String SUBSYSTEM_NAME = \"" + (config.getSubsystemName() != null ? config.getSubsystemName() : "") + "\";");
         w.writeLine("public static final String TEST_LEVEL = \"" + config.getTestLevel() + "\";");
+        w.writeLine("public static final boolean SMOKE_ALL_SUBSYSTEMS = " + config.isSmokeAllSubsystems() + ";");
         w.writeLine();
         w.writeLine("private TestData() {}");
         w.closeBlock();
 
         w.writeToFile(dir, "TestData.java");
+    }
+
+    private void generateSubsystemsSmokeTest(Path srcDir, String basePackage) throws IOException {
+        String packageName = basePackage + ".test";
+        Path dir = srcDir.resolve(packageName.replace('.', '/'));
+        JavaFileWriter w = new JavaFileWriter();
+
+        w.writeLine("package " + packageName + ";");
+        w.writeLine();
+        w.writeLine("import org.junit.jupiter.api.DynamicTest;");
+        w.writeLine("import org.junit.jupiter.api.TestFactory;");
+        w.writeLine("import org.junit.jupiter.api.TestInstance;");
+        w.writeLine("import " + basePackage + ".SharedDriver;");
+        w.writeLine("import " + basePackage + ".SharedDriver.SmokeResult;");
+        w.writeLine("import java.util.stream.Stream;");
+        w.writeLine("import static org.junit.jupiter.api.Assertions.assertTrue;");
+        w.writeLine();
+        w.writeLine("/**");
+        w.writeLine(" * Smoke check: opens each discovered subsystem and reports each as a dynamic test.");
+        w.writeLine(" * Results are produced during SharedDriver.initialize() and read here.");
+        w.writeLine(" */");
+        w.writeLine("@TestInstance(TestInstance.Lifecycle.PER_CLASS)");
+        w.openBlock("public class SubsystemsSmokeTest");
+        w.writeLine();
+        w.writeLine("@TestFactory");
+        w.openBlock("Stream<DynamicTest> smokeAllSubsystems()");
+        w.writeLine("// Trigger SharedDriver initialization (login + smoke) if not yet done.");
+        w.writeLine("SharedDriver.getDriver();");
+        w.writeLine("return SharedDriver.getSmokeResults().stream()");
+        w.writeLine("    .map(r -> DynamicTest.dynamicTest(");
+        w.writeLine("        \"\\u041f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u0430: \" + r.name,");
+        w.writeLine("        () -> assertTrue(r.ok, r.error)));");
+        w.closeBlock();
+        w.closeBlock();
+
+        w.writeToFile(dir, "SubsystemsSmokeTest.java");
     }
 }
