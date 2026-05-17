@@ -639,11 +639,70 @@ public class TestGenerator {
         // the result grid is populated. Without this, isFieldDisplayed sees only the parameter
         // form (Тип/Наименование) and reports "Fields found: 0 of N".
         w.openBlock("if (navigationOk)");
+        // After Найти, E3Core opens a "Дерево поисков" window but leaves the form blank
+        // until the user double-clicks the "по параметрам" tree node. Without this step
+        // the parameter form never renders and executeSearchIfPresent can't find its button.
+        w.writeLine("openParamSearchInTree();");
         w.writeLine("executeSearchIfPresent();");
         w.closeBlock();
         w.writeLine("cachedNavigationOk = navigationOk;");
         w.openBlock("if (!navigationOk)");
         w.writeLine("System.out.println(\"Could not navigate to entity: \" + entityName);");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // openParamSearchInTree: after "Найти" opens the "Дерево поисков" window, double-click
+        // the "по параметрам" leaf in the tree to actually render the parameter form on the right.
+        // Falls back to a single click via JS if double-click is silently ignored.
+        w.openBlock("protected void openParamSearchInTree()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        // Wait up to 4s for the tree node to appear.
+        w.writeLine("WebElement node = null;");
+        w.writeLine("long deadline = System.currentTimeMillis() + 4000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]]\"));");
+        w.openBlock("for (WebElement h : hits)");
+        w.openBlock("try");
+        w.openBlock("if (h.isDisplayed())");
+        w.writeLine("node = h;");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (node != null)");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(250);");
+        w.closeBlock();
+        w.openBlock("if (node == null)");
+        w.writeLine("System.out.println(\"openParamSearchInTree: tree node '\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c' not found within 4s — search window may not be open\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"openParamSearchInTree: double-clicking 'по параметрам'\");");
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(node).doubleClick().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception eDbl)");
+        w.writeLine("System.out.println(\"  double-click failed: \" + eDbl.getClass().getSimpleName() + \" — falling back to JS click\");");
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", node);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored2)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("Thread.sleep(1500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"openParamSearchInTree failed: \" + e.getMessage());");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
@@ -1053,15 +1112,21 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: open search
+        // Helper: open search by tree-node name (uses double-click — ExtJS tree leaves only render on dblclick).
         w.openBlock("protected void openSearch(String searchName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
+        w.writeLine("String trimmed = searchName.trim();");
         w.writeLine("WebElement searchLink = driver.findElement(By.xpath(");
-        w.writeLine("    \"//span[contains(@class, 'x-tree-node-text')][contains(text(), '\" + searchName + \"')]\"");
-        w.writeLine("    + \" | //span[contains(text(), '\" + searchName + \"')]\"");
-        w.writeLine("    + \" | //a[contains(text(), '\" + searchName + \"')]\"));");
-        w.writeLine("searchLink.click();");
+        w.writeLine("    \"//span[contains(@class, 'x-tree-node-text')][contains(normalize-space(.), '\" + trimmed + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + trimmed + \"')]]\"));");
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(searchLink).doubleClick().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception eDbl)");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", searchLink);");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(1200);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"Could not open search: \" + searchName);");
