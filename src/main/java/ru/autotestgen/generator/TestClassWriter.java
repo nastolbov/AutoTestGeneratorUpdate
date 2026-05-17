@@ -205,10 +205,18 @@ public class TestClassWriter {
         w.writeLine("int totalCount = " + totalCount + ";");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
-            // Pass both Russian display name and attr name for flexible detection
             w.writeLine("if (page.isFieldDisplayed(\"" + prop.getName() + "\", \"" + prop.getAttrName() + "\")) foundCount++;");
         }
         w.writeLine("System.out.println(\"Fields found: \" + foundCount + \" of \" + totalCount);");
+        // Hard assertion: at least half of the expected fields must be visible after navigation.
+        // 0/N (the old soft-pass) now fails honestly so the report reflects reality.
+        w.openBlock("if (totalCount > 0)");
+        w.writeLine("int minRequired = Math.max(1, totalCount / 2);");
+        w.writeLine("assertTrue(foundCount >= minRequired,");
+        w.writeLine("    \"Only \" + foundCount + \" of \" + totalCount + \" expected fields are visible — \"");
+        w.writeLine("    + \"the form/grid likely did not load. \"");
+        w.writeLine("    + \"For entities reached via 'Найти', check that 'Выполнить поиск' fires and the result grid appears.\");");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
     }

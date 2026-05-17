@@ -635,9 +635,44 @@ public class TestGenerator {
         w.openBlock("else");
         w.writeLine("navigateGeneric(entityName);");
         w.closeBlock();
+        // After "Найти" lands on the parameters page, automatically run the empty search so
+        // the result grid is populated. Without this, isFieldDisplayed sees only the parameter
+        // form (Тип/Наименование) and reports "Fields found: 0 of N".
+        w.openBlock("if (navigationOk)");
+        w.writeLine("executeSearchIfPresent();");
+        w.closeBlock();
         w.writeLine("cachedNavigationOk = navigationOk;");
         w.openBlock("if (!navigationOk)");
         w.writeLine("System.out.println(\"Could not navigate to entity: \" + entityName);");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // executeSearchIfPresent: click "Выполнить поиск" if visible, otherwise no-op.
+        // Used after navigation so the result grid is populated before tests run.
+        w.openBlock("protected void executeSearchIfPresent()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        // Find "Выполнить поиск" button — ExtJS button text inside a span/button
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//button[contains(@class,'x-btn-text')][contains(text(),'\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//*[contains(text(),'\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]]\"");
+        w.writeLine("    + \" | //button[contains(text(),'\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]\"));");
+        w.writeLine("WebElement btn = btns.stream().filter(WebElement::isDisplayed).findFirst().orElse(null);");
+        w.openBlock("if (btn == null)");
+        // No search button — likely the page is already a grid (НСИ dictionaries) or a form.
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("clickSafely(btn);");
+        // Wait for the result grid to appear / repopulate
+        w.writeLine("Thread.sleep(1500);");
+        w.writeLine("System.out.println(\"Executed empty search to populate result grid\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"executeSearchIfPresent failed: \" + e.getMessage());");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
