@@ -114,7 +114,7 @@ public class TestClassWriter {
         // === SMOKE tests (always generated) ===
 
         // Test 1: Fields are present
-        writeFieldsPresentTest(w, displayProperties);
+        writeFieldsPresentTest(w, displayProperties, entity.getName());
 
         // === BASIC tests (generated for "basic" and "full") ===
         if (isBasicOrFull()) {
@@ -192,14 +192,14 @@ public class TestClassWriter {
         w.writeToFile(dir, testClassName + ".java");
     }
 
-    private void writeFieldsPresentTest(JavaFileWriter w, List<Property> properties) {
+    private void writeFieldsPresentTest(JavaFileWriter w, List<Property> properties, String entityName) {
         int totalCount = 0;
         for (Property prop : properties) {
             if (!isSystemField(prop)) totalCount++;
         }
         w.writeLine("@Test");
         w.writeLine("@Order(1)");
-        w.writeLine("@DisplayName(\"All fields are displayed on the form\")");
+        w.writeLine("@DisplayName(\"\\u041f\\u043e\\u043b\\u044f \\u0444\\u043e\\u0440\\u043c\\u044b '" + entityName + "': \\u043e\\u0436\\u0438\\u0434\\u0430\\u0435\\u0442\\u0441\\u044f " + totalCount + " \\u043f\\u043e\\u043b\\u0435\\u0439\")");
         w.openBlock("void testFieldsPresent()");
         w.writeLine("int foundCount = 0;");
         w.writeLine("int totalCount = " + totalCount + ";");

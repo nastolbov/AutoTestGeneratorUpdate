@@ -303,12 +303,20 @@ public class MainController {
     private void displayResults(TestRunResult result) {
         ObservableList<TestCaseRow> rows = FXCollections.observableArrayList();
         for (TestCaseResult tcr : result.getResults()) {
+            String message;
+            if (tcr.getFailureMessage() != null && !tcr.getFailureMessage().isEmpty()) {
+                message = tcr.getFailureMessage();
+            } else if (tcr.isPassed() && !tcr.isSkipped()) {
+                message = "✓ Проверено: " + tcr.getMethodName();
+            } else {
+                message = "";
+            }
             rows.add(new TestCaseRow(
                     tcr.getClassName(),
                     tcr.getMethodName(),
                     tcr.isSkipped() ? "SKIP" : (tcr.isPassed() ? "OK" : "FAIL"),
                     tcr.getDurationMs() + " мс",
-                    tcr.getFailureMessage() != null ? tcr.getFailureMessage() : ""
+                    message
             ));
         }
         resultsTable.setItems(rows);

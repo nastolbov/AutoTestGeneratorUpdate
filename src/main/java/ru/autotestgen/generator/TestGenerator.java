@@ -651,24 +651,51 @@ public class TestGenerator {
         // executeSearchIfPresent: click "Выполнить поиск" if visible, otherwise no-op.
         // Used after navigation so the result grid is populated before tests run.
         w.openBlock("protected void executeSearchIfPresent()");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        // Aggressive: any visible element whose text contains "Выполнить поиск" (or just "Выполнить").
-        // ExtJS wraps the label in <button class="x-btn-text">, <a class="x-btn">, <span>, etc.,
-        // and the rendered text sometimes has trailing whitespace from icons, so use normalize-space().
-        w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
-        w.writeLine("    \"//*[self::button or self::a or self::input or self::span or self::td]\"");
-        w.writeLine("    + \"[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]\"));");
-        w.writeLine("WebElement btn = candidates.stream().filter(WebElement::isDisplayed).findFirst().orElse(null);");
+        // Poll up to 5 seconds for the button — page may still be loading after "Найти" click.
+        w.writeLine("WebElement btn = null;");
+        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline && btn == null)");
+        w.writeLine("btn = findVisibleSearchButton();");
         w.openBlock("if (btn == null)");
-        w.writeLine("System.out.println(\"executeSearchIfPresent: '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a' button not visible — skipping (already a grid or non-search page)\");");
+        w.writeLine("Thread.sleep(250);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (btn == null)");
+        // Diagnostic dump so we can see what was on the page
+        w.writeLine("String url = \"\";");
+        w.writeLine("String title = \"\";");
+        w.openBlock("try");
+        w.writeLine("url = driver.getCurrentUrl();");
+        w.writeLine("title = driver.getTitle();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"executeSearchIfPresent: '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a' button NOT FOUND after 5s. URL=\" + url + \" Title='\" + title + \"'\");");
+        // List anything that contains "Выпол" so we can see button variants
+        w.writeLine("List<WebElement> hints = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b')]\"));");
+        w.writeLine("int dumpCount = 0;");
+        w.openBlock("for (WebElement h : hints)");
+        w.openBlock("try");
+        w.openBlock("if (!h.isDisplayed() || dumpCount >= 5)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String t = h.getTagName() + \"[\" + (h.getAttribute(\"class\") == null ? \"\" : h.getAttribute(\"class\")) + \"]: \" + h.getText().trim();");
+        w.openBlock("if (t.length() > 200)");
+        w.writeLine("t = t.substring(0, 200) + \"...\";");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  hint: \" + t);");
+        w.writeLine("dumpCount++;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("System.out.println(\"executeSearchIfPresent: clicking <\" + btn.getTagName() + \"> with text '\" + btn.getText().trim() + \"'\");");
         w.writeLine("clickSafely(btn);");
-        // Wait for the result grid to appear / repopulate (ExtJS load mask can stay up several seconds)
         w.writeLine("Thread.sleep(2000);");
-        // Snapshot what now shows up so we can see whether the grid actually loaded
         w.writeLine("List<WebElement> gridRows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row\"));");
         w.writeLine("long visibleRows = gridRows.stream().filter(WebElement::isDisplayed).count();");
         w.writeLine("System.out.println(\"executeSearchIfPresent: result grid now has \" + visibleRows + \" visible row(s)\");");
@@ -678,6 +705,34 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // findVisibleSearchButton: returns the first visible search trigger or null
+        w.openBlock("private WebElement findVisibleSearchButton()");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
+        // Multiple variants: button by text, by aria-label, by tooltip/title, image-only with src containing "search"/"find"
+        w.writeLine("    \"//*[self::button or self::a or self::input or self::span or self::td or self::div]\"");
+        w.writeLine("    + \"[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
+        w.writeLine("    + \"   or contains(@title, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
+        w.writeLine("    + \"   or contains(@aria-label, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
+        w.writeLine("    + \"   or contains(@data-qtip, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
+        w.writeLine("    + \"   or contains(@value, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]\"));");
+        w.openBlock("for (WebElement c : candidates)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("return c;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return null;");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
