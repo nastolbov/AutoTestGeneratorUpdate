@@ -31,6 +31,10 @@ public class TestClassWriter {
     }
 
     public void write(EntityObject entity, AppModel model, Path outputDir) throws IOException {
+        write(entity, model, outputDir, null);
+    }
+
+    public void write(EntityObject entity, AppModel model, Path outputDir, String disabledReason) throws IOException {
         String entityClassName = Transliterator.toClassName(entity.getName());
         String testClassName = entityClassName + "Test";
         String pageClassName = entityClassName + "Page";
@@ -72,6 +76,10 @@ public class TestClassWriter {
 
         // Class
         w.writeLine("@TestMethodOrder(MethodOrderer.OrderAnnotation.class)");
+        if (disabledReason != null && !disabledReason.isEmpty()) {
+            w.writeLine("@org.junit.jupiter.api.Disabled(\""
+                + disabledReason.replace("\\", "\\\\").replace("\"", "\\\"") + "\")");
+        }
         w.openBlock("public class " + testClassName + " extends BaseTest");
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");

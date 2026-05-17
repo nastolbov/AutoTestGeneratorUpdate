@@ -49,13 +49,61 @@ public class TestGenerator {
 
         for (EntityObject entity : model.getEntities()) {
             pageWriter.write(entity, srcDir);
-            testWriter.write(entity, model, srcDir);
+            String disabledReason = computeDisabledReason(entity, model);
+            testWriter.write(entity, model, srcDir, disabledReason);
         }
 
         // Generate SubsystemsSmokeTest (only when smoke-all-subsystems is enabled)
         if (config.isSmokeAllSubsystems()) {
             generateSubsystemsSmokeTest(srcDir, basePackage);
         }
+    }
+
+    /**
+     * Returns a non-null reason when an entity should be @Disabled — typically because it is a
+     * read-only tab/grid inside another entity's card, not a standalone menu page.
+     * Heuristic: entity has NO CRUD operations AND its name stem-matches the name of a
+     * Properties[stereoType="Grid"] group inside another entity. Entities with their own CRUD
+     * stay active — they usually have a menu entry even if they also appear as a grid in a parent.
+     */
+    private String computeDisabledReason(EntityObject entity, AppModel model) {
+        if (entity.hasCrudOperations()) return null;
+        for (EntityObject other : model.getEntities()) {
+            if (other.getGuid() != null && other.getGuid().equals(entity.getGuid())) continue;
+            for (var pg : other.getPropertyGroups()) {
+                if (!"Grid".equals(pg.getStereoType())) continue;
+                String gridName = pg.getName();
+                if (gridName == null || gridName.isEmpty()) continue;
+                if (nameStemsMatch(entity.getName(), gridName)) {
+                    return "Tab/grid '" + gridName + "' inside parent '" + other.getName()
+                        + "' — not standalone";
+                }
+            }
+        }
+        return null;
+    }
+
+    /** True when two entity names match per-word by shared stems (handles singular/plural). */
+    private static boolean nameStemsMatch(String a, String b) {
+        if (a == null || b == null) return false;
+        if (a.equalsIgnoreCase(b)) return true;
+        String[] aw = a.split("[\\s/]+");
+        String[] bw = b.split("[\\s/]+");
+        if (aw.length != bw.length) return false;
+        for (int i = 0; i < aw.length; i++) {
+            String wa = aw[i].toLowerCase();
+            String wb = bw[i].toLowerCase();
+            if (wa.isEmpty() || wb.isEmpty()) return false;
+            int needed = Math.min(Math.min(wa.length(), wb.length()) - 2, 6);
+            if (needed < 2) {
+                if (!wa.equals(wb)) return false;
+            } else {
+                if (!wa.startsWith(wb.substring(0, needed)) && !wb.startsWith(wa.substring(0, needed))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private void generatePom(Path outputDir) throws IOException {
@@ -514,6 +562,10 @@ public class TestGenerator {
         w.writeLine("protected WebDriver driver;");
         w.writeLine("protected WebDriverWait wait;");
         w.writeLine("protected boolean navigationOk = false;");
+        // Cache so navigation is attempted at most ONCE per test class. After a failed first try,");
+        // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
+        w.writeLine("private boolean navigationAttempted = false;");
+        w.writeLine("private boolean cachedNavigationOk = false;");
         w.writeLine();
 
         // BeforeAll - get driver from SharedDriver
@@ -562,8 +614,15 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: navigate to entity
+        // Helper: navigate to entity. First call does the real work; subsequent calls in the
+        // same test class instance return the cached result so failed navigation does not
+        // pay a 10-second cost on every @BeforeEach.
         w.openBlock("protected void navigateToEntity(String entityName, String featureName)");
+        w.openBlock("if (navigationAttempted)");
+        w.writeLine("navigationOk = cachedNavigationOk;");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("navigationAttempted = true;");
         w.writeLine("navigationOk = false;");
         w.openBlock("if (\"e3core\".equals(TestData.SITE_TYPE))");
         w.writeLine("navigateE3Core(entityName);");
@@ -571,6 +630,7 @@ public class TestGenerator {
         w.openBlock("else");
         w.writeLine("navigateGeneric(entityName);");
         w.closeBlock();
+        w.writeLine("cachedNavigationOk = navigationOk;");
         w.openBlock("if (!navigationOk)");
         w.writeLine("System.out.println(\"Could not navigate to entity: \" + entityName);");
         w.closeBlock();
