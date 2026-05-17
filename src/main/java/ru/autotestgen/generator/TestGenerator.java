@@ -612,16 +612,17 @@ public class TestGenerator {
         // descendMenu: recursive submenu walker
         w.writeLine("/**");
         w.writeLine(" * Searches the currently open ExtJS menus (and their submenus, up to maxDepth)");
-        w.writeLine(" * for an item whose text contains entityName. If found, hovers it and clicks the");
-        w.writeLine(" * \"\\u041d\\u0430\\u0439\\u0442\\u0438\" submenu item; falls back to a direct click on the item.");
+        w.writeLine(" * for an item whose text matches entityName by per-word stems (so \"\\u0414\\u043e\\u043b\\u0436\\u043d\\u043e\\u0441\\u0442\\u043d\\u043e\\u0435 \\u043b\\u0438\\u0446\\u043e\" finds");
+        w.writeLine(" * \"\\u0414\\u043e\\u043b\\u0436\\u043d\\u043e\\u0441\\u0442\\u043d\\u044b\\u0435 \\u043b\\u0438\\u0446\\u0430\" too). If found, hovers it and clicks \"\\u041d\\u0430\\u0439\\u0442\\u0438\" (or \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\") in the");
+        w.writeLine(" * revealed submenu; falls back to a direct click on the item itself.");
         w.writeLine(" */");
         w.openBlock("private boolean descendMenu(String entityName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
-        // Step 1: try to find the entity directly in any visible menu — match the SPAN that
-        // holds the menu-item text, or any <a class="x-menu-item"> whose descendant text contains it.
+        w.writeLine("String pred = entityStemPredicate(entityName, \"text()\");");
+        w.writeLine("String predDeep = entityStemPredicate(entityName, \"normalize-space(.)\");");
         w.writeLine("String itemXpath = \"//div[contains(@class,'x-menu')]\"");
-        w.writeLine("    + \"//span[contains(@class,'x-menu-item-text')][contains(text(), '\" + entityName + \"')]\"");
+        w.writeLine("    + \"//span[contains(@class,'x-menu-item-text')][\" + pred + \"]\"");
         w.writeLine("    + \" | //div[contains(@class,'x-menu')]\"");
-        w.writeLine("    + \"//a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + entityName + \"')]\";");
+        w.writeLine("    + \"//a[contains(@class,'x-menu-item')][\" + predDeep + \"]\";");
         w.writeLine("List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));");
         w.openBlock("for (WebElement item : directHits)");
         w.openBlock("try");
@@ -629,20 +630,14 @@ public class TestGenerator {
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
-        w.writeLine("Thread.sleep(300);");
-        w.writeLine("List<WebElement> findBtns = driver.findElements(By.xpath(\"//span[contains(@class,'x-menu-item-text')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')] | //a[contains(@class,'x-menu-item')][contains(text(),'\\u041d\\u0430\\u0439\\u0442\\u0438')]\"));");
-        w.writeLine("WebElement findBtn = null;");
-        w.openBlock("for (WebElement b : findBtns)");
-        w.openBlock("try");
-        w.openBlock("if (b.isDisplayed())");
-        w.writeLine("findBtn = b;");
+        w.writeLine("Thread.sleep(500);");
+        // Prefer "Найти", fall back to "Открыть"
+        w.writeLine("WebElement actionBtn = findVisibleActionBtn(\"\\u041d\\u0430\\u0439\\u0442\\u0438\");");
+        w.openBlock("if (actionBtn == null)");
+        w.writeLine("actionBtn = findVisibleActionBtn(\"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\");");
         w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("if (findBtn != null)");
-        w.writeLine("findBtn.click();");
+        w.openBlock("if (actionBtn != null)");
+        w.writeLine("actionBtn.click();");
         w.writeLine("Thread.sleep(1000);");
         w.writeLine("return true;");
         w.closeBlock();
@@ -710,6 +705,55 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("return false;");
         w.closeBlock(); // end descendMenu
+        w.writeLine();
+
+        // entityStemPredicate: builds an XPath predicate that matches by per-word stems.
+        // For "Должностное лицо" → contains(text(),'Должностн') and contains(text(),'лиц').
+        // This handles ExtJS menu items that use a different declension (plural/genitive/etc.).
+        w.writeLine("/** Builds an XPath predicate that matches an entity by per-word stems (handles Russian declensions). */");
+        w.openBlock("private String entityStemPredicate(String entityName, String textFn)");
+        w.writeLine("String[] words = entityName.split(\"[\\\\s/]+\");");
+        w.writeLine("StringBuilder sb = new StringBuilder();");
+        w.writeLine("boolean first = true;");
+        w.openBlock("for (String word : words)");
+        w.writeLine("word = word.trim();");
+        w.openBlock("if (word.isEmpty() || word.contains(\"'\"))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        // Stem: drop last 2 chars when word is long enough; keep short words as-is.
+        w.writeLine("String stem = word.length() <= 3 ? word : word.substring(0, word.length() - 2);");
+        w.openBlock("if (!first)");
+        w.writeLine("sb.append(\" and \");");
+        w.closeBlock();
+        w.writeLine("sb.append(\"contains(\").append(textFn).append(\", '\").append(stem).append(\"')\");");
+        w.writeLine("first = false;");
+        w.closeBlock();
+        w.openBlock("if (sb.length() == 0)");
+        // Fallback to exact contains() if no stems could be built (e.g. all words have apostrophes)
+        w.writeLine("sb.append(\"contains(\").append(textFn).append(\", '\").append(entityName.replace(\"'\", \"\")).append(\"')\");");
+        w.closeBlock();
+        w.writeLine("return sb.toString();");
+        w.closeBlock();
+        w.writeLine();
+
+        // findVisibleActionBtn: locates a visible menu item with the given action label (Найти, Открыть, …).
+        w.writeLine("/** Returns the last currently-visible menu item whose label contains actionName, or null. */");
+        w.openBlock("private WebElement findVisibleActionBtn(String actionName)");
+        w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(text(),'\" + actionName + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + actionName + \"')]\"));");
+        w.writeLine("WebElement last = null;");
+        w.openBlock("for (WebElement b : hits)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed())");
+        w.writeLine("last = b;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return last;");
+        w.closeBlock();
         w.writeLine();
 
         // Generic navigation
