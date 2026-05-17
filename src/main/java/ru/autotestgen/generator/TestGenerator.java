@@ -791,18 +791,24 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
         w.writeLine("Thread.sleep(500);");
-        // Prefer "Найти", fall back to "Открыть"
         w.writeLine("WebElement actionBtn = findVisibleActionBtn(\"\\u041d\\u0430\\u0439\\u0442\\u0438\");");
         w.openBlock("if (actionBtn == null)");
         w.writeLine("actionBtn = findVisibleActionBtn(\"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\");");
         w.closeBlock();
         w.openBlock("if (actionBtn != null)");
-        w.writeLine("actionBtn.click();");
-        w.writeLine("Thread.sleep(1000);");
+        // Try multiple click strategies — ExtJS menu items sometimes ignore a plain WebElement.click()
+        // because the underlying event handler is on mousedown/mouseup or on a sibling element.
+        w.writeLine("String actionLabel = actionBtn.getText().trim();");
+        w.writeLine("System.out.println(\"descendMenu: trying to click '\" + actionLabel + \"' for entity '\" + entityName + \"'\");");
+        w.writeLine("tryClickAllWays(actionBtn);");
+        w.writeLine("Thread.sleep(1500);");
+        w.writeLine("captureNavScreenshot(entityName, \"after-action\");");
         w.writeLine("return true;");
         w.closeBlock();
-        w.writeLine("item.click();");
-        w.writeLine("Thread.sleep(500);");
+        w.writeLine("System.out.println(\"descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for '\" + entityName + \"'\");");
+        w.writeLine("tryClickAllWays(item);");
+        w.writeLine("Thread.sleep(1000);");
+        w.writeLine("captureNavScreenshot(entityName, \"after-direct\");");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
@@ -913,6 +919,68 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("return last;");
+        w.closeBlock();
+        w.writeLine();
+
+        // tryClickAllWays: try plain click, then Actions.click(), then JS click.
+        // ExtJS menu items sometimes ignore one of them depending on the event binding.
+        w.writeLine("/** Try standard click, then Actions.click(), then JS click — to defeat ExtJS event-binding quirks. */");
+        w.openBlock("private void tryClickAllWays(WebElement el)");
+        w.openBlock("try");
+        w.writeLine("el.click();");
+        w.writeLine("System.out.println(\"  click strategy 1 (plain): OK\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e1)");
+        w.writeLine("System.out.println(\"  click strategy 1 (plain) failed: \" + e1.getClass().getSimpleName());");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(el).click().perform();");
+        w.writeLine("System.out.println(\"  click strategy 2 (Actions): OK\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e2)");
+        w.writeLine("System.out.println(\"  click strategy 2 (Actions) failed: \" + e2.getClass().getSimpleName());");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click();\", el);");
+        w.writeLine("System.out.println(\"  click strategy 3 (JS): OK\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e3)");
+        w.writeLine("System.out.println(\"  click strategy 3 (JS) failed: \" + e3.getClass().getSimpleName());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // captureNavScreenshot: saves a screenshot to target/screenshots/post-nav-<entity>-<phase>.png
+        // and also logs what tab/panel titles are visible so we can diagnose where we landed.
+        w.writeLine("/** Saves a screenshot and logs visible tab strip titles after a navigation attempt. */");
+        w.openBlock("private void captureNavScreenshot(String entityName, String phase)");
+        w.openBlock("try");
+        w.writeLine("java.io.File src = ((org.openqa.selenium.TakesScreenshot) driver).getScreenshotAs(org.openqa.selenium.OutputType.FILE);");
+        w.writeLine("java.nio.file.Path dir = java.nio.file.Path.of(\"target/screenshots\");");
+        w.writeLine("java.nio.file.Files.createDirectories(dir);");
+        w.writeLine("String safe = entityName.replaceAll(\"[^a-zA-Z0-9\\u0400-\\u04FF]+\", \"_\");");
+        w.writeLine("String fname = \"post-nav-\" + safe + \"-\" + phase + \".png\";");
+        w.writeLine("java.nio.file.Files.copy(src.toPath(), dir.resolve(fname), java.nio.file.StandardCopyOption.REPLACE_EXISTING);");
+        w.writeLine("System.out.println(\"  screenshot: target/screenshots/\" + fname);");
+        // Log visible tab strip titles
+        w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-strip-active\"));");
+        w.writeLine("StringBuilder tabList = new StringBuilder();");
+        w.openBlock("for (WebElement t : tabs)");
+        w.openBlock("try");
+        w.openBlock("if (t.isDisplayed())");
+        w.writeLine("if (tabList.length() > 0) tabList.append(\" | \");");
+        w.writeLine("tabList.append(t.getText().trim());");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  visible tabs: \" + (tabList.length() == 0 ? \"<none>\" : tabList.toString()));");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
 
