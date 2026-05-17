@@ -768,12 +768,13 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // findVisibleSearchButton: returns the first visible search trigger or null
+        // findVisibleSearchButton: returns the first visible "Выполнить поиск" trigger, or null.
+        // Filters out window/container divs whose text *contains* the label but which aren't actual buttons.
         w.openBlock("private WebElement findVisibleSearchButton()");
         w.openBlock("try");
         w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
-        // Multiple variants: button by text, by aria-label, by tooltip/title, image-only with src containing "search"/"find"
-        w.writeLine("    \"//*[self::button or self::a or self::input or self::span or self::td or self::div]\"");
+        // div removed — search-tree window's title div contains the label too.
+        w.writeLine("    \"//*[self::button or self::a or self::input or self::span or self::td or self::em]\"");
         w.writeLine("    + \"[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
         w.writeLine("    + \"   or contains(@title, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
         w.writeLine("    + \"   or contains(@aria-label, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
@@ -781,9 +782,16 @@ public class TestGenerator {
         w.writeLine("    + \"   or contains(@value, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')]\"));");
         w.openBlock("for (WebElement c : candidates)");
         w.openBlock("try");
-        w.openBlock("if (c.isDisplayed())");
-        w.writeLine("return c;");
+        w.openBlock("if (!c.isDisplayed())");
+        w.writeLine("continue;");
         w.closeBlock();
+        // A real button's text is short. The search-tree window's title div is 200+ chars and would
+        // hijack the click otherwise.
+        w.writeLine("String txt = c.getText() == null ? \"\" : c.getText().trim();");
+        w.openBlock("if (txt.length() > 60)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("return c;");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -1116,7 +1124,9 @@ public class TestGenerator {
         w.openBlock("protected void openSearch(String searchName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("String trimmed = searchName.trim();");
+        // Collapse runs of whitespace — XML labels sometimes have double spaces ("по  параметрам")
+        // that won't match the single-space tree-node text.
+        w.writeLine("String trimmed = searchName.trim().replaceAll(\"\\\\s+\", \" \");");
         w.writeLine("WebElement searchLink = driver.findElement(By.xpath(");
         w.writeLine("    \"//span[contains(@class, 'x-tree-node-text')][contains(normalize-space(.), '\" + trimmed + \"')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + trimmed + \"')]]\"));");
