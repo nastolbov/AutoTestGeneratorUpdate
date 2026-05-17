@@ -74,6 +74,11 @@ public class TestGenerator {
                 if (!"Grid".equals(pg.getStereoType())) continue;
                 String gridName = pg.getName();
                 if (gridName == null || gridName.isEmpty()) continue;
+                // Skip self-collection grids: a grid named after its own host entity is the
+                // collection view of itself, not a tab in a different parent. Without this,
+                // singular dictionary entities (e.g. "Причина смены...") get mistakenly
+                // disabled because their plural counterpart hosts an identically-named grid.
+                if (gridName.equalsIgnoreCase(other.getName())) continue;
                 if (nameStemsMatch(entity.getName(), gridName)) {
                     return "Tab/grid '" + gridName + "' inside parent '" + other.getName()
                         + "' — not standalone";
