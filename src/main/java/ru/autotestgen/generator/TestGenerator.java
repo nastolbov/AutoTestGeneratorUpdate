@@ -1230,24 +1230,85 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // openRecordCard: double-click the first visible grid row to bring up the record's edit
-        // dialog. Tab-grids (История, Документы, Приглашённые, …) only render INSIDE this dialog,
-        // so testGrid* tests must open the card before trying openTab.
+        // openRecordCard: brings up the record's edit dialog so its tab-grids can be exercised.
+        // Tries three strategies in order — double-click, right-click+«Изменить»/«Открыть»,
+        // and menuAction(entity, «Изменить»). Stops at the first one that produces a dialog.
         w.openBlock("protected boolean openRecordCard()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.writeLine("WebElement firstRow = null;");
         w.openBlock("for (WebElement r : rows)");
         w.openBlock("try");
         w.openBlock("if (r.isDisplayed())");
-        w.writeLine("new Actions(driver).moveToElement(r).doubleClick().perform();");
-        w.writeLine("Thread.sleep(700);");
-        w.writeLine("return isDialogOpen();");
+        w.writeLine("firstRow = r; break;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
+        w.openBlock("if (firstRow == null)");
+        w.writeLine("System.out.println(\"openRecordCard: no visible row to open\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Strategy 1: double-click
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
+        w.writeLine("Thread.sleep(800);");
+        w.openBlock("if (isDialogOpen())");
+        w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 2: right-click + «Изменить»/«Открыть»
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("List<WebElement> menuItems = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.),'\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c') or contains(normalize-space(.),'\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.),'\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c') or contains(normalize-space(.),'\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c')]\"));");
+        w.openBlock("for (WebElement m : menuItems)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed())");
+        w.writeLine("clickSafely(m); Thread.sleep(800);");
+        w.openBlock("if (isDialogOpen())");
+        w.writeLine("System.out.println(\"openRecordCard: opened via right-click menu '\" + m.getText().trim() + \"'\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Close context menu if still open
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 3: select + click toolbar «Изменить»
+        w.openBlock("try");
+        w.writeLine("firstRow.click(); Thread.sleep(300);");
+        w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//button[contains(normalize-space(.),'\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c') or contains(normalize-space(.),'\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c')]\"));");
+        w.openBlock("for (WebElement b : editBtns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed())");
+        w.writeLine("clickSafely(b); Thread.sleep(800);");
+        w.openBlock("if (isDialogOpen())");
+        w.writeLine("System.out.println(\"openRecordCard: opened via toolbar 'Изменить'\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"openRecordCard: all three strategies (double-click, right-click, toolbar) failed\");");
         w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -1275,13 +1336,18 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: fill search parameter by name. Tries (in order):
-        //   1. [name=X] or [id=X] — vanilla HTML form
-        //   2. data-mainwidget-name=X — some ExtJS apps stamp this
-        //   3. id^="<paramName>"   — ExtJS auto-suffixes with random "-1234"
-        //   4. label-based — find <label> with text X, then nearest editable input
-        // Logs the strategy that worked (or all failures) for the run report.
+        // Backwards-compat overload — call sites that don't pass a title fall through to title=null.
         w.openBlock("protected void fillSearchParam(String paramName, String value)");
+        w.writeLine("fillSearchParam(paramName, null, value);");
+        w.closeBlock();
+        w.writeLine();
+
+        // Helper: fill search parameter, trying multiple locator strategies. Strategy "by label"
+        // uses the *Russian* title from SearchParam.title (e.g. 'Наименование ГСК/ОГСК') which is
+        // what actually appears in the form, NOT the technical name 'GBS_NAME'. Without this the
+        // 3 of 4 fillSearchParam calls in the user run all failed silently and the search executed
+        // with empty params — coverage was theatre.
+        w.openBlock("protected void fillSearchParam(String paramName, String title, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
         w.writeLine("WebElement param = null;");
@@ -1310,12 +1376,22 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Strategy 3: label-based (find <label> matching paramName/title, then nearest input)
+        // Strategy 3: label-based, trying the Russian title first (what's actually rendered) and
+        // falling back to the technical name. The label could be a <label>, an ExtJS form-item
+        // header, or a column header in a property-grid table.
         w.openBlock("if (param == null)");
         w.openBlock("try");
-        w.writeLine("List<WebElement> labels = driver.findElements(By.xpath(");
-        w.writeLine("    \"//label[contains(normalize-space(.), '\" + paramName + \"')]\"");
-        w.writeLine("    + \" | //div[contains(@class,'x-form-item-label')][contains(normalize-space(.), '\" + paramName + \"')]\"));");
+        w.writeLine("String[] labelTexts = title == null || title.isBlank()");
+        w.writeLine("    ? new String[]{ paramName }");
+        w.writeLine("    : new String[]{ title, paramName };");
+        w.writeLine("List<WebElement> labels = new java.util.ArrayList<>();");
+        w.openBlock("for (String lt : labelTexts)");
+        w.writeLine("labels.addAll(driver.findElements(By.xpath(");
+        w.writeLine("    \"//label[contains(normalize-space(.), '\" + lt + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-form-item-label')][contains(normalize-space(.), '\" + lt + \"')]\"");
+        w.writeLine("    + \" | //td[contains(@class,'x-form-item-label')][contains(normalize-space(.), '\" + lt + \"')]\"");
+        w.writeLine("    + \" | //span[contains(@class,'x-form-item-label')][contains(normalize-space(.), '\" + lt + \"')]\")));");
+        w.closeBlock();
         w.openBlock("for (WebElement lbl : labels)");
         w.openBlock("if (!lbl.isDisplayed())");
         w.writeLine("continue;");

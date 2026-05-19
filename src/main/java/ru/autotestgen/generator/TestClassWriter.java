@@ -570,13 +570,15 @@ public class TestClassWriter {
             w.writeLine("__sp.put(\"" + safeName + "\", \"" + safeVal + "\");");
         }
         w.writeLine("logSearchParams(\"" + search.getName().replace("\"", "\\\"") + "\", __sp);");
-        // Actually fill the form fields with the same values we just logged.
+        // Actually fill the form fields with the same values we just logged. Pass BOTH the
+        // technical name and the Russian title — fillSearchParam tries title first (label match).
         for (SearchParam param : search.getParams()) {
             if (param.getSearchGuid() != null && !param.getSearchGuid().isEmpty()) continue;
             String value = TestDataFactory.generateSearchParamValue(param);
             String safeName = param.getName().replace("\"", "\\\"");
+            String safeTitle = param.getTitle() == null ? "" : param.getTitle().replace("\"", "\\\"");
             String safeVal = value.replace("\\", "\\\\").replace("\"", "\\\"");
-            w.writeLine("fillSearchParam(\"" + safeName + "\", \"" + safeVal + "\");");
+            w.writeLine("fillSearchParam(\"" + safeName + "\", \"" + safeTitle + "\", \"" + safeVal + "\");");
         }
         w.writeLine();
         w.writeLine("shot(\"params_filled\");");
