@@ -236,16 +236,18 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Required field validation on empty submit\")");
         w.openBlock("void testRequiredFieldValidation()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open add dialog\", () -> menuAction(ENTITY_NAME, \"Добавить\"));");
+        w.writeLine("waitForDialog();");
         w.writeLine("shot(\"after_add\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine();
-        w.writeLine("try { page.clearForm(); } catch (Exception ignored) {}");
+        w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
         w.writeLine("shot(\"after_clear\");");
         w.writeLine();
-        w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // Don't waitForDialogClose — we EXPECT the dialog to stay open due to validation. Just give
+        // ExtJS a brief moment to render error indicators, no longer.
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_submit\");");
         w.writeLine();
         w.writeLine("boolean dialogStillOpen = isDialogOpen();");
@@ -273,21 +275,22 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Partial fill: only first required field\")");
         w.openBlock("void testPartialRequiredFieldValidation()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open add dialog\", () -> menuAction(ENTITY_NAME, \"Добавить\"));");
+        w.writeLine("waitForDialog();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
-        w.writeLine("try { page.clearForm(); } catch (Exception ignored) {}");
+        w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
         w.writeLine("shot(\"cleared\");");
         Property first = requiredProperties.get(0);
         String firstMethod = "fill" + Transliterator.toClassName(first.getAttrName());
         String firstValue = TestDataFactory.generateValue(first);
         if (firstValue != null) {
-            w.writeLine("page." + firstMethod + "(\"" + firstValue + "\");");
+            w.writeLine("step(\"fill first required\", () -> page." + firstMethod + "(\"" + firstValue + "\"));");
         }
         w.writeLine("shot(\"first_filled\");");
-        w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // We expect the dialog to NOT close — short buffer for error rendering only.
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_submit\");");
         w.writeLine();
         // Hard: with only the first required field filled, the others must still block submit.
@@ -315,22 +318,24 @@ public class TestClassWriter {
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine();
-        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open add dialog\", () -> menuAction(ENTITY_NAME, \"Добавить\"));");
+        w.writeLine("waitForDialog();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
-        w.writeLine("page.fillAllFields();");
+        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         w.writeLine("shot(\"all_fields_filled\");");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-            w.writeLine("page." + fillMethod + "(createdMarker);");
+            w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
         }
-        w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // Wait for dialog to close (sign of successful save) THEN for grid to refresh.
+        w.writeLine("waitForDialogClose();");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
@@ -362,14 +367,15 @@ public class TestClassWriter {
         w.openBlock("void testCreateOnlyRequired()");
         w.writeLine("shot(\"start\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open add dialog\", () -> menuAction(ENTITY_NAME, \"Добавить\"));");
+        w.writeLine("waitForDialog();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
-        w.writeLine("page.fillRequiredFields();");
+        w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
         w.writeLine("shot(\"required_filled\");");
-        w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        w.writeLine("waitForDialogClose();");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");
         // Hard: at least same row count (no rollback). Looser than testCreate because some
@@ -387,8 +393,8 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Update existing record\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("selectFirstRecord();");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
+        w.writeLine("waitUntil(d -> !driver.findElements(org.openqa.selenium.By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected\")).isEmpty(), 5, \"row selected\");");
         w.writeLine("shot(\"row_selected\");");
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
@@ -399,18 +405,19 @@ public class TestClassWriter {
             // Use a timestamped value so re-runs over the same record can be distinguished and the
             // marker is guaranteed unique inside the grid.
             w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-            w.writeLine("page." + methodName + "(updatedValue);");
+            w.writeLine("step(\"type updated value\", () -> page." + methodName + "(updatedValue));");
             w.writeLine("shot(\"value_typed\");");
-            w.writeLine("clickButtonByText(\"Готово\");");
-            w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+            w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+            w.writeLine("waitForDialogClose();");
+            w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_save\");");
             w.writeLine();
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
             w.writeLine();
             w.writeLine("// Persistence check: the updated value must be visible somewhere — either in the");
             w.writeLine("// reopened record card OR directly in the grid (its column shows the value).");
-            w.writeLine("selectFirstRecord();");
-            w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+            w.writeLine("step(\"re-select first row\", () -> selectFirstRecord());");
+            w.writeLine("waitUntil(d -> !driver.findElements(org.openqa.selenium.By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected\")).isEmpty(), 5, \"row selected\");");
             w.writeLine("String actual = page.getFieldValue(\"" + stringField.getName() + "\");");
             w.writeLine("if (actual.isEmpty()) actual = page.getFieldValue(\"" + stringField.getAttrName() + "\");");
             w.writeLine("boolean cardMatches = !actual.isEmpty() && actual.contains(updatedValue);");
@@ -419,8 +426,9 @@ public class TestClassWriter {
             w.writeLine("assertTrue(cardMatches || gridMatches,");
             w.writeLine("    \"Update did not persist: value '\" + updatedValue + \"' not found in record card (got '\" + actual + \"') and not in grid\");");
         } else {
-            w.writeLine("clickButtonByText(\"Готово\");");
-            w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+            w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+            w.writeLine("waitForDialogClose();");
+            w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_save\");");
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
         }
@@ -435,7 +443,7 @@ public class TestClassWriter {
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("selectFirstRecord();");
+        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
         w.writeLine("shot(\"row_selected\");");
         // Capture the selected row's text so we can verify the row is actually gone, not just
         // that the row count dropped by one (different row could vanish for unrelated reasons).
@@ -448,14 +456,14 @@ public class TestClassWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("menuAction(ENTITY_NAME, \"Удалить\");");
+        w.writeLine("step(\"click Удалить\", () -> menuAction(ENTITY_NAME, \"Удалить\"));");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
         w.closeBlock();
         w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_delete\");");
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
@@ -483,10 +491,11 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Logical edit of record\")");
         w.openBlock("void testLogicalEdit()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("selectFirstRecord();");
+        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
         w.writeLine("shot(\"row_selected\");");
-        w.writeLine("menuAction(ENTITY_NAME, \"Лог.изменить\");");
-        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"click Лог.изменить\", () -> menuAction(ENTITY_NAME, \"Лог.изменить\"));");
+        // Logical edit may or may not open a dialog — give a brief buffer then check.
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_action\");");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after logical edit\");");
         w.closeBlock();
@@ -500,7 +509,7 @@ public class TestClassWriter {
         w.openBlock("void testArchive()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("selectFirstRecord();");
+        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
         w.writeLine("shot(\"row_selected\");");
         w.writeLine("String archivedMarker = \"\";");
         w.openBlock("try");
@@ -510,10 +519,10 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("menuAction(ENTITY_NAME, \"в Архив\");");
+        w.writeLine("step(\"click в Архив\", () -> menuAction(ENTITY_NAME, \"в Архив\"));");
         w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_archive\");");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after archiving\");");
         w.writeLine();
@@ -538,23 +547,41 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Search: " + search.getName() + "\")");
         w.openBlock("void " + testName + "()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("openSearch(\"" + search.getName() + "\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open search\", () -> openSearch(\"" + search.getName().replace("\"", "\\\"") + "\"));");
+        // Form needs a moment to render after the tree double-click. Conditional wait is hard here
+        // (no specific selector), so short fixed delay is the pragmatic choice.
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"search_opened\");");
-
+        w.writeLine();
+        // Build a LinkedHashMap of the actual values we're about to pass, so the test logs them
+        // verbatim BEFORE the search runs. This is the user-facing diagnostic the run report
+        // surfaces: "for THIS search test we filled GBS_NAME='Test_GBS_NAME', INN='123…'".
+        w.writeLine("java.util.LinkedHashMap<String, String> __sp = new java.util.LinkedHashMap<>();");
         for (SearchParam param : search.getParams()) {
             if (param.getSearchGuid() != null && !param.getSearchGuid().isEmpty()) {
-                w.writeLine("// Parameter '" + param.getTitle() + "' references a lookup (searchGUID) - skip auto-fill");
+                String title = param.getTitle() == null ? param.getName() : param.getTitle();
+                w.writeLine("__sp.put(\"" + param.getName().replace("\"", "\\\"") + "\","
+                        + " \"<FK-lookup '" + title.replace("\"", "\\\"") + "' — skipped>\");");
                 continue;
             }
             String value = TestDataFactory.generateSearchParamValue(param);
-            w.writeLine("fillSearchParam(\"" + param.getName() + "\", \"" + value + "\");");
+            String safeName = param.getName().replace("\"", "\\\"");
+            String safeVal = value.replace("\\", "\\\\").replace("\"", "\\\"");
+            w.writeLine("__sp.put(\"" + safeName + "\", \"" + safeVal + "\");");
         }
-
+        w.writeLine("logSearchParams(\"" + search.getName().replace("\"", "\\\"") + "\", __sp);");
+        // Actually fill the form fields with the same values we just logged.
+        for (SearchParam param : search.getParams()) {
+            if (param.getSearchGuid() != null && !param.getSearchGuid().isEmpty()) continue;
+            String value = TestDataFactory.generateSearchParamValue(param);
+            String safeName = param.getName().replace("\"", "\\\"");
+            String safeVal = value.replace("\\", "\\\\").replace("\"", "\\\"");
+            w.writeLine("fillSearchParam(\"" + safeName + "\", \"" + safeVal + "\");");
+        }
         w.writeLine();
         w.writeLine("shot(\"params_filled\");");
-        w.writeLine("executeSearch();");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"execute search\", () -> executeSearch());");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_search\");");
 
         w.writeLine("assertFalse(isErrorPresent(), \"Search should execute without errors\");");
@@ -576,8 +603,6 @@ public class TestClassWriter {
                 }
                 w.writeLine("System.out.println(\"Search result columns found: \" + columnsFound + \" of " + visibleCols.size()
                         + (visibleCols.size() > 0 ? "; missing: \" + missingCols)" : "\")") + ";");
-                // We don't hard-assert column coverage here because the search may legitimately
-                // return zero rows (which hides column headers). Reserved for testSearchEmpty.
             }
         }
         w.writeLine("int resultRows = getVisibleRowCount();");
@@ -593,12 +618,16 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Search with no results: " + search.getName() + "\")");
         w.openBlock("void " + testName + "()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("openSearch(\"" + search.getName() + "\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open search\", () -> openSearch(\"" + search.getName().replace("\"", "\\\"") + "\"));");
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"search_opened\");");
-        w.writeLine("fillSearchParam(\"" + (search.getParams().isEmpty() ? "q" : search.getParams().get(0).getName()) + "\", \"ZZZZZ_NO_MATCH_99999\");");
-        w.writeLine("executeSearch();");
-        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        String paramName = search.getParams().isEmpty() ? "q" : search.getParams().get(0).getName();
+        w.writeLine("java.util.LinkedHashMap<String, String> __sp = new java.util.LinkedHashMap<>();");
+        w.writeLine("__sp.put(\"" + paramName.replace("\"", "\\\"") + "\", \"ZZZZZ_NO_MATCH_99999\");");
+        w.writeLine("logSearchParams(\"" + search.getName().replace("\"", "\\\"") + " (garbage)\", __sp);");
+        w.writeLine("fillSearchParam(\"" + paramName.replace("\"", "\\\"") + "\", \"ZZZZZ_NO_MATCH_99999\");");
+        w.writeLine("step(\"execute search\", () -> executeSearch());");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_search\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Empty search should not produce errors\");");
         // Hard: search for guaranteed-garbage should yield 0 rows. If it returns rows, the search
@@ -616,8 +645,9 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Grid view: " + grid.getName() + "\")");
         w.openBlock("void " + testName + "()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("openTab(\"" + grid.getName() + "\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open tab '" + grid.getName().replace("\"", "\\\"") + "'\", () -> openTab(\"" + grid.getName().replace("\"", "\\\"") + "\"));");
+        // Brief render buffer — tab content may need ExtJS to paint columns.
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"tab_opened\");");
 
         w.writeLine("boolean gridVisible = isGridDisplayed(\"" + grid.getName() + "\");");
@@ -667,8 +697,8 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Masked fields accept correct format\")");
         w.openBlock("void testMaskedFieldInput()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("step(\"open add dialog\", () -> menuAction(ENTITY_NAME, \"Добавить\"));");
+        w.writeLine("waitForDialog();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine("java.util.List<String> maskFailures = new java.util.ArrayList<>();");

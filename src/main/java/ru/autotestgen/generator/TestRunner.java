@@ -91,7 +91,46 @@ public class TestRunner {
             result.setSkipped(0);
         }
 
+        // Enrich each test case with screenshots from target/screenshots/ (named so we can map by
+        // <Entity>_<testMethod>_…). Done after Surefire parsing so test results already exist.
+        linkScreenshots(projectDir.resolve("target/screenshots"), result);
+
+        // Write the standalone HTML run report. It's the single artifact the user opens to see
+        // what happened: per-test screenshots, search params, step timings, failure messages.
+        try {
+            new RunReportWriter().write(projectDir.resolve("target/run-report.html"), result);
+            new RunReportWriter().writeCsv(projectDir.resolve("target/run-report.csv"), result);
+        } catch (Exception e) {
+            System.err.println("Failed to write run report: " + e.getMessage());
+        }
+
         return result;
+    }
+
+    /** Maps PNGs in target/screenshots/ to test cases by file-name convention. */
+    private void linkScreenshots(Path shotDir, TestRunResult result) {
+        if (!Files.exists(shotDir)) return;
+        try (var stream = Files.list(shotDir)) {
+            stream.filter(p -> p.toString().endsWith(".png")).forEach(p -> {
+                String name = p.getFileName().toString();
+                // Expected: <EntityClass>_<testMethod>_NN_<step>_<status>.png
+                int firstUnderscore = name.indexOf('_');
+                if (firstUnderscore < 0) return;
+                String entity = name.substring(0, firstUnderscore);
+                String rest = name.substring(firstUnderscore + 1);
+                int secondUnderscore = rest.indexOf('_');
+                String method = secondUnderscore < 0 ? rest : rest.substring(0, secondUnderscore);
+                for (TestCaseResult tc : result.getResults()) {
+                    String cls = tc.getClassName() == null ? "" : tc.getClassName();
+                    if (cls.contains(entity) && method.equals(tc.getMethodName())) {
+                        tc.addScreenshot(p.toString());
+                        break;
+                    }
+                }
+            });
+        } catch (IOException e) {
+            System.err.println("linkScreenshots: " + e.getMessage());
+        }
     }
 
     public String getLastMavenOutput() {
@@ -145,6 +184,11 @@ public class TestRunner {
                                             tcr.setPassed(false);
                                             tcr.setSkipped(true);
                                             tcr.setFailureMessage(cleanSkipMessage(reader.getAttributeValue(null, "message")));
+                                        } else if ("system-out".equals(childLocal)) {
+                                            String text = reader.getElementText();
+                                            tcr.setStdOut(text);
+                                            tcr.setSearchParams(extractSearchParams(text));
+                                            extractStepTimings(text, tcr);
                                         }
                                     }
                                 }
@@ -198,5 +242,43 @@ public class TestRunner {
         msg = msg.replaceFirst("^org\\.opentest4j\\.TestAbortedException:\\s*", "");
         msg = msg.replaceFirst("^Assumption failed:\\s*", "");
         return msg.isEmpty() ? "SKIPPED" : msg;
+    }
+
+    /**
+     * Pulls "=== Search params for 'X' ===" blocks out of test stdout. Each contained line
+     * matches "  KEY = 'VALUE'" (printed by BaseTest.logSearchParams). Returns the merged map.
+     */
+    private java.util.Map<String, String> extractSearchParams(String stdout) {
+        java.util.LinkedHashMap<String, String> result = new java.util.LinkedHashMap<>();
+        if (stdout == null || stdout.isEmpty()) return result;
+        boolean inBlock = false;
+        for (String line : stdout.split("\\r?\\n")) {
+            if (line.startsWith("=== Search params")) { inBlock = true; continue; }
+            if (line.startsWith("===") && inBlock) { inBlock = false; continue; }
+            if (!inBlock) continue;
+            // Expected:   KEY = 'VALUE'
+            int eq = line.indexOf('=');
+            if (eq <= 0) continue;
+            String key = line.substring(0, eq).trim();
+            String val = line.substring(eq + 1).trim();
+            if (val.startsWith("'") && val.endsWith("'") && val.length() >= 2) {
+                val = val.substring(1, val.length() - 1);
+            }
+            result.put(key, val);
+        }
+        return result;
+    }
+
+    /** Pulls "[step] name: NNNms" lines into the test case timeline. */
+    private void extractStepTimings(String stdout, TestCaseResult tcr) {
+        if (stdout == null || stdout.isEmpty()) return;
+        java.util.regex.Pattern pat = java.util.regex.Pattern.compile("^\\[step\\] (.+?): (\\d+)ms\\s*$");
+        for (String line : stdout.split("\\r?\\n")) {
+            java.util.regex.Matcher m = pat.matcher(line);
+            if (m.matches()) {
+                try { tcr.addStep(m.group(1), Long.parseLong(m.group(2))); }
+                catch (NumberFormatException ignored) {}
+            }
+        }
     }
 }

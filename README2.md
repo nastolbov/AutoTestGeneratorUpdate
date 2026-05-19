@@ -288,3 +288,165 @@
 - Использование `defValueSource` в `testCreateOnlyRequired` для проверки
   дефолтных значений опциональных полей.
 - Конфигурируемые пороги coverage через CLI-флаги (сейчас 0.5 зашит).
+
+---
+
+# AutoTestGenerator — обновление v5 (скорость + отчёт)
+
+Документ описывает изменения относительно v4 (ветка `claude/autotestgenerator-v4-quality`).
+Цель v5 — ускорить прогон, видеть в каждом запуске **что именно** мы передали
+в форму поиска, и получать на выходе самостоятельный HTML-отчёт.
+
+## Кратко
+
+- В тестах **`Thread.sleep` заменены на условные ожидания**
+  (`waitForDialog`, `waitForDialogClose`, `waitForGridSettle`,
+  `waitUntil(condition, timeout)`). На быстром стенде пауза 1200 мс становится 100 мс.
+- Каждый ключевой блок теста обёрнут в **`step("название", () -> ...)`** —
+  в stdout появляются строки `[step] open add dialog: 1240ms`, по которым
+  парсер потом строит мини-гантт каждого теста.
+- Перед **`executeSearch`** теперь печатается блок
+  `=== Search params for 'X' ===` с каждым параметром и его значением.
+  Видно ровно, что подставили в форму — раньше это была чёрная дыра.
+- После прогона генерируется **`target/run-report.html`** —
+  самостоятельный артефакт со всем нужным: фотолетопись (превью скринов),
+  параметры поиска таблицей, тайминги шагов, причины пропуска/падения,
+  полный stdout каждого теста.
+- Рядом — **`target/run-report.csv`** для Excel/Google Sheets.
+
+## Изменения по слоям
+
+### 1. Условные ожидания
+
+В `BaseTest` добавлены:
+
+| Метод | Что делает |
+|-------|-----------|
+| `waitUntil(cond, sec, desc)` | Универсальный poll через `WebDriverWait`; на тайм-аут логирует, не падает |
+| `waitForDialog()` | Ждёт открытия `.x-window` до 8 сек |
+| `waitForDialogClose()` | Ждёт закрытия `.x-window` до 8 сек |
+| `waitForGridSettle()` | Ждёт пока row-count грида не стабилизируется на 500 мс подряд |
+
+В сгенерированных тестах все blind `Thread.sleep(1000–2000)` после кликов,
+влияющих на UI-состояние, заменены вызовами этих helper'ов. Где условия нет
+(например, после «Лог.изменить» — диалог может и не появиться), оставлен
+короткий буфер 400 мс.
+
+### 2. `step(name, body)` — тайминги в одну строку
+
+В `BaseTest` добавлены перегруженные:
+- `step(name, Runnable body)`
+- `step(name, Supplier<T> body)` — для возвращающих методов
+
+Каждый вызов печатает в stdout `[step] <name>: <duration>ms`. В сгенерированных
+тестах ключевые действия обёрнуты:
+```java
+step("open add dialog", () -> menuAction(ENTITY_NAME, "Добавить"));
+step("fill all fields", () -> page.fillAllFields());
+step("click Готово", () -> clickButtonByText("Готово"));
+```
+
+Парсер в `TestRunner` достаёт эти строки и складывает в
+`TestCaseResult.steps[]`, откуда HTML-отчёт показывает таблицей
+«где сколько времени занято».
+
+### 3. Лог параметров поиска
+
+В `BaseTest` добавлен:
+```java
+protected void logSearchParams(String searchName, LinkedHashMap<String, String> params);
+```
+
+Печатает в stdout блок:
+```
+=== Search params for 'по  параметрам' ===
+  GBS_NAME = 'Test_GBS_NAME'
+  INN = '123456789012'
+  KEY_TYPE_SOCIETY = '<FK-lookup 'Тип ГСК/ОГСК' — skipped>'
+  DATE_BEGIN_OT = '19.05.2026'
+  ...
+==========================================
+```
+
+В каждом сгенерированном `testSearch<N>` (и `testSearchEmpty<N>`) перед
+`fillSearchParam(...)` сначала собирается `LinkedHashMap`, потом он логируется,
+**потом** заполняются поля. Для FK-параметров (с `searchGUID`) в логе пишется
+`<FK-lookup 'Имя поля' — skipped>` — пользователь видит, что параметр существует,
+но автозаполнение не делалось.
+
+`TestRunner.extractSearchParams(stdout)` парсит эти блоки и сохраняет в
+`TestCaseResult.searchParams` — оттуда они уходят в HTML и CSV.
+
+### 4. `target/run-report.html` — самостоятельный артефакт
+
+Новый класс `RunReportWriter` после каждого прогона создаёт HTML-страницу
+(автономную, без зависимостей), которая выглядит так:
+
+- **Шапка**: дата/время прогона, файл XML, URL, общая длительность.
+- **Таблетки-сводки**: всего / passed / failed / skipped.
+- **Раскрывающиеся блоки по тест-классам**, в каждом — по тестам.
+- В каждом тесте:
+  - статус (цветная точка) + длительность;
+  - **полоса скриншотов по шагам** (превью 180px, клик — открыть полноразмерный);
+  - **таблица параметров поиска** (`Параметры поиска (что передавали в форму)`);
+  - **таблица таймингов шагов** (`Время по шагам`);
+  - сообщение об ошибке (красная плашка), если есть;
+  - сворачиваемый блок «stdout (полный)» с полным выводом теста.
+
+Скриншоты ссылаются на файлы рядом (`target/screenshots/...`) — отчёт нужно
+открывать **в той же папке**, где `target/`, иначе картинки не подгрузятся.
+
+Также пишется `target/run-report.csv` с одной строкой на тест-кейс:
+```
+class,test,status,duration_ms,search_params,step_count,screenshot_count,failure_msg
+generated.test.GSKOGSKTest,testSearch2,PASS,4200,GBS_NAME=Test_GBS_NAME; INN=123456789012,2,0,
+```
+
+### 5. Парсинг `<system-out>` и привязка скриншотов
+
+`TestRunner.parseSurefireReports` теперь:
+- читает `<system-out>` каждого `<testcase>` → кладёт в `TestCaseResult.stdOut`;
+- из stdout достаёт `=== Search params ===` блоки → `TestCaseResult.searchParams`;
+- из stdout достаёт строки `[step] X: Yms` → `TestCaseResult.steps[]`.
+
+`TestRunner.linkScreenshots(...)` сканирует `target/screenshots/` и
+по имени файла (`<EntityClass>_<testMethod>_NN_<step>_<status>.png`) привязывает
+каждый скрин к соответствующему `TestCaseResult.screenshots[]`.
+
+Модель `TestCaseResult` расширена полями `stdOut`, `searchParams`,
+`screenshots`, `steps` (последнее — `List<StepTiming(name, ms)>`).
+
+## Файлы
+
+| Файл | Что |
+|------|------|
+| `generator/RunReportWriter.java` | новый — HTML- и CSV-отчёт |
+| `generator/TestRunner.java` | парсинг `<system-out>`, извлечение search params и step timings, привязка скриншотов, вызов RunReportWriter |
+| `generator/TestGenerator.java` | `waitUntil` / `waitForDialog*` / `waitForGridSettle` / `step()` / `logSearchParams` в BaseTest; замена `Thread.sleep(2000)` после клика «Выполнить поиск» на `waitForGridSettle()` |
+| `generator/TestClassWriter.java` | все CRUD/search/grid/validation тесты переведены на `step(...)` + `waitFor*`; `testSearch<N>` и `testSearchEmpty<N>` сначала логируют параметры через `logSearchParams` |
+| `model/TestCaseResult.java` | поля `stdOut`, `searchParams`, `screenshots`, `steps[]` |
+
+## Эффект
+
+- **Скорость прогона** — по самым жадным sleep'ам выигрыш 60–80% на быстром стенде
+  (waitForDialogClose возвращается за 100–200 мс вместо безусловной 1200).
+- **Прозрачность поиска** — теперь видно ровно, что искалось:
+  для каждого `testSearch<N>` в отчёте — таблица «параметр → значение».
+- **Один файл — весь прогон** — открыл `target/run-report.html` в браузере и
+  видишь полную картинку: фотолетопись каждого теста, тайминги, ошибки.
+- **CSV для отчёта** — `target/run-report.csv` вставляется в Excel/Word
+  одной таблицей.
+
+## Что осталось на следующие итерации (v6)
+
+- **Три варианта поиска** вместо одного `testSearch<N>`:
+  пустой / по значению из текущего грида / по диапазону дат —
+  это превратит «search возвращает 0 строк» в реальную проверку фильтрации.
+- **Параллельный запуск тест-классов** через `forkCount=4` + изоляция
+  SharedDriver — потенциально ×3-4 ускорение.
+- **End-to-end цепочка** testCreate → testSearchByCreated:
+  маркер из создания искать через форму, требовать ≥1 строку результата.
+- **Реальные даты для масок типа `99.99.9999`** — сейчас `TestDataFactory`
+  выдаёт `12.34.5678`, которое сервер не примет как дату.
+- **HTML index скриншотов** отдельным файлом — листинг папки `target/screenshots/`
+  с группировкой по сущности.

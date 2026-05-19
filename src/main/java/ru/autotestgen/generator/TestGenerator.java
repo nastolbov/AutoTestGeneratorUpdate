@@ -748,7 +748,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("System.out.println(\"executeSearchIfPresent: clicking <\" + btn.getTagName() + \"> with text '\" + btn.getText().trim() + \"'\");");
         w.writeLine("clickSafely(btn);");
-        w.writeLine("Thread.sleep(2000);");
+        // v5: instead of a blind 2-second buffer, wait for the grid to stop changing.
+        w.writeLine("waitForGridSettle();");
         w.writeLine("List<WebElement> gridRows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row\"));");
         w.writeLine("long visibleRows = gridRows.stream().filter(WebElement::isDisplayed).count();");
         w.writeLine("System.out.println(\"executeSearchIfPresent: result grid now has \" + visibleRows + \" visible row(s)\");");
@@ -1494,6 +1495,86 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // ====== v5: explicit waits + step timing ======
+
+        // waitUntil: poll a condition until it's true or timeout. On timeout, log and return false
+        // — keeps tests robust without throwing, so a slow ExtJS render doesn't abort the whole test.
+        w.openBlock("protected boolean waitUntil(java.util.function.Function<WebDriver, Boolean> cond, int seconds, String desc)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(100));");
+        w.openBlock("try");
+        w.writeLine("new WebDriverWait(driver, Duration.ofSeconds(seconds)).until(cond);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (org.openqa.selenium.TimeoutException e)");
+        w.writeLine("System.out.println(\"waitUntil(\" + desc + \"): timeout after \" + seconds + \"s\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // waitForDialog/waitForDialogClose: replace blind Thread.sleep around modal interactions.
+        w.openBlock("protected boolean waitForDialog()");
+        w.writeLine("return waitUntil(d -> isDialogOpen(), 8, \"dialog open\");");
+        w.closeBlock();
+        w.writeLine();
+
+        w.openBlock("protected boolean waitForDialogClose()");
+        w.writeLine("return waitUntil(d -> !isDialogOpen(), 8, \"dialog close\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // waitForGridSettle: wait until visible row count is stable for ~500ms. Used after Create /
+        // Delete / Archive / Search to ensure the result grid reflects the new state.
+        w.openBlock("protected boolean waitForGridSettle()");
+        w.writeLine("final int[] prev = { Integer.MIN_VALUE };");
+        w.writeLine("final long[] stableSince = { -1L };");
+        w.writeLine("return waitUntil(d -> {");
+        w.writeLine("    int n = getVisibleRowCount();");
+        w.writeLine("    if (n == prev[0]) {");
+        w.writeLine("        if (stableSince[0] < 0) stableSince[0] = System.currentTimeMillis();");
+        w.writeLine("        return System.currentTimeMillis() - stableSince[0] >= 500;");
+        w.writeLine("    }");
+        w.writeLine("    prev[0] = n;");
+        w.writeLine("    stableSince[0] = System.currentTimeMillis();");
+        w.writeLine("    return false;");
+        w.writeLine("}, 10, \"grid settle\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // step: time a chunk of test work and log "[step] name: NNNms". The HTML report parser
+        // pulls these lines back out so each test rendering is a mini gantt of where time went.
+        w.openBlock("protected <T> T step(String name, java.util.function.Supplier<T> body)");
+        w.writeLine("long t0 = System.currentTimeMillis();");
+        w.openBlock("try");
+        w.writeLine("return body.get();");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("long dt = System.currentTimeMillis() - t0;");
+        w.writeLine("System.out.println(\"[step] \" + name + \": \" + dt + \"ms\");");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        w.openBlock("protected void step(String name, Runnable body)");
+        w.writeLine("step(name, () -> { body.run(); return (Void) null; });");
+        w.closeBlock();
+        w.writeLine();
+
+        // logSearchParams: emit a block the HTML/CSV report can lift out, showing exactly which
+        // values went into the form. Without this the search test is a black box — value passed
+        // was either "Test_<NAME>" or a synthetic mask string, but the user never saw which.
+        w.openBlock("protected void logSearchParams(String searchName, java.util.LinkedHashMap<String, String> params)");
+        w.writeLine("System.out.println(\"=== Search params for '\" + searchName + \"' ===\");");
+        w.openBlock("for (java.util.Map.Entry<String, String> e : params.entrySet())");
+        w.writeLine("System.out.println(\"  \" + e.getKey() + \" = '\" + e.getValue() + \"'\");");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"==========================================\");");
         w.closeBlock();
 
         w.closeBlock(); // end class
