@@ -31,6 +31,19 @@ public class TestGenerator {
         // Create project structure
         Files.createDirectories(srcDir);
 
+        // Wipe previously-generated test classes and page objects so changing the entity-classifier
+        // verdict (e.g. v3 ran with no classifier and dropped 19 test classes here) doesn't leave
+        // stale tests that Maven will still execute. Generated SharedDriver/BaseTest/TestData are
+        // rewritten unconditionally below so wiping them is also safe.
+        Path generatedRoot = srcDir.resolve(basePackage.replace('.', '/'));
+        if (Files.exists(generatedRoot)) {
+            try (var paths = Files.walk(generatedRoot)) {
+                paths.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                    try { Files.delete(p); } catch (IOException ignored) {}
+                });
+            }
+        }
+
         // Generate pom.xml for the test project
         generatePom(outputDir);
 
@@ -1216,16 +1229,80 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: fill search parameter by name
+        // Helper: fill search parameter by name. Tries (in order):
+        //   1. [name=X] or [id=X] — vanilla HTML form
+        //   2. data-mainwidget-name=X — some ExtJS apps stamp this
+        //   3. id^="<paramName>"   — ExtJS auto-suffixes with random "-1234"
+        //   4. label-based — find <label> with text X, then nearest editable input
+        // Logs the strategy that worked (or all failures) for the run report.
         w.openBlock("protected void fillSearchParam(String paramName, String value)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        w.writeLine("WebElement param = driver.findElement(By.cssSelector(\"[name='\" + paramName + \"'], [id='\" + paramName + \"']\"));");
+        w.writeLine("WebElement param = null;");
+        w.writeLine("String strategy = \"\";");
+        // Strategy 1: direct name/id
+        w.openBlock("try");
+        w.writeLine("List<WebElement> direct = driver.findElements(By.cssSelector(\"[name='\" + paramName + \"'], [id='\" + paramName + \"']\"));");
+        w.openBlock("for (WebElement e : direct)");
+        w.openBlock("if (e.isDisplayed() && e.isEnabled())");
+        w.writeLine("param = e; strategy = \"name/id direct\"; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 2: id prefix (ExtJS auto-suffix)
+        w.openBlock("if (param == null)");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> prefix = driver.findElements(By.cssSelector(\"[id^='\" + paramName + \"-']\"));");
+        w.openBlock("for (WebElement e : prefix)");
+        w.openBlock("if (e.isDisplayed() && e.isEnabled() && (\"input\".equals(e.getTagName()) || \"textarea\".equals(e.getTagName())))");
+        w.writeLine("param = e; strategy = \"id prefix\"; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Strategy 3: label-based (find <label> matching paramName/title, then nearest input)
+        w.openBlock("if (param == null)");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> labels = driver.findElements(By.xpath(");
+        w.writeLine("    \"//label[contains(normalize-space(.), '\" + paramName + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-form-item-label')][contains(normalize-space(.), '\" + paramName + \"')]\"));");
+        w.openBlock("for (WebElement lbl : labels)");
+        w.openBlock("if (!lbl.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("List<WebElement> nearby = lbl.findElements(By.xpath(\"./following::input[not(@type='hidden')][1] | ./parent::*//input[not(@type='hidden')] | ./following::textarea[1]\"));");
+        w.openBlock("for (WebElement e : nearby)");
+        w.openBlock("if (e.isDisplayed() && e.isEnabled())");
+        w.writeLine("param = e; strategy = \"by label\"; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (param != null)");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (param != null)");
+        w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: \" + strategy + \")\");");
+        w.openBlock("try");
         w.writeLine("param.clear();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("param.sendKeys(value);");
         w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("System.out.println(\"Could not fill search param: \" + paramName + \" (no input matched name/id/label)\");");
+        w.closeBlock();
+        w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Could not fill search param: \" + paramName);");
+        w.writeLine("System.out.println(\"Could not fill search param '\" + paramName + \"': \" + e.getMessage());");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
@@ -1233,15 +1310,25 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check if a column header is present in any table
+        // Helper: check if a column header is present in any table.
+        // Covers ExtJS 3 (.x-grid3-hd*), ExtJS 4/5 (.x-column-header, .x-column-header-text),
+        // and plain HTML (<th>, <td.header>). Normalises whitespace so XML titles with non-breaking
+        // spaces or doubled spaces still match the rendered text.
         w.openBlock("protected boolean isColumnPresent(String columnTitle)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
+        w.writeLine("String t = columnTitle == null ? \"\" : columnTitle.trim();");
+        // Strip "_" suffix that some entity-stem matching adds for disambiguation.
+        w.writeLine("if (t.endsWith(\"_\")) t = t.substring(0, t.length() - 1);");
         w.writeLine("List<WebElement> headers = driver.findElements(By.xpath(");
-        w.writeLine("    \"//th[contains(text(), '\" + columnTitle + \"')]\"");
-        w.writeLine("    + \" | //td[contains(@class,'header')][contains(text(), '\" + columnTitle + \"')]\"");
-        w.writeLine("    + \" | //div[contains(@class,'x-grid3-hd-inner')][contains(text(), '\" + columnTitle + \"')]\"");
-        w.writeLine("    + \" | //div[contains(@class,'x-grid3-hd')][contains(text(), '\" + columnTitle + \"')]\"));");
+        w.writeLine("    \"//th[contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //td[contains(@class,'header')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-grid3-hd')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-grid3-hd-inner')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-column-header')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //span[contains(@class,'x-column-header-text')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-column-header')][contains(normalize-space(.), '\" + t + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-grid-header')]//*[self::div or self::span or self::a][contains(normalize-space(.), '\" + t + \"')]\"));");
         w.writeLine("return headers.stream().anyMatch(WebElement::isDisplayed);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");

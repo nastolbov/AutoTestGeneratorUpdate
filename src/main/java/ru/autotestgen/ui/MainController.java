@@ -253,7 +253,9 @@ public class MainController {
             log("Тесты завершены. Всего: " + result.getTotalTests()
                     + ", Успешно: " + result.getPassed()
                     + ", Ошибки: " + result.getFailed());
-            log("HTML-отчёт: " + outputPath + "/target/site/surefire-report.html");
+            log("HTML-отчёт (v5, с фотолетописью): " + outputPath + "/target/run-report.html");
+            log("HTML-отчёт (стандартный surefire): " + outputPath + "/target/site/surefire-report.html");
+            log("CSV-отчёт: " + outputPath + "/target/run-report.csv");
             log("Скриншоты: " + outputPath + "/target/screenshots/");
             if (result.getMavenOutput() != null && !result.getMavenOutput().isEmpty()) {
                 log("=== Вывод Maven ===");
