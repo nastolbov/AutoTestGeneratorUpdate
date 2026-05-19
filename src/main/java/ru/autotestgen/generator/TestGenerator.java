@@ -1161,31 +1161,66 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: open search by tree-node name (uses double-click — ExtJS tree leaves only render on dblclick).
+        // Helper: open search by tree-node name. Tries direct double-click first; if the tree
+        // isn't visible (e.g. after the first search the tree window closed), re-opens it via
+        // menuAction(entityName(), "Найти") and retries.
         w.openBlock("protected void openSearch(String searchName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         // Collapse runs of whitespace — XML labels sometimes have double spaces ("по  параметрам")
         // that won't match the single-space tree-node text.
         w.writeLine("String trimmed = searchName.trim().replaceAll(\"\\\\s+\", \" \");");
-        w.writeLine("WebElement searchLink = driver.findElement(By.xpath(");
-        w.writeLine("    \"//span[contains(@class, 'x-tree-node-text')][contains(normalize-space(.), '\" + trimmed + \"')]\"");
-        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + trimmed + \"')]]\"));");
+        w.writeLine("WebElement searchLink = findTreeNode(trimmed);");
+        w.openBlock("if (searchLink == null)");
+        // Self-healing: tree window probably closed. Re-trigger menuAction(entity, "Найти") to
+        // bring it back, then look again.
+        w.writeLine("System.out.println(\"openSearch: tree node '\" + trimmed + \"' not visible — re-opening tree via menuAction('\\u041d\\u0430\\u0439\\u0442\\u0438')\");");
+        w.writeLine("menuAction(entityName(), \"\\u041d\\u0430\\u0439\\u0442\\u0438\");");
+        w.writeLine("try { Thread.sleep(600); } catch (InterruptedException ignored) {}");
+        w.writeLine("searchLink = findTreeNode(trimmed);");
+        w.closeBlock();
+        w.openBlock("if (searchLink == null)");
+        w.writeLine("System.out.println(\"Could not open search: \" + searchName + \" (tree node not found even after re-opening tree)\");");
+        w.writeLine("return;");
+        w.closeBlock();
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(searchLink).doubleClick().perform();");
         w.closeBlock();
         w.openBlock("catch (Exception eDbl)");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", searchLink);");
         w.closeBlock();
-        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("Thread.sleep(1000);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Could not open search: \" + searchName);");
+        w.writeLine("System.out.println(\"openSearch failed: \" + e.getMessage());");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
+        w.writeLine();
+
+        // findTreeNode: locates the named leaf in the open search-tree window, or null if absent.
+        w.openBlock("private WebElement findTreeNode(String trimmedName)");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class, 'x-tree-node-text')][contains(normalize-space(.), '\" + trimmedName + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + trimmedName + \"')]]\"));");
+        w.openBlock("for (WebElement h : hits)");
+        w.openBlock("try");
+        w.openBlock("if (h.isDisplayed())");
+        w.writeLine("return h;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.writeLine();
         w.writeLine();
 
         // Helper: execute search
@@ -1352,7 +1387,21 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("System.out.println(\"openRecordCard: all four strategies failed (double-click, right-click, toolbar, Enter)\");");
+        // Strategy 5: menuAction(entity, «Изменить») — in E3Core the edit/open action lives in the
+        // entity's menu submenu, not on a grid toolbar (the toolbar from the user diagnostic shows
+        // only top-level Файл/НСИ/Отчёты buttons). Row must be selected first.
+        w.openBlock("try");
+        w.writeLine("firstRow.click(); Thread.sleep(300);");
+        w.writeLine("menuAction(entityName(), \"\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("Thread.sleep(800);");
+        w.openBlock("if (isDialogOpen())");
+        w.writeLine("System.out.println(\"openRecordCard: opened via menuAction('Изменить')\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"openRecordCard: all five strategies failed (double-click, right-click, toolbar, Enter, menu 'Изменить')\");");
         // Diagnostic: what's on the page?
         w.openBlock("try");
         w.writeLine("List<WebElement> btns = driver.findElements(By.cssSelector(\"button, a.x-btn, input[type='button']\"));");
