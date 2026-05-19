@@ -86,6 +86,16 @@ public class TestClassWriter {
         w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
         w.writeLine();
 
+        // Override entityName() so BaseTest helpers (menuAction, openSearch, openRecordCard) look
+        // up the entity by its real Russian name in the launcher menu — not the transliterated
+        // class name. Without this override every menuAction(entityName(), action) would search
+        // for an English/transliterated menu item that doesn't exist.
+        w.writeLine("@Override");
+        w.openBlock("protected String entityName()");
+        w.writeLine("return ENTITY_NAME;");
+        w.closeBlock();
+        w.writeLine();
+
         // @BeforeEach — reset state and navigate only once per test class
         w.writeLine("@BeforeEach");
         w.openBlock("void setUp()");

@@ -1717,8 +1717,18 @@ public class TestGenerator {
 
         // ====== Step-screenshot helpers + assertion utilities (v4) ======
 
-        // entityName(): derive entity name from class name. Subclasses may override.
+        // entityName(): the entity's *Russian* name as it appears in the launcher menu — used by
+        // menuAction/openSearch/openRecordCard. Each generated test subclass overrides this to
+        // return its ENTITY_NAME constant ("ГСК/ОГСК", "Совещание", …). The default falls back to
+        // the transliterated class name so callers don't NPE even if a subclass forgets to override.
         w.openBlock("protected String entityName()");
+        w.writeLine("return shotEntityName();");
+        w.closeBlock();
+        w.writeLine();
+
+        // shotEntityName(): ASCII-safe transliterated name for screenshot filenames. Independent of
+        // entityName() because we want filenames like "GSKOGSK_testX_*.png" rather than Cyrillic ones.
+        w.openBlock("protected String shotEntityName()");
         w.writeLine("String n = getClass().getSimpleName();");
         w.openBlock("if (n.endsWith(\"Test\"))");
         w.writeLine("n = n.substring(0, n.length() - 4);");
@@ -1739,7 +1749,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.writeLine("stepCounter++;");
         w.writeLine("String safeStep = step == null ? \"step\" : step.replaceAll(\"[^a-zA-Z0-9а-яА-Я_-]\", \"_\");");
-        w.writeLine("String safeEntity = entityName().replaceAll(\"[^a-zA-Z0-9а-яА-Я_-]\", \"_\");");
+        w.writeLine("String safeEntity = shotEntityName().replaceAll(\"[^a-zA-Z0-9а-яА-Я_-]\", \"_\");");
         w.writeLine("String fname = String.format(\"%s_%s_%02d_%s_%s.png\", safeEntity, currentTestName, stepCounter, safeStep, status);");
         w.writeLine("File src = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);");
         w.writeLine("Path dir = Path.of(\"target/screenshots\");");
