@@ -985,7 +985,7 @@ public class TestGenerator {
         // For "Должностное лицо" → contains(text(),'Должностн') and contains(text(),'лиц').
         // This handles ExtJS menu items that use a different declension (plural/genitive/etc.).
         w.writeLine("/** Builds an XPath predicate that matches an entity by per-word stems (handles Russian declensions). */");
-        w.openBlock("private String entityStemPredicate(String entityName, String textFn)");
+        w.openBlock("protected String entityStemPredicate(String entityName, String textFn)");
         w.writeLine("String[] words = entityName.split(\"[\\\\s/]+\");");
         w.writeLine("StringBuilder sb = new StringBuilder();");
         w.writeLine("boolean first = true;");
@@ -1012,7 +1012,7 @@ public class TestGenerator {
 
         // findVisibleActionBtn: locates a visible menu item with the given action label (Найти, Открыть, …).
         w.writeLine("/** Returns the last currently-visible menu item whose label contains actionName, or null. */");
-        w.openBlock("private WebElement findVisibleActionBtn(String actionName)");
+        w.openBlock("protected WebElement findVisibleActionBtn(String actionName)");
         w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
         w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(text(),'\" + actionName + \"')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + actionName + \"')]\"));");
@@ -1033,7 +1033,7 @@ public class TestGenerator {
         // tryClickAllWays: try plain click, then Actions.click(), then JS click.
         // ExtJS menu items sometimes ignore one of them depending on the event binding.
         w.writeLine("/** Try standard click, then Actions.click(), then JS click — to defeat ExtJS event-binding quirks. */");
-        w.openBlock("private void tryClickAllWays(WebElement el)");
+        w.openBlock("protected void tryClickAllWays(WebElement el)");
         w.openBlock("try");
         w.writeLine("el.click();");
         w.writeLine("System.out.println(\"  click strategy 1 (plain): OK\");");
@@ -1172,11 +1172,11 @@ public class TestGenerator {
         w.writeLine("String trimmed = searchName.trim().replaceAll(\"\\\\s+\", \" \");");
         w.writeLine("WebElement searchLink = findTreeNode(trimmed);");
         w.openBlock("if (searchLink == null)");
-        // Self-healing: tree window probably closed. Re-trigger menuAction(entity, "Найти") to
-        // bring it back, then look again.
-        w.writeLine("System.out.println(\"openSearch: tree node '\" + trimmed + \"' not visible — re-opening tree via menuAction('\\u041d\\u0430\\u0439\\u0442\\u0438')\");");
-        w.writeLine("menuAction(entityName(), \"\\u041d\\u0430\\u0439\\u0442\\u0438\");");
-        w.writeLine("try { Thread.sleep(600); } catch (InterruptedException ignored) {}");
+        // Self-healing: tree window probably closed. Re-trigger menu lookup via the robust
+        // stem-matching helper to bring it back, then look again.
+        w.writeLine("System.out.println(\"openSearch: tree node '\" + trimmed + \"' not visible — re-opening tree via clickEntityMenuItem('Найти')\");");
+        w.writeLine("clickEntityMenuItem(entityName(), new String[]{ \"\\u041d\\u0430\\u0439\\u0442\\u0438\" });");
+        w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         w.writeLine("searchLink = findTreeNode(trimmed);");
         w.closeBlock();
         w.openBlock("if (searchLink == null)");
@@ -1387,21 +1387,24 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 5: menuAction(entity, «Изменить») — in E3Core the edit/open action lives in the
-        // entity's menu submenu, not on a grid toolbar (the toolbar from the user diagnostic shows
-        // only top-level Файл/НСИ/Отчёты buttons). Row must be selected first.
+        // Strategy 5: robust menu lookup via clickEntityMenuItem (stem-matching). Tries
+        // «Изменить», «Редактировать», «Открыть» in turn — different stand builds use different
+        // labels for the edit-record action.
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(300);");
-        w.writeLine("menuAction(entityName(), \"\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("boolean clicked = clickEntityMenuItem(entityName(), new String[]{");
+        w.writeLine("    \"\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c\",");
+        w.writeLine("    \"\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u0442\\u044c\",");
+        w.writeLine("    \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\"});");
         w.writeLine("Thread.sleep(800);");
-        w.openBlock("if (isDialogOpen())");
-        w.writeLine("System.out.println(\"openRecordCard: opened via menuAction('Изменить')\");");
+        w.openBlock("if (clicked && isDialogOpen())");
+        w.writeLine("System.out.println(\"openRecordCard: opened via clickEntityMenuItem\");");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("System.out.println(\"openRecordCard: all five strategies failed (double-click, right-click, toolbar, Enter, menu 'Изменить')\");");
+        w.writeLine("System.out.println(\"openRecordCard: all five strategies failed (double-click, right-click, toolbar, Enter, robust menu)\");");
         // Diagnostic: what's on the page?
         w.openBlock("try");
         w.writeLine("List<WebElement> btns = driver.findElements(By.cssSelector(\"button, a.x-btn, input[type='button']\"));");
@@ -1855,6 +1858,74 @@ public class TestGenerator {
         w.writeLine("executeSearchIfPresent();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // clickEntityMenuItem: robust replacement for the brittle menuAction. Uses stem-matching
+        // (same as descendMenu) instead of contains(text(), exact). The v6.5 run showed menuAction
+        // failing silently because contains(text(),'ГСК/ОГСК') doesn't match items that ExtJS may
+        // render with extra whitespace, NBSP, or wrapper elements.
+        w.openBlock("protected boolean clickEntityMenuItem(String entityName, String[] actionsToTry)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(250);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.openBlock("for (String menuName : menuButtons)");
+        w.openBlock("try");
+        w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
+        w.writeLine("tryClickAllWays(menuBtn);");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("String pred = entityStemPredicate(entityName, \"text()\");");
+        w.writeLine("String predDeep = entityStemPredicate(entityName, \"normalize-space(.)\");");
+        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-menu')]//span[contains(@class,'x-menu-item-text')][\" + pred + \"]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')][\" + predDeep + \"]\"));");
+        w.openBlock("for (WebElement item : items)");
+        w.openBlock("try");
+        w.openBlock("if (!item.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(item).perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.openBlock("for (String action : actionsToTry)");
+        w.writeLine("WebElement actionBtn = findVisibleActionBtn(action);");
+        w.openBlock("if (actionBtn != null)");
+        w.writeLine("System.out.println(\"clickEntityMenuItem: clicking '\" + action + \"' under '\" + entityName + \"' (menu: \" + menuName + \")\");");
+        w.writeLine("tryClickAllWays(actionBtn);");
+        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Throwable ignored)");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Throwable ignored2)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"clickEntityMenuItem: no action from \" + java.util.Arrays.toString(actionsToTry) + \" found under '\" + entityName + \"' in any subsystem menu\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
