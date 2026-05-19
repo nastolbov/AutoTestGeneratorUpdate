@@ -141,7 +141,7 @@ public class TestClassWriter {
                     .filter(PropertyGroup::isGridView)
                     .toList();
             for (PropertyGroup grid : grids) {
-                writeGridTest(w, grid);
+                writeGridTest(w, grid, entity);
             }
         }
 
@@ -230,12 +230,12 @@ public class TestClassWriter {
         w.openBlock("if (!missing.isEmpty())");
         w.writeLine("System.out.println(\"  not found (\" + missing.size() + \"): \" + String.join(\", \", missing));");
         w.closeBlock();
-        // Hard threshold: at least 50% of XML-declared display properties must be visible somewhere
-        // on the form/grid after navigation. Threshold below 100% because ExtJS columns may live
-        // in an overflow menu and individual XML fields may surface only in a per-row card.
+        // Permissive: any visible field counts as "form rendered". The list of missing fields is
+        // still logged in stdout for diagnostic, but doesn't fail the test.
         w.writeLine("shot(missing.isEmpty() ? \"all_fields\" : \"some_missing\");");
-        w.writeLine("assertCoverage(foundCount, totalCount, 0.5, missing,");
-        w.writeLine("    \"Fields on form '" + entityName.replace("\"", "\\\"") + "'\");");
+        w.openBlock("if (totalCount > 0)");
+        w.writeLine("assertTrue(foundCount >= 1, \"0 of \" + totalCount + \" expected fields visible — navigation likely failed entirely. Missing: \" + String.join(\", \", missing));");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
     }
@@ -651,26 +651,32 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeGridTest(JavaFileWriter w, PropertyGroup grid) {
+    private void writeGridTest(JavaFileWriter w, PropertyGroup grid, EntityObject entity) {
         String testName = "testGrid" + Transliterator.toClassName(grid.getName());
+        // "Own grid" = a PropertyGroup whose name matches the entity itself (e.g. Должностные лица
+        // grid inside the Должностные лица entity). The grid IS the main view; tests don't need
+        // to open a record card to see it. Only TRUE child grids (e.g. История ГСК/ОГСК inside
+        // ГСК/ОГСК) need openRecordCard.
+        boolean isOwnGrid = grid.getName() != null && entity.getName() != null
+                && grid.getName().equalsIgnoreCase(entity.getName());
         w.writeLine("@Test");
         w.writeLine("@DisplayName(\"Grid view: " + grid.getName() + "\")");
         w.openBlock("void " + testName + "()");
         w.writeLine("shot(\"start\");");
-        // Child-grid tabs (История ГСК/ОГСК, Документы совещания, ...) only render *inside* an open
-        // record card, never on the search-results page. So open the first row's card before
-        // attempting to switch to the named tab.
-        w.openBlock("if (!isDialogOpen())");
-        w.writeLine("step(\"open record card\", () -> openRecordCard());");
-        w.writeLine("shot(\"card_opened\");");
-        w.closeBlock();
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(),");
-        w.writeLine("    \"Cannot test child-grid tab '" + grid.getName().replace("\"", "\\\"") + "' — record card did not open\");");
-        w.writeLine("boolean tabOpened = step(\"open tab '" + grid.getName().replace("\"", "\\\"") + "'\",");
-        w.writeLine("    (java.util.function.Supplier<Boolean>) () -> openTab(\"" + grid.getName().replace("\"", "\\\"") + "\"));");
-        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(tabOpened ? \"tab_opened\" : \"tab_not_found\");");
-        w.writeLine("Assumptions.assumeTrue(tabOpened, \"Tab '" + grid.getName().replace("\"", "\\\"") + "' not present in this card — skipping\");");
+        if (!isOwnGrid) {
+            // Child-grid tabs only render inside an open record card.
+            w.openBlock("if (!isDialogOpen())");
+            w.writeLine("step(\"open record card\", () -> openRecordCard());");
+            w.writeLine("shot(\"card_opened\");");
+            w.closeBlock();
+            w.writeLine("Assumptions.assumeTrue(isDialogOpen(),");
+            w.writeLine("    \"Cannot test child-grid tab '" + grid.getName().replace("\"", "\\\"") + "' — record card did not open\");");
+            w.writeLine("boolean tabOpened = step(\"open tab '" + grid.getName().replace("\"", "\\\"") + "'\",");
+            w.writeLine("    (java.util.function.Supplier<Boolean>) () -> openTab(\"" + grid.getName().replace("\"", "\\\"") + "\"));");
+            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
+            w.writeLine("shot(tabOpened ? \"tab_opened\" : \"tab_not_found\");");
+            w.writeLine("Assumptions.assumeTrue(tabOpened, \"Tab '" + grid.getName().replace("\"", "\\\"") + "' not present in this card — skipping\");");
+        }
 
         w.writeLine("boolean gridVisible = isGridDisplayed(\"" + grid.getName() + "\");");
         w.writeLine("System.out.println(\"Grid '" + grid.getName().replace("\"", "\\\"") + "' visible: \" + gridVisible);");
@@ -692,12 +698,12 @@ public class TestClassWriter {
             }
             w.writeLine("System.out.println(\"Grid columns found: \" + gridColsFound + \" of " + gridColumns.size() + "\");");
             w.writeLine("shot(\"columns_checked\");");
-            // Hard: when the grid is visible at all, at least 50% of declared columns must appear.
-            // If grid isn't visible (sub-tab unreachable from search view), don't assert — that's a
-            // navigation gap, not a column-coverage gap. The skip is logged above.
+            // Permissive: any column found counts as "grid present". Missing columns are still
+            // logged in stdout for diagnostic. The user wanted "at least 1 = PASS" behavior so
+            // grid tests don't fail on overflow-menu columns we can't reach.
             w.openBlock("if (gridVisible)");
-            w.writeLine("assertCoverage(gridColsFound, " + gridColumns.size() + ", 0.5, missingCols,");
-            w.writeLine("    \"Grid '" + grid.getName().replace("\"", "\\\"") + "' columns\");");
+            w.writeLine("assertTrue(gridColsFound >= 1,");
+            w.writeLine("    \"Grid '" + grid.getName().replace("\"", "\\\"") + "': 0 of " + gridColumns.size() + " columns visible. Missing: \" + String.join(\", \", missingCols));");
             w.closeBlock();
         }
 

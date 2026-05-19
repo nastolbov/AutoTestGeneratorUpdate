@@ -1189,7 +1189,20 @@ public class TestGenerator {
         w.openBlock("catch (Exception eDbl)");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", searchLink);");
         w.closeBlock();
-        w.writeLine("Thread.sleep(1000);");
+        // Wait up to 3 seconds for the form to render — poll every 250ms for ANY visible input.
+        // Without this, fast tests hit fillSearchParam before the search form has painted.
+        w.writeLine("long formDeadline = System.currentTimeMillis() + 3000;");
+        w.writeLine("boolean formRendered = false;");
+        w.openBlock("while (System.currentTimeMillis() < formDeadline)");
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("List<WebElement> probes = driver.findElements(By.cssSelector(\"input:not([type='hidden']):not(.x-combo-noedit), textarea\"));");
+        w.openBlock("if (probes.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("formRendered = true; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (!formRendered)");
+        w.writeLine("System.out.println(\"openSearch: search form did not render after dbl-click on '\" + trimmed + \"' — this build may run the search directly without showing a parameter form\");");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"openSearch failed: \" + e.getMessage());");
@@ -1387,15 +1400,20 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 5: robust menu lookup via clickEntityMenuItem (stem-matching). Tries
-        // «Изменить», «Редактировать», «Открыть» in turn — different stand builds use different
-        // labels for the edit-record action.
+        // Strategy 5: robust menu lookup via clickEntityMenuItem (stem-matching). Tries every
+        // localised action verb the stand might use for "open this record": «Изменить»,
+        // «Редактировать», «Открыть», «Просмотр», «Карточка», «Свойства», «Подробнее», «Просмотреть».
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(300);");
         w.writeLine("boolean clicked = clickEntityMenuItem(entityName(), new String[]{");
         w.writeLine("    \"\\u0418\\u0437\\u043c\\u0435\\u043d\\u0438\\u0442\\u044c\",");
         w.writeLine("    \"\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u0442\\u044c\",");
-        w.writeLine("    \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\"});");
+        w.writeLine("    \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\",");
+        w.writeLine("    \"\\u041f\\u0440\\u043e\\u0441\\u043c\\u043e\\u0442\\u0440\",");
+        w.writeLine("    \"\\u041a\\u0430\\u0440\\u0442\\u043e\\u0447\\u043a\\u0430\",");
+        w.writeLine("    \"\\u0421\\u0432\\u043e\\u0439\\u0441\\u0442\\u0432\\u0430\",");
+        w.writeLine("    \"\\u041f\\u043e\\u0434\\u0440\\u043e\\u0431\\u043d\\u0435\\u0435\",");
+        w.writeLine("    \"\\u041f\\u0440\\u043e\\u0441\\u043c\\u043e\\u0442\\u0440\\u0435\\u0442\\u044c\"});");
         w.writeLine("Thread.sleep(800);");
         w.openBlock("if (clicked && isDialogOpen())");
         w.writeLine("System.out.println(\"openRecordCard: opened via clickEntityMenuItem\");");
