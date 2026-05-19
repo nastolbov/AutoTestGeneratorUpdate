@@ -363,12 +363,86 @@ public class TestGenerator {
         w.closeBlock(); // end performLogin
         w.writeLine();
 
-        // discoverSubsystems()
+        // selectSubsystem(name) — tries multiple tag variants the launcher can use for tile labels.
+        // Original code locked onto <b> only; some stand themes/builds render the tile name in
+        // span/div/a instead. With a 3-second wait and a single XPath we'd fail every test class
+        // ("Subsystem selection failed" → all 24 tests SKIP). Broader locator + longer wait fixes.
+        w.writeLine("/** Double-clicks the tile of the given subsystem and verifies the launcher was left. */");
+        w.openBlock("private static boolean selectSubsystem(String name)");
+        w.openBlock("try");
+        w.writeLine("WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(12));");
+        w.writeLine("WebElement tile = longWait.until(ExpectedConditions.elementToBeClickable(");
+        w.writeLine("    By.xpath(\"//b[contains(normalize-space(.), '\" + name + \"')]\"");
+        w.writeLine("    + \" | //span[contains(@class,'tile') or contains(@class,'panel-header')][contains(normalize-space(.), '\" + name + \"')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'tile') or contains(@class,'subsystem')][contains(normalize-space(.), '\" + name + \"')]\"");
+        w.writeLine("    + \" | //a[contains(normalize-space(.), '\" + name + \"')]\"");
+        w.writeLine("    + \" | //*[self::div or self::span or self::a or self::b][contains(@title, '\" + name + \"')]\")));");
+        w.writeLine("new Actions(driver).doubleClick(tile).perform();");
+        w.writeLine("Thread.sleep(2000);");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> menuBtns = driver.findElements(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + name + \"')]\"));");
+        w.openBlock("if (menuBtns.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (menu button)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-strip-active\"));");
+        w.openBlock("if (tabs.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (tab strip visible)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("List<WebElement> header = driver.findElements(By.xpath(\"//*[contains(text(), '\\u0414\\u043e\\u0441\\u0442\\u0443\\u043f\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u044b')]\"));");
+        w.openBlock("if (header.stream().noneMatch(WebElement::isDisplayed))");
+        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (launcher header gone)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"Subsystem selection failed for '\" + name + \"': \" + e.getMessage().split(\"\\n\")[0]);");
+        // Diagnostic dump: what visible tile-like elements DID we find?
+        w.openBlock("try");
+        w.writeLine("List<WebElement> any = driver.findElements(By.xpath(\"//*[self::b or self::span[contains(@class,'tile') or contains(@class,'panel-header')] or self::div[contains(@class,'tile')] or self::a]\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement el : any)");
+        w.openBlock("try");
+        w.openBlock("if (!el.isDisplayed() || shown >= 12)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String txt = el.getText() == null ? \"\" : el.getText().trim();");
+        w.openBlock("if (txt.isEmpty() || txt.length() > 80)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  visible launcher element: <\" + el.getTagName() + \" class='\" + el.getAttribute(\"class\") + \"'> '\" + txt + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (any.isEmpty())");
+        w.writeLine("System.out.println(\"  (no launcher tiles visible at all — login may have failed or page not loaded; try increasing wait or check session)\");");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock(); // end selectSubsystem
+        w.writeLine();
+
+        // discoverSubsystems — same broader xpath so smoke-mode finds tiles too.
         w.writeLine("/** Returns display names of all visible subsystem tiles on the launcher screen. */");
         w.openBlock("private static List<String> discoverSubsystems()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
         w.openBlock("try");
-        w.writeLine("List<WebElement> tiles = driver.findElements(By.xpath(\"//b\"));");
+        w.writeLine("List<WebElement> tiles = driver.findElements(By.xpath(");
+        w.writeLine("    \"//b\"");
+        w.writeLine("    + \" | //span[contains(@class,'tile') or contains(@class,'panel-header')]\"");
+        w.writeLine("    + \" | //div[contains(@class,'tile') or contains(@class,'subsystem')]\"));");
         w.writeLine("LinkedHashSet<String> names = new LinkedHashSet<>();");
         w.openBlock("for (WebElement tile : tiles)");
         w.openBlock("try");
@@ -416,47 +490,6 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("return text;");
         w.closeBlock();
-        w.writeLine();
-
-        // selectSubsystem(name)
-        w.writeLine("/** Double-clicks the tile of the given subsystem and verifies the launcher was left. */");
-        w.openBlock("private static boolean selectSubsystem(String name)");
-        w.openBlock("try");
-        w.writeLine("WebElement tile = wait.until(ExpectedConditions.elementToBeClickable(");
-        w.writeLine("    By.xpath(\"//b[contains(text(), '\" + name + \"')]\")));");
-        w.writeLine("new Actions(driver).doubleClick(tile).perform();");
-        w.writeLine("Thread.sleep(2000);");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
-        w.openBlock("try");
-        // Check 1: menu button with this name appeared (most reliable when names match)
-        w.writeLine("List<WebElement> menuBtns = driver.findElements(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + name + \"')]\"));");
-        w.openBlock("if (menuBtns.stream().anyMatch(WebElement::isDisplayed))");
-        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (menu button)\");");
-        w.writeLine("return true;");
-        w.closeBlock();
-        // Check 2: any subsystem tab is visible
-        w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-strip-active\"));");
-        w.openBlock("if (tabs.stream().anyMatch(WebElement::isDisplayed))");
-        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (tab strip visible)\");");
-        w.writeLine("return true;");
-        w.closeBlock();
-        // Check 3: launcher header is gone
-        w.writeLine("List<WebElement> header = driver.findElements(By.xpath(\"//*[contains(text(), '\\u0414\\u043e\\u0441\\u0442\\u0443\\u043f\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u044b')]\"));");
-        w.openBlock("if (header.stream().noneMatch(WebElement::isDisplayed))");
-        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (launcher header gone)\");");
-        w.writeLine("return true;");
-        w.closeBlock();
-        w.writeLine("return false;");
-        w.closeBlock();
-        w.openBlock("finally");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Subsystem selection failed for '\" + name + \"': \" + e.getMessage());");
-        w.writeLine("return false;");
-        w.closeBlock();
-        w.closeBlock(); // end selectSubsystem
         w.writeLine();
 
         // runSmokeAllSubsystems()
