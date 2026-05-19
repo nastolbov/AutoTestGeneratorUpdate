@@ -1193,19 +1193,65 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: open tab
-        w.openBlock("protected void openTab(String tabName)");
+        // Helper: open tab. Supports both ExtJS 3 (.x-tab-strip-text) and 4/5 (.x-tab-inner,
+        // .x-tab-button, role="tab"), plus plain HTML and ARIA-role variants. Tabs live INSIDE
+        // an open record card — if no card is open this will (correctly) fail.
+        w.openBlock("protected boolean openTab(String tabName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("WebElement tab = driver.findElement(By.xpath(");
-        w.writeLine("    \"//span[contains(@class,'x-tab-strip-text')][contains(text(),'\" + tabName + \"')]\"");
-        w.writeLine("    + \" | //div[contains(@class,'tab')][contains(text(),'\" + tabName + \"')]\"");
-        w.writeLine("    + \" | //a[contains(@class,'tab')][contains(text(),'\" + tabName + \"')]\"");
-        w.writeLine("    + \" | //li[contains(text(),'\" + tabName + \"')]\"));");
-        w.writeLine("tab.click();");
+        w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-tab-strip-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //span[contains(@class,'x-tab-inner')][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tab')][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //span[contains(@class,'x-tab-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //*[@role='tab'][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //li[contains(@class,'tab')][contains(normalize-space(.), '\" + tabName + \"')]\"));");
+        w.openBlock("for (WebElement c : candidates)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("clickSafely(c);");
+        w.writeLine("Thread.sleep(300);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"Could not open tab: \" + tabName);");
+        w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Could not open tab: \" + tabName);");
+        w.writeLine("System.out.println(\"Could not open tab '\" + tabName + \"': \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // openRecordCard: double-click the first visible grid row to bring up the record's edit
+        // dialog. Tab-grids (История, Документы, Приглашённые, …) only render INSIDE this dialog,
+        // so testGrid* tests must open the card before trying openTab.
+        w.openBlock("protected boolean openRecordCard()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed())");
+        w.writeLine("new Actions(driver).moveToElement(r).doubleClick().perform();");
+        w.writeLine("Thread.sleep(700);");
+        w.writeLine("return isDialogOpen();");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");

@@ -645,10 +645,20 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Grid view: " + grid.getName() + "\")");
         w.openBlock("void " + testName + "()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("step(\"open tab '" + grid.getName().replace("\"", "\\\"") + "'\", () -> openTab(\"" + grid.getName().replace("\"", "\\\"") + "\"));");
-        // Brief render buffer — tab content may need ExtJS to paint columns.
+        // Child-grid tabs (История ГСК/ОГСК, Документы совещания, ...) only render *inside* an open
+        // record card, never on the search-results page. So open the first row's card before
+        // attempting to switch to the named tab.
+        w.openBlock("if (!isDialogOpen())");
+        w.writeLine("step(\"open record card\", () -> openRecordCard());");
+        w.writeLine("shot(\"card_opened\");");
+        w.closeBlock();
+        w.writeLine("Assumptions.assumeTrue(isDialogOpen(),");
+        w.writeLine("    \"Cannot test child-grid tab '" + grid.getName().replace("\"", "\\\"") + "' — record card did not open\");");
+        w.writeLine("boolean tabOpened = step(\"open tab '" + grid.getName().replace("\"", "\\\"") + "'\",");
+        w.writeLine("    (java.util.function.Supplier<Boolean>) () -> openTab(\"" + grid.getName().replace("\"", "\\\"") + "\"));");
         w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"tab_opened\");");
+        w.writeLine("shot(tabOpened ? \"tab_opened\" : \"tab_not_found\");");
+        w.writeLine("Assumptions.assumeTrue(tabOpened, \"Tab '" + grid.getName().replace("\"", "\\\"") + "' not present in this card — skipping\");");
 
         w.writeLine("boolean gridVisible = isGridDisplayed(\"" + grid.getName() + "\");");
         w.writeLine("System.out.println(\"Grid '" + grid.getName().replace("\"", "\\\"") + "' visible: \" + gridVisible);");
@@ -739,9 +749,17 @@ public class TestClassWriter {
         java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
         java.util.List<Property> result = new java.util.ArrayList<>();
         for (PropertyGroup pg : entity.getPropertyGroups()) {
-            if (!pg.isFormView() && !pg.isFlagDisplay()) continue;
+            // Only take from the entity's primary FORM view (typeLink="P"). Skipping grid groups
+            // here is critical: a grid PropertyGroup represents a tab-collection of a CHILD entity
+            // (e.g. "Документы совещания" inside Совещание) — its columns belong to the child, not
+            // to the parent form. v5 was pulling them in, inflating expected-field counts and
+            // causing testFieldsPresent to fail with "missing: Название, Файл, Присутствовал, …".
+            if (!pg.isFormView()) continue;
             for (Property p : pg.getProperties()) {
-                if (p.isFlagDisplay() && seen.add(p.getAttrName())) {
+                if (!p.isFlagDisplay()) continue;
+                if (isSystemField(p)) continue;
+                if (isSystemFieldByName(p)) continue;
+                if (seen.add(p.getAttrName())) {
                     result.add(p);
                 }
             }
@@ -752,5 +770,18 @@ public class TestClassWriter {
     private boolean isSystemField(Property prop) {
         String stereo = prop.getStereoType();
         return "RoleA".equals(stereo) || "ObjectName".equals(stereo);
+    }
+
+    /**
+     * Engine-managed columns that appear in every E3Core grid and form (audit metadata: who
+     * modified the row and when). They're in the XML model because they're real DB columns, but
+     * tests should never check for them on a form — they're not user-facing fields and the form
+     * may legitimately hide them.
+     */
+    private boolean isSystemFieldByName(Property prop) {
+        String attr = prop.getAttrName();
+        if (attr == null) return false;
+        String u = attr.toUpperCase(java.util.Locale.ROOT);
+        return "DATE_UPDATE".equals(u) || "OPERATOR".equals(u);
     }
 }

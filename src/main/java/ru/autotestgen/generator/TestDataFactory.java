@@ -65,8 +65,14 @@ public class TestDataFactory {
      * '9' = digit, 'A' = letter, 'X' = alphanumeric, other chars = literal.
      * E.g., mask="999999999999" (INN) -> "123456789012"
      * E.g., mask="99-99" -> "12-34"
+     *
+     * Special case: masks that look like date or date-time patterns return TODAY's date instead
+     * of the synthetic digit sequence. The previous "12.34.5678" output got rejected by the server
+     * as an invalid date, masking the real check.
      */
     public static String generateFromMask(String mask) {
+        if (looksLikeDateMask(mask)) return LocalDate.now().format(DATE_FORMAT);
+        if (looksLikeDateTimeMask(mask)) return LocalDate.now().format(DATE_FORMAT) + " 12:00";
         StringBuilder sb = new StringBuilder();
         int digitCounter = 1;
         for (int i = 0; i < mask.length(); i++) {
@@ -79,6 +85,16 @@ public class TestDataFactory {
             }
         }
         return sb.toString();
+    }
+
+    /** True for masks like "99.99.9999", "99/99/9999", "99-99-9999". */
+    private static boolean looksLikeDateMask(String mask) {
+        return mask != null && mask.matches("9{2}[./\\-]9{2}[./\\-]9{4}");
+    }
+
+    /** True for masks like "99.99.9999 99:99". */
+    private static boolean looksLikeDateTimeMask(String mask) {
+        return mask != null && mask.matches("9{2}[./\\-]9{2}[./\\-]9{4}\\s+9{2}[:.]9{2}");
     }
 
     /**
