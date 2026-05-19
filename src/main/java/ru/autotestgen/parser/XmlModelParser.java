@@ -160,6 +160,8 @@ public class XmlModelParser {
         prop.setMask(attr(reader, "mask"));
         prop.setOrderNumber(parseInt(attr(reader, "order_number")));
         prop.setFlagDisplay("1".equals(attr(reader, "flag_display")));
+        prop.setDefValueSource(attr(reader, "defValueSource"));
+        prop.setComment(attr(reader, "comment"));
         skipToEnd(reader);
         return prop;
     }

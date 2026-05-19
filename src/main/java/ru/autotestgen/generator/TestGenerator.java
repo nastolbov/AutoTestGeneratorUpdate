@@ -2,9 +2,12 @@ package ru.autotestgen.generator;
 
 import ru.autotestgen.common.JavaFileWriter;
 import ru.autotestgen.model.AppModel;
+import ru.autotestgen.model.EntityClassifier;
+import ru.autotestgen.model.EntityKind;
 import ru.autotestgen.model.EntityObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -43,15 +46,36 @@ public class TestGenerator {
         // Generate TestData.java
         generateTestData(srcDir, basePackage);
 
-        // Generate Page Objects and Test classes for each entity
+        // Classify entities and generate Page Objects / Test classes only for PRIMARY entities.
+        // CHILD entities live as tab-grids of a parent; REFERENCE_DICTIONARY entities are picker
+        // targets reached only via FK fields in other forms. Generating standalone tests for either
+        // produces 21 "Could not navigate" skips — wasted clock time and meaningless reports.
         PageObjectWriter pageWriter = new PageObjectWriter(basePackage);
         TestClassWriter testWriter = new TestClassWriter(basePackage, config.getTestLevel());
-
+        StringBuilder csv = new StringBuilder("kind,entity,reason\n");
+        int primary = 0, child = 0, ref = 0;
         for (EntityObject entity : model.getEntities()) {
-            pageWriter.write(entity, srcDir);
-            String disabledReason = computeDisabledReason(entity, model);
-            testWriter.write(entity, model, srcDir, disabledReason);
+            EntityClassifier.Classification cls = EntityClassifier.classify(entity, model);
+            csv.append(cls.kind).append(",")
+                    .append(csvEscape(entity.getName())).append(",")
+                    .append(csvEscape(cls.reason)).append("\n");
+            if (cls.kind == EntityKind.PRIMARY) {
+                primary++;
+                pageWriter.write(entity, srcDir);
+                testWriter.write(entity, model, srcDir, null);
+            } else if (cls.kind == EntityKind.CHILD) {
+                child++;
+            } else {
+                ref++;
+            }
         }
+        // Write the classification report next to the generated test project. Lets the user see at
+        // a glance which entities were treated as tests, which as tabs, which as dictionaries.
+        Path csvPath = outputDir.resolve("entity-classification.csv");
+        Files.writeString(csvPath, csv.toString(), StandardCharsets.UTF_8);
+        System.out.println("Entity classification: " + primary + " PRIMARY, "
+                + child + " CHILD (tab-grid), " + ref + " REFERENCE_DICTIONARY (FK target)");
+        System.out.println("  Report: " + csvPath);
 
         // Generate SubsystemsSmokeTest (only when smoke-all-subsystems is enabled)
         if (config.isSmokeAllSubsystems()) {
@@ -59,57 +83,15 @@ public class TestGenerator {
         }
     }
 
-    /**
-     * Returns a non-null reason when an entity should be @Disabled — typically because it is a
-     * read-only tab/grid inside another entity's card, not a standalone menu page.
-     * Heuristic: entity has NO CRUD operations AND its name stem-matches the name of a
-     * Properties[stereoType="Grid"] group inside another entity. Entities with their own CRUD
-     * stay active — they usually have a menu entry even if they also appear as a grid in a parent.
-     */
-    private String computeDisabledReason(EntityObject entity, AppModel model) {
-        if (entity.hasCrudOperations()) return null;
-        for (EntityObject other : model.getEntities()) {
-            if (other.getGuid() != null && other.getGuid().equals(entity.getGuid())) continue;
-            for (var pg : other.getPropertyGroups()) {
-                if (!"Grid".equals(pg.getStereoType())) continue;
-                String gridName = pg.getName();
-                if (gridName == null || gridName.isEmpty()) continue;
-                // Skip self-collection grids: a grid named after its own host entity is the
-                // collection view of itself, not a tab in a different parent. Without this,
-                // singular dictionary entities (e.g. "Причина смены...") get mistakenly
-                // disabled because their plural counterpart hosts an identically-named grid.
-                if (gridName.equalsIgnoreCase(other.getName())) continue;
-                if (nameStemsMatch(entity.getName(), gridName)) {
-                    return "Tab/grid '" + gridName + "' inside parent '" + other.getName()
-                        + "' — not standalone";
-                }
-            }
+    private static String csvEscape(String s) {
+        if (s == null) return "";
+        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
         }
-        return null;
+        return s;
     }
 
-    /** True when two entity names match per-word by shared stems (handles singular/plural). */
-    private static boolean nameStemsMatch(String a, String b) {
-        if (a == null || b == null) return false;
-        if (a.equalsIgnoreCase(b)) return true;
-        String[] aw = a.split("[\\s/]+");
-        String[] bw = b.split("[\\s/]+");
-        if (aw.length != bw.length) return false;
-        for (int i = 0; i < aw.length; i++) {
-            String wa = aw[i].toLowerCase();
-            String wb = bw[i].toLowerCase();
-            if (wa.isEmpty() || wb.isEmpty()) return false;
-            int needed = Math.min(Math.min(wa.length(), wb.length()) - 2, 6);
-            if (needed < 2) {
-                if (!wa.equals(wb)) return false;
-            } else {
-                if (!wa.startsWith(wb.substring(0, needed)) && !wb.startsWith(wa.substring(0, needed))) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+    // Entity-classification logic lives in ru.autotestgen.model.EntityClassifier.
 
     private void generatePom(Path outputDir) throws IOException {
         JavaFileWriter w = new JavaFileWriter();
@@ -571,6 +553,9 @@ public class TestGenerator {
         // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
         w.writeLine("private boolean navigationAttempted = false;");
         w.writeLine("private boolean cachedNavigationOk = false;");
+        // Screenshot bookkeeping — currentTestName captured in @BeforeEach, stepCounter resets per test.
+        w.writeLine("protected String currentTestName = \"test\";");
+        w.writeLine("protected int stepCounter = 0;");
         w.writeLine();
 
         // BeforeAll - get driver from SharedDriver
@@ -578,6 +563,15 @@ public class TestGenerator {
         w.openBlock("void initDriver()");
         w.writeLine("driver = SharedDriver.getDriver();");
         w.writeLine("wait = SharedDriver.getWait();");
+        w.closeBlock();
+        w.writeLine();
+
+        // BeforeEach in BaseTest — capture test name for screenshots; reset step counter.
+        // Runs BEFORE the subclass @BeforeEach (JUnit 5 default ordering: parent first).
+        w.writeLine("@org.junit.jupiter.api.BeforeEach");
+        w.openBlock("void initTestContext(TestInfo info)");
+        w.writeLine("this.currentTestName = info.getTestMethod().map(java.lang.reflect.Method::getName).orElse(\"test\");");
+        w.writeLine("this.stepCounter = 0;");
         w.closeBlock();
         w.writeLine();
 
@@ -1364,6 +1358,139 @@ public class TestGenerator {
         w.writeLine("// Press Escape to close any remaining dialogs");
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
         w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+
+        // ====== Step-screenshot helpers + assertion utilities (v4) ======
+
+        // entityName(): derive entity name from class name. Subclasses may override.
+        w.openBlock("protected String entityName()");
+        w.writeLine("String n = getClass().getSimpleName();");
+        w.openBlock("if (n.endsWith(\"Test\"))");
+        w.writeLine("n = n.substring(0, n.length() - 4);");
+        w.closeBlock();
+        w.writeLine("return n;");
+        w.closeBlock();
+        w.writeLine();
+
+        // shot(step): numbered screenshot for the current test. Files land under target/screenshots/
+        // with name <Entity>_<testMethod>_<step#>_<step>_<status>.png so a directory listing reads
+        // like a comic strip of the test run.
+        w.openBlock("protected void shot(String step)");
+        w.writeLine("shot(step, \"OK\");");
+        w.closeBlock();
+        w.writeLine();
+
+        w.openBlock("protected void shot(String step, String status)");
+        w.openBlock("try");
+        w.writeLine("stepCounter++;");
+        w.writeLine("String safeStep = step == null ? \"step\" : step.replaceAll(\"[^a-zA-Z0-9а-яА-Я_-]\", \"_\");");
+        w.writeLine("String safeEntity = entityName().replaceAll(\"[^a-zA-Z0-9а-яА-Я_-]\", \"_\");");
+        w.writeLine("String fname = String.format(\"%s_%s_%02d_%s_%s.png\", safeEntity, currentTestName, stepCounter, safeStep, status);");
+        w.writeLine("File src = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);");
+        w.writeLine("Path dir = Path.of(\"target/screenshots\");");
+        w.writeLine("Files.createDirectories(dir);");
+        w.writeLine("Files.copy(src.toPath(), dir.resolve(fname), StandardCopyOption.REPLACE_EXISTING);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"shot('\" + step + \"') failed: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // gridContainsRow(marker): true if any visible grid row contains the marker text.
+        // Used by testCreate to verify the new record landed in the grid by a unique marker
+        // value, instead of trusting only row-count increments (which can race with other users).
+        w.openBlock("protected boolean gridContainsRow(String marker)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed() && r.getText() != null && r.getText().contains(marker))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // getVisibleRowCount(): count visible grid rows. Used by CRUD tests to verify strict deltas.
+        w.openBlock("protected int getVisibleRowCount()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.writeLine("return (int) rows.stream().filter(WebElement::isDisplayed).count();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return 0;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // matchesMask(value, mask): true if value conforms to an ExtJS-style mask.
+        // Mask grammar (ExtJS): '9' = digit, 'a' = letter, '*' = any; literal characters are kept as-is.
+        // Example: "99.99.9999" → ^\d{2}\.\d{2}\.\d{4}$
+        w.openBlock("protected boolean matchesMask(String value, String mask)");
+        w.openBlock("if (value == null || mask == null || mask.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("StringBuilder regex = new StringBuilder(\"^\");");
+        w.openBlock("for (int i = 0; i < mask.length(); i++)");
+        w.writeLine("char c = mask.charAt(i);");
+        w.openBlock("if (c == '9')");
+        w.writeLine("regex.append(\"\\\\d\");");
+        w.closeBlock();
+        w.openBlock("else if (c == 'a' || c == 'A')");
+        w.writeLine("regex.append(\"[A-Za-zА-Яа-я]\");");
+        w.closeBlock();
+        w.openBlock("else if (c == '*')");
+        w.writeLine("regex.append(\".\");");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("regex.append(java.util.regex.Pattern.quote(String.valueOf(c)));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("regex.append(\"$\");");
+        w.writeLine("return value.matches(regex.toString());");
+        w.closeBlock();
+        w.writeLine();
+
+        // assertCoverage(found, expected, threshold, missing, ctx): hard-assert that the fraction
+        // of found items meets the threshold, including a diagnostic listing of what's missing.
+        // This is the workhorse for testFieldsPresent and testGrid* — replaces silent println logs.
+        w.openBlock("protected void assertCoverage(int found, int expected, double threshold, java.util.List<String> missing, String ctx)");
+        w.openBlock("if (expected <= 0)");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("double coverage = (double) found / (double) expected;");
+        w.writeLine("String msg = String.format(\"%s: coverage %.0f%% (%d of %d), threshold %.0f%%. Missing: %s\",");
+        w.writeLine("    ctx, coverage * 100.0, found, expected, threshold * 100.0,");
+        w.writeLine("    (missing == null || missing.isEmpty()) ? \"-\" : String.join(\", \", missing));");
+        w.writeLine("org.junit.jupiter.api.Assertions.assertTrue(coverage >= threshold, msg);");
+        w.closeBlock();
+        w.writeLine();
+
+        // resetSearchView(): after a destructive test (delete/archive) re-run the empty search so
+        // the result grid reflects current state for the next test in the @Order chain.
+        w.openBlock("protected void refreshGrid()");
+        w.openBlock("try");
+        w.writeLine("executeSearchIfPresent();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();

@@ -12,6 +12,8 @@ public class Property {
     private String mask;
     private int orderNumber;
     private boolean flagDisplay;
+    private String defValueSource;
+    private String comment;
 
     public String getGuid() { return guid; }
     public void setGuid(String guid) { this.guid = guid; }
@@ -45,4 +47,10 @@ public class Property {
 
     public boolean isFlagDisplay() { return flagDisplay; }
     public void setFlagDisplay(boolean flagDisplay) { this.flagDisplay = flagDisplay; }
+
+    public String getDefValueSource() { return defValueSource; }
+    public void setDefValueSource(String defValueSource) { this.defValueSource = defValueSource; }
+
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
 }

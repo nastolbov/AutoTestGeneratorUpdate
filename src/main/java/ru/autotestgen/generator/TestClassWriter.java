@@ -99,10 +99,12 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine();
 
-        // @AfterEach — screenshot on failure
+        // @AfterEach — always capture a final screenshot. Together with shot() calls inside each
+        // test method this gives a frame-by-frame record of the entire run under target/screenshots/,
+        // which doubles as a visual map of the system's UI structure.
         w.writeLine("@AfterEach");
-        w.openBlock("void screenshotOnFailure(TestInfo testInfo)");
-        w.writeLine("// Screenshots can be captured here on test failure if needed");
+        w.openBlock("void captureFinalShot(TestInfo testInfo)");
+        w.writeLine("shot(\"END\");");
         w.closeBlock();
         w.writeLine();
 
@@ -143,7 +145,7 @@ public class TestClassWriter {
 
             // Test 3: Create (Insert)
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT)) {
-                writeCreateTest(w);
+                writeCreateTest(w, displayProperties);
             }
 
             // Test 4: Update
@@ -201,6 +203,7 @@ public class TestClassWriter {
         w.writeLine("@Order(1)");
         w.writeLine("@DisplayName(\"\\u041f\\u043e\\u043b\\u044f \\u0444\\u043e\\u0440\\u043c\\u044b '" + entityName + "': \\u043e\\u0436\\u0438\\u0434\\u0430\\u0435\\u0442\\u0441\\u044f " + totalCount + " \\u043f\\u043e\\u043b\\u0435\\u0439\")");
         w.openBlock("void testFieldsPresent()");
+        w.writeLine("shot(\"nav_done\");");
         w.writeLine("int foundCount = 0;");
         w.writeLine("int totalCount = " + totalCount + ";");
         w.writeLine("java.util.List<String> missing = new java.util.ArrayList<>();");
@@ -217,17 +220,12 @@ public class TestClassWriter {
         w.openBlock("if (!missing.isEmpty())");
         w.writeLine("System.out.println(\"  not found (\" + missing.size() + \"): \" + String.join(\", \", missing));");
         w.closeBlock();
-        // Soft threshold: navigation is considered OK as long as we found at least one expected
-        // field. Some entities are search-only and expose just a subset of their XML properties
-        // as grid columns / search params; the rest only appear in a per-row "open card" dialog
-        // we don't trigger from a smoke test. Use the "not found" log above to investigate which
-        // properties are missing and whether they belong to a sub-form.
-        w.openBlock("if (totalCount > 0)");
-        w.writeLine("assertTrue(foundCount >= 1,");
-        w.writeLine("    \"0 of \" + totalCount + \" expected fields are visible — \"");
-        w.writeLine("    + \"navigation likely failed entirely. \"");
-        w.writeLine("    + \"For entities reached via 'Найти', check that 'Выполнить поиск' fires and the result grid appears.\");");
-        w.closeBlock();
+        // Hard threshold: at least 50% of XML-declared display properties must be visible somewhere
+        // on the form/grid after navigation. Threshold below 100% because ExtJS columns may live
+        // in an overflow menu and individual XML fields may surface only in a per-row card.
+        w.writeLine("shot(missing.isEmpty() ? \"all_fields\" : \"some_missing\");");
+        w.writeLine("assertCoverage(foundCount, totalCount, 0.5, missing,");
+        w.writeLine("    \"Fields on form '" + entityName.replace("\"", "\\\"") + "'\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -237,34 +235,33 @@ public class TestClassWriter {
         w.writeLine("@Order(2)");
         w.writeLine("@DisplayName(\"Required field validation on empty submit\")");
         w.openBlock("void testRequiredFieldValidation()");
-        w.writeLine("// Open add dialog via cascading menu");
+        w.writeLine("shot(\"start\");");
         w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_add\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine();
-        w.writeLine("// Clear form fields (wrapped in try/catch for non-standard forms)");
         w.writeLine("try { page.clearForm(); } catch (Exception ignored) {}");
+        w.writeLine("shot(\"after_clear\");");
         w.writeLine();
-        w.writeLine("// Try to submit without required fields by clicking Готово");
         w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_submit\");");
         w.writeLine();
-        w.writeLine("// Check that form stayed open (did not navigate away)");
-        w.writeLine("boolean formVisible = page.checkAllFieldsPresent();");
-        w.writeLine("if (!formVisible) {");
-        w.writeLine("    System.out.println(\"Form visibility check returned false — dialog may use non-standard layout\");");
-        w.writeLine("}");
-        w.writeLine();
-        w.writeLine("// Check that validation errors appeared (soft — E3Core may use non-standard error indicators)");
+        w.writeLine("boolean dialogStillOpen = isDialogOpen();");
         w.writeLine("boolean hasErrors = page.hasValidationErrors();");
-        w.writeLine("System.out.println(\"Validation errors visible: \" + hasErrors);");
-        w.writeLine();
-        w.writeLine("// Check that specific required fields are highlighted as errors (soft checks)");
         w.writeLine("int errorFieldCount = 0;");
         for (Property prop : requiredProperties) {
             w.writeLine("if (page.fieldHasError(\"" + prop.getAttrName() + "\")) errorFieldCount++;");
         }
-        w.writeLine("System.out.println(\"Required fields with error indicator: \" + errorFieldCount + \" of " + requiredProperties.size() + "\");");
+        w.writeLine("System.out.println(\"Validation summary: dialogOpen=\" + dialogStillOpen");
+        w.writeLine("    + \", hasErrors=\" + hasErrors + \", highlightedFields=\" + errorFieldCount + \"/" + requiredProperties.size() + "\");");
+        w.writeLine();
+        // Hard: validation MUST do something — either keep dialog open, OR show form-level errors,
+        // OR highlight specific fields. If none of the three, validation is broken.
+        w.writeLine("assertTrue(dialogStillOpen || hasErrors || errorFieldCount > 0,");
+        w.writeLine("    \"Empty submit of required-field form must trigger validation: dialog should stay open OR errors shown OR fields highlighted. \"");
+        w.writeLine("    + \"None of the three happened — form likely silently accepted invalid data.\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -275,52 +272,85 @@ public class TestClassWriter {
         w.writeLine("@Order(20)");
         w.writeLine("@DisplayName(\"Partial fill: only first required field\")");
         w.openBlock("void testPartialRequiredFieldValidation()");
-        w.writeLine("// Open add dialog via cascading menu");
+        w.writeLine("shot(\"start\");");
         w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine("try { page.clearForm(); } catch (Exception ignored) {}");
-        // Fill only the first required field
+        w.writeLine("shot(\"cleared\");");
         Property first = requiredProperties.get(0);
         String firstMethod = "fill" + Transliterator.toClassName(first.getAttrName());
         String firstValue = TestDataFactory.generateValue(first);
         if (firstValue != null) {
             w.writeLine("page." + firstMethod + "(\"" + firstValue + "\");");
         }
-        w.writeLine("// Try to submit with partial data by clicking Готово");
+        w.writeLine("shot(\"first_filled\");");
         w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-        w.writeLine("// Form should still require the other fields (soft check)");
-        w.writeLine("boolean formStillOpen = page.checkAllFieldsPresent();");
-        w.writeLine("System.out.println(\"Form still open after partial fill: \" + formStillOpen);");
+        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_submit\");");
+        w.writeLine();
+        // Hard: with only the first required field filled, the others must still block submit.
+        w.writeLine("boolean dialogStillOpen = isDialogOpen();");
+        w.writeLine("boolean hasErrors = page.hasValidationErrors();");
+        w.writeLine("assertTrue(dialogStillOpen || hasErrors,");
+        w.writeLine("    \"Partial fill must not pass validation: dialog should stay open OR errors should be shown for the remaining required fields\");");
         w.closeBlock();
         w.writeLine();
     }
 
-    private void writeCreateTest(JavaFileWriter w) {
+    private void writeCreateTest(JavaFileWriter w, List<Property> displayProperties) {
+        // Pick the first non-system, non-FK STRING property to stamp with a unique marker.
+        // After save we then assert the marker shows up in the result grid — proof the row was
+        // actually inserted rather than merely incrementing the row count.
+        Property markerField = displayProperties.stream()
+                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .findFirst().orElse(null);
+
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
         w.writeLine("@DisplayName(\"Create new record\")");
         w.openBlock("void testCreate()");
-        w.writeLine("// Remember row count before creation");
+        w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine();
-        w.writeLine("// Open add dialog via cascading menu");
         w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine("page.fillAllFields();");
-        w.writeLine("// Submit the dialog by clicking Готово");
+        w.writeLine("shot(\"all_fields_filled\");");
+        if (markerField != null) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+            w.writeLine("page." + fillMethod + "(createdMarker);");
+            w.writeLine("shot(\"marker_applied\");");
+        } else {
+            w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
+        }
         w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_save\");");
         w.writeLine();
-        w.writeLine("// Verify no errors after save");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
         w.writeLine("assertFalse(page.hasValidationErrors(), \"No validation errors should remain after successful create\");");
         w.writeLine();
-        w.writeLine("// Verify record count increased");
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("assertTrue(rowsAfter >= rowsBefore, \"Table should have same or more records after creation\");");
+        w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
+        w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
+        if (markerField != null) {
+            // Hard: strict row count increase OR marker visible. Strict increase is the cleaner
+            // signal; marker fallback covers cases where ExtJS sorts the new row off the first page.
+            w.writeLine("assertTrue(rowsAfter > rowsBefore || markerInGrid,");
+            w.writeLine("    \"Create test: row count went from \" + rowsBefore + \" to \" + rowsAfter");
+            w.writeLine("    + \" and marker '\" + createdMarker + \"' \" + (markerInGrid ? \"is\" : \"is NOT\")");
+            w.writeLine("    + \" visible in the grid. At least one of the two must hold.\");");
+        } else {
+            // No string field to stamp — fall back to non-strict count check.
+            w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
+            w.writeLine("    \"Table should have same or more records after creation\");");
+        }
         w.closeBlock();
         w.writeLine();
     }
@@ -330,15 +360,23 @@ public class TestClassWriter {
         w.writeLine("@Order(21)");
         w.writeLine("@DisplayName(\"Create with only required fields filled\")");
         w.openBlock("void testCreateOnlyRequired()");
-        w.writeLine("// Open add dialog via cascading menu");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
         w.writeLine("page.fillRequiredFields();");
-        w.writeLine("// Submit the dialog by clicking Готово");
+        w.writeLine("shot(\"required_filled\");");
         w.writeLine("clickButtonByText(\"Готово\");");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");
+        // Hard: at least same row count (no rollback). Looser than testCreate because some
+        // entities don't allow creation without optional fields and that's a legitimate UX choice.
+        w.writeLine("int rowsAfter = page.getTableRowCount();");
+        w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
+        w.writeLine("    \"Row count must not decrease after create-with-only-required (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -348,41 +386,42 @@ public class TestClassWriter {
         w.writeLine("@Order(4)");
         w.writeLine("@DisplayName(\"Update existing record\")");
         w.openBlock("void testUpdate()");
-        w.writeLine("// Select first available record");
+        w.writeLine("shot(\"start\");");
         w.writeLine("selectFirstRecord();");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-        // Find a string field to modify
+        w.writeLine("shot(\"row_selected\");");
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
                         && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
                 .findFirst().orElse(null);
         if (stringField != null) {
             String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
-            String updatedValue = "Upd_" + stringField.getAttrName();
-            w.writeLine("String updatedValue = \"" + updatedValue + "\";");
+            // Use a timestamped value so re-runs over the same record can be distinguished and the
+            // marker is guaranteed unique inside the grid.
+            w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
             w.writeLine("page." + methodName + "(updatedValue);");
-            w.writeLine("// Submit by clicking Готово");
+            w.writeLine("shot(\"value_typed\");");
             w.writeLine("clickButtonByText(\"Готово\");");
-            w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+            w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+            w.writeLine("shot(\"after_save\");");
             w.writeLine();
-            w.writeLine("// Verify no errors after save");
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
             w.writeLine();
-            w.writeLine("// Re-select the record and verify the value persisted");
+            w.writeLine("// Persistence check: the updated value must be visible somewhere — either in the");
+            w.writeLine("// reopened record card OR directly in the grid (its column shows the value).");
             w.writeLine("selectFirstRecord();");
             w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-            w.writeLine("// Try reading value by display name (PropertyGrid) then by attr name");
             w.writeLine("String actual = page.getFieldValue(\"" + stringField.getName() + "\");");
             w.writeLine("if (actual.isEmpty()) actual = page.getFieldValue(\"" + stringField.getAttrName() + "\");");
-            w.writeLine("if (!actual.isEmpty()) {");
-            w.writeLine("    assertTrue(actual.contains(updatedValue), \"Field should contain updated value '\" + updatedValue + \"' but was '\" + actual + \"'\");");
-            w.writeLine("} else {");
-            w.writeLine("    System.out.println(\"Could not read back field value for verification — PropertyGrid may not expose it\");");
-            w.writeLine("}");
+            w.writeLine("boolean cardMatches = !actual.isEmpty() && actual.contains(updatedValue);");
+            w.writeLine("boolean gridMatches = gridContainsRow(updatedValue);");
+            w.writeLine("shot(cardMatches || gridMatches ? \"value_persisted\" : \"value_not_visible\");");
+            w.writeLine("assertTrue(cardMatches || gridMatches,");
+            w.writeLine("    \"Update did not persist: value '\" + updatedValue + \"' not found in record card (got '\" + actual + \"') and not in grid\");");
         } else {
-            w.writeLine("// Submit by clicking Готово");
             w.writeLine("clickButtonByText(\"Готово\");");
             w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+            w.writeLine("shot(\"after_save\");");
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
         }
         w.closeBlock();
@@ -394,23 +433,46 @@ public class TestClassWriter {
         w.writeLine("@Order(5)");
         w.writeLine("@DisplayName(\"Delete record\")");
         w.openBlock("void testDelete()");
+        w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine("selectFirstRecord();");
-        w.writeLine("// Delete via cascading menu or direct button");
-        w.writeLine("try {");
-        w.writeLine("    menuAction(ENTITY_NAME, \"Удалить\");");
-        w.writeLine("} catch (Exception e) {");
-        w.writeLine("    driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
-        w.writeLine("}");
-        w.writeLine("// Confirm deletion if dialog appears");
+        w.writeLine("shot(\"row_selected\");");
+        // Capture the selected row's text so we can verify the row is actually gone, not just
+        // that the row count dropped by one (different row could vanish for unrelated reasons).
+        w.writeLine("String deletedMarker = \"\";");
+        w.openBlock("try");
+        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
+        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
+        w.writeLine("deletedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("menuAction(ENTITY_NAME, \"Удалить\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
+        w.closeBlock();
+        w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_delete\");");
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
         w.writeLine();
-        w.writeLine("// Verify record count decreased");
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("assertTrue(rowsAfter <= rowsBefore, \"Table should have same or fewer records after deletion\");");
+        w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
+        // Hard: row count must strictly decrease OR the specific marker must be gone.
+        // If marker was empty (couldn't read row text), require strict count decrease — that's the
+        // only signal we have.
+        w.openBlock("if (deletedMarker.isEmpty())");
+        w.writeLine("assertTrue(rowsAfter < rowsBefore,");
+        w.writeLine("    \"Delete: could not capture row marker, and row count did not strictly decrease (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
+        w.writeLine("    \"Delete: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND marker '\" + deletedMarker + \"' still in grid\");");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
     }
@@ -420,10 +482,12 @@ public class TestClassWriter {
         w.writeLine("@Order(6)");
         w.writeLine("@DisplayName(\"Logical edit of record\")");
         w.openBlock("void testLogicalEdit()");
+        w.writeLine("shot(\"start\");");
         w.writeLine("selectFirstRecord();");
-        w.writeLine("// Logical edit via cascading menu");
+        w.writeLine("shot(\"row_selected\");");
         w.writeLine("menuAction(ENTITY_NAME, \"Лог.изменить\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_action\");");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after logical edit\");");
         w.closeBlock();
         w.writeLine();
@@ -434,17 +498,35 @@ public class TestClassWriter {
         w.writeLine("@Order(7)");
         w.writeLine("@DisplayName(\"Archive record\")");
         w.openBlock("void testArchive()");
+        w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine("selectFirstRecord();");
-        w.writeLine("// Archive via cascading menu");
+        w.writeLine("shot(\"row_selected\");");
+        w.writeLine("String archivedMarker = \"\";");
+        w.openBlock("try");
+        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
+        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
+        w.writeLine("archivedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("menuAction(ENTITY_NAME, \"в Архив\");");
+        w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_archive\");");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after archiving\");");
         w.writeLine();
-        w.writeLine("// Archived record may disappear from active list");
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("assertTrue(rowsAfter <= rowsBefore, \"Archived record should be removed from active list\");");
+        w.writeLine("boolean markerGone = archivedMarker.isEmpty() ? false : !gridContainsRow(archivedMarker);");
+        w.openBlock("if (archivedMarker.isEmpty())");
+        w.writeLine("assertTrue(rowsAfter < rowsBefore,");
+        w.writeLine("    \"Archive: could not capture row marker, and row count did not strictly decrease (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
+        w.writeLine("    \"Archive: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND archived row '\" + archivedMarker + \"' still in active grid\");");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
     }
@@ -455,26 +537,26 @@ public class TestClassWriter {
         w.writeLine("@Order(" + (10 + index) + ")");
         w.writeLine("@DisplayName(\"Search: " + search.getName() + "\")");
         w.openBlock("void " + testName + "()");
-        w.writeLine("// Open search form: " + search.getName());
+        w.writeLine("shot(\"start\");");
         w.writeLine("openSearch(\"" + search.getName() + "\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"search_opened\");");
 
-        // Fill search params with real test data
         for (SearchParam param : search.getParams()) {
             if (param.getSearchGuid() != null && !param.getSearchGuid().isEmpty()) {
                 w.writeLine("// Parameter '" + param.getTitle() + "' references a lookup (searchGUID) - skip auto-fill");
                 continue;
             }
             String value = TestDataFactory.generateSearchParamValue(param);
-            w.writeLine("// Fill search parameter: " + param.getTitle() + " (" + param.getName() + ")");
             w.writeLine("fillSearchParam(\"" + param.getName() + "\", \"" + value + "\");");
         }
 
         w.writeLine();
+        w.writeLine("shot(\"params_filled\");");
         w.writeLine("executeSearch();");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_search\");");
 
-        // Verify search executed without errors — column checks are soft (search may return 403 or empty)
         w.writeLine("assertFalse(isErrorPresent(), \"Search should execute without errors\");");
         if (search.getResult() != null) {
             List<SearchResultProperty> visibleCols = search.getResult().getProperties().stream()
@@ -482,17 +564,24 @@ public class TestClassWriter {
                     .toList();
             if (!visibleCols.isEmpty()) {
                 w.writeLine();
-                w.writeLine("// Soft-check result columns (search may not return results)");
                 w.writeLine("int columnsFound = 0;");
+                w.writeLine("java.util.List<String> missingCols = new java.util.ArrayList<>();");
                 for (SearchResultProperty rp : visibleCols) {
-                    w.writeLine("if (isColumnPresent(\"" + rp.getTitle() + "\")) columnsFound++;");
+                    w.openBlock("if (isColumnPresent(\"" + rp.getTitle() + "\"))");
+                    w.writeLine("columnsFound++;");
+                    w.closeBlock();
+                    w.openBlock("else");
+                    w.writeLine("missingCols.add(\"" + rp.getTitle().replace("\"", "\\\"") + "\");");
+                    w.closeBlock();
                 }
-                w.writeLine("System.out.println(\"Search result columns found: \" + columnsFound + \" of " + visibleCols.size() + "\");");
+                w.writeLine("System.out.println(\"Search result columns found: \" + columnsFound + \" of " + visibleCols.size()
+                        + (visibleCols.size() > 0 ? "; missing: \" + missingCols)" : "\")") + ";");
+                // We don't hard-assert column coverage here because the search may legitimately
+                // return zero rows (which hides column headers). Reserved for testSearchEmpty.
             }
         }
-        w.writeLine("// Search result grid may or may not be visible depending on server response");
-        w.writeLine("boolean hasResults = isSearchResultPresent();");
-        w.writeLine("System.out.println(\"Search results present: \" + hasResults);");
+        w.writeLine("int resultRows = getVisibleRowCount();");
+        w.writeLine("System.out.println(\"Search returned \" + resultRows + \" visible row(s)\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -503,14 +592,20 @@ public class TestClassWriter {
         w.writeLine("@Order(" + (30 + index) + ")");
         w.writeLine("@DisplayName(\"Search with no results: " + search.getName() + "\")");
         w.openBlock("void " + testName + "()");
+        w.writeLine("shot(\"start\");");
         w.writeLine("openSearch(\"" + search.getName() + "\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-        w.writeLine("// Fill with garbage data to get empty result");
+        w.writeLine("shot(\"search_opened\");");
         w.writeLine("fillSearchParam(\"" + (search.getParams().isEmpty() ? "q" : search.getParams().get(0).getName()) + "\", \"ZZZZZ_NO_MATCH_99999\");");
         w.writeLine("executeSearch();");
-        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
-        w.writeLine("// System should handle empty results gracefully (no crash)");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_search\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Empty search should not produce errors\");");
+        // Hard: search for guaranteed-garbage should yield 0 rows. If it returns rows, the search
+        // is either ignoring the parameter or matching too broadly — both are bugs worth catching.
+        w.writeLine("int resultRows = getVisibleRowCount();");
+        w.writeLine("assertTrue(resultRows == 0,");
+        w.writeLine("    \"Garbage search returned \" + resultRows + \" row(s) — search filter is not being applied\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -520,32 +615,42 @@ public class TestClassWriter {
         w.writeLine("@Test");
         w.writeLine("@DisplayName(\"Grid view: " + grid.getName() + "\")");
         w.openBlock("void " + testName + "()");
-        w.writeLine("// Verify grid tab/section is present: " + grid.getName());
+        w.writeLine("shot(\"start\");");
         w.writeLine("openTab(\"" + grid.getName() + "\");");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"tab_opened\");");
 
-        w.writeLine("// Grid may not be accessible from search view — soft check");
         w.writeLine("boolean gridVisible = isGridDisplayed(\"" + grid.getName() + "\");");
-        w.writeLine("System.out.println(\"Grid '" + grid.getName() + "' visible: \" + gridVisible);");
+        w.writeLine("System.out.println(\"Grid '" + grid.getName().replace("\"", "\\\"") + "' visible: \" + gridVisible);");
         w.writeLine();
 
-        // Verify columns are present (soft checks)
         List<Property> gridColumns = grid.getProperties().stream()
                 .filter(p -> !isSystemField(p) && p.isFlagDisplay())
                 .toList();
         if (!gridColumns.isEmpty()) {
-            w.writeLine("// Soft-check grid columns (" + gridColumns.size() + " columns)");
             w.writeLine("int gridColsFound = 0;");
+            w.writeLine("java.util.List<String> missingCols = new java.util.ArrayList<>();");
             for (Property col : gridColumns) {
-                w.writeLine("if (isColumnPresent(\"" + col.getName() + "\")) gridColsFound++;");
+                w.openBlock("if (isColumnPresent(\"" + col.getName() + "\"))");
+                w.writeLine("gridColsFound++;");
+                w.closeBlock();
+                w.openBlock("else");
+                w.writeLine("missingCols.add(\"" + col.getName().replace("\"", "\\\"") + "\");");
+                w.closeBlock();
             }
             w.writeLine("System.out.println(\"Grid columns found: \" + gridColsFound + \" of " + gridColumns.size() + "\");");
+            w.writeLine("shot(\"columns_checked\");");
+            // Hard: when the grid is visible at all, at least 50% of declared columns must appear.
+            // If grid isn't visible (sub-tab unreachable from search view), don't assert — that's a
+            // navigation gap, not a column-coverage gap. The skip is logged above.
+            w.openBlock("if (gridVisible)");
+            w.writeLine("assertCoverage(gridColsFound, " + gridColumns.size() + ", 0.5, missingCols,");
+            w.writeLine("    \"Grid '" + grid.getName().replace("\"", "\\\"") + "' columns\");");
+            w.closeBlock();
         }
 
-        // Verify CRUD buttons if grid has operations (soft checks)
         if (grid.getOperation() != null && !grid.getOperation().getModifiers().isEmpty()) {
             w.writeLine();
-            w.writeLine("// Soft-check CRUD buttons in grid");
             w.writeLine("int gridBtnsFound = 0;");
             for (Modifier mod : grid.getOperation().getModifiers()) {
                 w.writeLine("if (isButtonPresent(\"" + mod.getTitle() + "\")) gridBtnsFound++;");
@@ -561,20 +666,36 @@ public class TestClassWriter {
         w.writeLine("@Order(22)");
         w.writeLine("@DisplayName(\"Masked fields accept correct format\")");
         w.openBlock("void testMaskedFieldInput()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("menuAction(ENTITY_NAME, \"Добавить\");");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"dialog_opened\");");
+        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open for entity — menu path may differ\");");
+        w.writeLine("java.util.List<String> maskFailures = new java.util.ArrayList<>();");
         for (Property prop : maskedProperties) {
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String maskValue = TestDataFactory.generateFromMask(prop.getMask());
+            String varName = "val_" + Transliterator.toFieldName(prop.getAttrName());
+            String maskLiteral = prop.getMask().replace("\\", "\\\\").replace("\"", "\\\"");
             w.writeLine("// Field '" + prop.getName() + "' mask: " + prop.getMask() + " -> test value: " + maskValue);
             w.writeLine("page." + methodName + "(\"" + maskValue + "\");");
-            w.writeLine("// Try reading value by display name (PropertyGrid) then by attr name");
-            w.writeLine("String val_" + Transliterator.toFieldName(prop.getAttrName()) + " = page.getFieldValue(\"" + prop.getName() + "\");");
-            w.writeLine("if (val_" + Transliterator.toFieldName(prop.getAttrName()) + ".isEmpty()) val_" + Transliterator.toFieldName(prop.getAttrName()) + " = page.getFieldValue(\"" + prop.getAttrName() + "\");");
-            w.writeLine("if (val_" + Transliterator.toFieldName(prop.getAttrName()) + ".isEmpty()) {");
-            w.writeLine("    System.out.println(\"Could not read back masked field '" + prop.getName() + "' value — PropertyGrid may not expose inline editor values\");");
-            w.writeLine("} else {");
-            w.writeLine("    System.out.println(\"Masked field '" + prop.getName() + "' value: \" + val_" + Transliterator.toFieldName(prop.getAttrName()) + ");");
-            w.writeLine("}");
+            w.writeLine("String " + varName + " = page.getFieldValue(\"" + prop.getName() + "\");");
+            w.writeLine("if (" + varName + ".isEmpty()) " + varName + " = page.getFieldValue(\"" + prop.getAttrName() + "\");");
+            w.openBlock("if (" + varName + ".isEmpty())");
+            w.writeLine("System.out.println(\"Masked field '" + prop.getName() + "': value not readable (PropertyGrid limitation)\");");
+            w.closeBlock();
+            w.openBlock("else");
+            w.writeLine("System.out.println(\"Masked field '" + prop.getName() + "' value: \" + " + varName + " + \" (expected to match '" + maskLiteral + "')\");");
+            w.openBlock("if (!matchesMask(" + varName + ", \"" + maskLiteral + "\"))");
+            w.writeLine("maskFailures.add(\"" + prop.getName().replace("\"", "\\\"") + "='\" + " + varName + " + \"' (mask '" + maskLiteral + "')\");");
+            w.closeBlock();
+            w.closeBlock();
         }
+        w.writeLine("shot(\"fields_filled\");");
+        // Hard: any readable value that doesn't conform to its mask is a failure. Unreadable values
+        // don't count — that's a tooling limitation, not a product bug.
+        w.writeLine("assertTrue(maskFailures.isEmpty(),");
+        w.writeLine("    \"Masked field(s) accepted value not conforming to declared mask: \" + String.join(\"; \", maskFailures));");
         w.closeBlock();
         w.writeLine();
     }
