@@ -1355,7 +1355,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
         w.writeLine("Thread.sleep(800);");
-        w.openBlock("if (isDialogOpen())");
+        w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1373,7 +1373,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.openBlock("if (m.isDisplayed())");
         w.writeLine("clickSafely(m); Thread.sleep(800);");
-        w.openBlock("if (isDialogOpen())");
+        w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via right-click menu '\" + m.getText().trim() + \"'\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1396,7 +1396,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.openBlock("if (b.isDisplayed())");
         w.writeLine("clickSafely(b); Thread.sleep(800);");
-        w.openBlock("if (isDialogOpen())");
+        w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via toolbar 'Изменить'\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1412,7 +1412,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(200);");
         w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER); Thread.sleep(700);");
-        w.openBlock("if (isDialogOpen())");
+        w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via Enter key\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1434,7 +1434,7 @@ public class TestGenerator {
         w.writeLine("    \"\\u041f\\u043e\\u0434\\u0440\\u043e\\u0431\\u043d\\u0435\\u0435\",");
         w.writeLine("    \"\\u041f\\u0440\\u043e\\u0441\\u043c\\u043e\\u0442\\u0440\\u0435\\u0442\\u044c\"});");
         w.writeLine("Thread.sleep(800);");
-        w.openBlock("if (clicked && isDialogOpen())");
+        w.openBlock("if (clicked && isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via clickEntityMenuItem\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1762,6 +1762,29 @@ public class TestGenerator {
         w.writeLine("java.util.List<WebElement> windows = driver.findElements(By.cssSelector(\".x-window\"));");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.writeLine("return windows.stream().anyMatch(WebElement::isDisplayed);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // isOnRecordCard: true if we're on the record's detail view — either a modal dialog or a
+        // navigated page with a tab strip showing related child entities. Many E3Core builds
+        // navigate to a new page instead of opening a modal, so checking isDialogOpen() alone
+        // misses the "card opened" signal and we report all five strategies as failed.
+        w.openBlock("protected boolean isOnRecordCard()");
+        w.openBlock("if (isDialogOpen())");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        // Tab strip indicates we left the search-result grid and are now inside the record card,
+        // which is exactly where child-entity tabs (История, Документы, …) live.
+        w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text, [role='tab']\"));");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.writeLine("return tabs.stream().anyMatch(WebElement::isDisplayed);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
