@@ -56,9 +56,13 @@ public class TestClassWriter {
                 .orElse(null);
         boolean hasCrud = crudOperation != null;
 
-        // Find searches linked to this entity
+        // Find searches linked to this entity. Skip FK-only searches (no params + result is
+        // just SearchKey/SearchName) — these are NOT in the search tree of THIS entity in the
+        // UI; they are invoked from OTHER entities through FK pickers. Generating a testSearch
+        // for them produces a fake PASS that doesn't actually exercise anything.
         List<Search> entitySearches = model.getSearches().stream()
                 .filter(s -> s.getSearchObjectGuid().equals(entity.getGuid()))
+                .filter(s -> !isFkOnlySearch(s))
                 .toList();
 
         JavaFileWriter w = new JavaFileWriter();
@@ -802,6 +806,28 @@ public class TestClassWriter {
     private boolean isSystemField(Property prop) {
         String stereo = prop.getStereoType();
         return "RoleA".equals(stereo) || "ObjectName".equals(stereo);
+    }
+
+    /**
+     * A search counts as "FK-only" when it has no parameters and its result is just
+     * {SearchKey, SearchName}. Such searches are not exposed in the entity's own search-tree
+     * window — they're invoked by OTHER entities when filling a foreign-key field via a picker.
+     * Generating an own testSearch for them would produce fake passes (the test just sees the
+     * default search results from setUp and reports "no error").
+     */
+    private boolean isFkOnlySearch(Search s) {
+        boolean noParams = s.getParams() == null || s.getParams().isEmpty();
+        if (!noParams) return false;
+        if (s.getResult() == null) return true;
+        if (s.getResult().getProperties() == null || s.getResult().getProperties().isEmpty()) return true;
+        for (SearchResultProperty p : s.getResult().getProperties()) {
+            String n = p.getName();
+            if (n == null) continue;
+            if (!"SearchKey".equalsIgnoreCase(n) && !"SearchName".equalsIgnoreCase(n)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

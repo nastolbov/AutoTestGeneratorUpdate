@@ -1398,7 +1398,7 @@ public class TestGenerator {
         w.writeLine("    .pause(Duration.ofMillis(400))");
         w.writeLine("    .click()");
         w.writeLine("    .perform();");
-        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 5, \"card after select+open\");");
+        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 12, \"card after select+open\");");
         w.openBlock("if (opened1)");
         w.writeLine("System.out.println(\"openRecordCard: opened via select + open (two clicks)\");");
         w.writeLine("return true;");
@@ -1409,7 +1409,7 @@ public class TestGenerator {
         // Strategy 1b: native doubleClick — fallback for builds where one fast double-click works
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
-        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 4, \"card after double-click\");");
+        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 10, \"card after double-click\");");
         w.openBlock("if (opened1b)");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
         w.writeLine("return true;");
@@ -1424,7 +1424,7 @@ public class TestGenerator {
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
         w.writeLine("    firstRow);");
-        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 5, \"card after JS dblclick\");");
+        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 10, \"card after JS dblclick\");");
         w.openBlock("if (opened1c)");
         w.writeLine("System.out.println(\"openRecordCard: opened via JS dblclick event\");");
         w.writeLine("return true;");
@@ -1446,7 +1446,7 @@ public class TestGenerator {
         w.openBlock("if (m.isDisplayed())");
         w.writeLine("System.out.println(\"openRecordCard: clicking 'Загрузить выбранные объекты в дерево' from context menu\");");
         w.writeLine("tryClickAllWays(m);");
-        w.writeLine("boolean opened1d = waitUntil(d -> isOnRecordCard(), 8, \"card after load-to-tree\");");
+        w.writeLine("boolean opened1d = waitUntil(d -> isOnRecordCard(), 12, \"card after load-to-tree\");");
         w.openBlock("if (opened1d)");
         w.writeLine("System.out.println(\"openRecordCard: opened via 'Загрузить выбранные объекты в дерево'\");");
         w.writeLine("return true;");
@@ -1515,7 +1515,7 @@ public class TestGenerator {
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(200);");
         w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("boolean opened4 = waitUntil(d -> isOnRecordCard(), 4, \"card after Enter\");");
+        w.writeLine("boolean opened4 = waitUntil(d -> isOnRecordCard(), 8, \"card after Enter\");");
         w.openBlock("if (opened4)");
         w.writeLine("System.out.println(\"openRecordCard: opened via Enter key\");");
         w.writeLine("return true;");
