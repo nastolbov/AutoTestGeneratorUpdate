@@ -1299,6 +1299,7 @@ public class TestGenerator {
         w.openBlock("protected boolean openTab(String tabName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
+        // First pass: classic ExtJS tab-strip elements (other builds use these).
         w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
         w.writeLine("    \"//span[contains(@class,'x-tab-strip-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
         w.writeLine("    + \" | //span[contains(@class,'x-tab-inner')][contains(normalize-space(.), '\" + tabName + \"')]\"");
@@ -1313,6 +1314,31 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(300);");
         w.writeLine("return true;");
         w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Second pass: "Единый объект" view — the available property groups («Сведения»,
+        // «История», «Документы») are rows in a grid/list on the right side, NOT a tab strip.
+        // Click any visible row, link, or div whose text contains the tab name.
+        w.writeLine("List<WebElement> fallback = driver.findElements(By.xpath(");
+        w.writeLine("    \"//*[self::div or self::a or self::td or self::span or self::tr]\"");
+        w.writeLine("    + \"[contains(normalize-space(.), '\" + tabName + \"')]\"));");
+        w.openBlock("for (WebElement c : fallback)");
+        w.openBlock("try");
+        w.openBlock("if (!c.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        // Reject candidates whose visible text is "too long" — these are page wrappers, not the
+        // narrow row we want. Tab labels are typically short (≤80 chars).
+        w.writeLine("String txt = c.getText() == null ? \"\" : c.getText().trim();");
+        w.openBlock("if (txt.length() == 0 || txt.length() > 80)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"openTab: trying <\" + c.getTagName() + \"> '\" + txt + \"'\");");
+        w.writeLine("tryClickAllWays(c);");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -1770,25 +1796,42 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // isOnRecordCard: true if we're on the record's detail view — either a modal dialog or a
-        // navigated page with a tab strip showing related child entities. Many E3Core builds
-        // navigate to a new page instead of opening a modal, so checking isDialogOpen() alone
-        // misses the "card opened" signal and we report all five strategies as failed.
+        // isOnRecordCard: true if we're on the record's detail view. E3Core can present this in
+        // several layouts:
+        //   1. classic modal dialog (.x-window)
+        //   2. ExtJS tab-strip page
+        //   3. "Единый объект" navigated page with PropertyGroup list on the right side
+        //      (list rows for «Сведения», «История», «Документы») and a toolbar at the bottom
+        //      with «Редактирование», «Обновить», «Печать...» — this is what the user stand uses.
+        // Detecting (3) requires checking for the breadcrumb/title text or the bottom toolbar.
         w.openBlock("protected boolean isOnRecordCard()");
         w.openBlock("if (isDialogOpen())");
         w.writeLine("return true;");
         w.closeBlock();
-        w.openBlock("try");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
-        // Tab strip indicates we left the search-result grid and are now inside the record card,
-        // which is exactly where child-entity tabs (История, Документы, …) live.
+        w.openBlock("try");
+        // Signal A: tab-strip (ExtJS 3/4/5)
         w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text, [role='tab']\"));");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
-        w.writeLine("return tabs.stream().anyMatch(WebElement::isDisplayed);");
+        w.openBlock("if (tabs.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // Signal B: "Единый объект" text in the page header / breadcrumb
+        w.writeLine("List<WebElement> ed = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0415\\u0434\\u0438\\u043d\\u044b\\u0439 \\u043e\\u0431\\u044a\\u0435\\u043a\\u0442')]\"));");
+        w.openBlock("if (ed.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // Signal C: card-only toolbar buttons («Редактирование» dropdown OR «Обновить»+«Печать»)
+        w.writeLine("List<WebElement> editBtn = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
+        w.openBlock("if (editBtn.stream().anyMatch(WebElement::isDisplayed))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
