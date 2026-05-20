@@ -1240,17 +1240,36 @@ public class TestGenerator {
         w.openBlock("protected void executeSearch()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("WebElement searchBtn = driver.findElement(By.xpath(");
-        w.writeLine("    \"//button[contains(text(), '\\u041d\\u0430\\u0439\\u0442\\u0438')]\"");
-        w.writeLine("    + \" | //input[@value='\\u041d\\u0430\\u0439\\u0442\\u0438']\"");
-        w.writeLine("    + \" | //button[contains(@class, 'x-btn-text')][contains(text(), '\\u041d\\u0430\\u0439\\u0442\\u0438')]\"");
-        w.writeLine("    + \" | //button[.//span[contains(text(), '\\u041d\\u0430\\u0439\\u0442\\u0438')]]\"");
-        w.writeLine("    + \" | //button[contains(@class, 'search-btn')]\"));");
-        w.writeLine("searchBtn.click();");
-        w.writeLine("Thread.sleep(500);");
+        // E3Core search forms use «Готово» as the submit button (PropertyGrid-style dialogs);
+        // some result-grid pages use «Выполнить поиск»/«Найти». Try all three in order of likelihood
+        // and pick whichever is visible.
+        w.writeLine("String[] candidates = { \"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\", \"\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a\", \"\\u041d\\u0430\\u0439\\u0442\\u0438\" };");
+        w.openBlock("for (String label : candidates)");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//button[contains(normalize-space(.), '\" + label + \"')]\"");
+        w.writeLine("    + \" | //input[@value='\" + label + \"']\"");
+        w.writeLine("    + \" | //button[.//span[contains(normalize-space(.), '\" + label + \"')]]\"));");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed() && b.isEnabled())");
+        w.writeLine("System.out.println(\"executeSearch: clicking '\" + label + \"'\");");
+        w.writeLine("clickSafely(b);");
+        w.writeLine("Thread.sleep(800);");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"Could not execute search — none of [Готово, Выполнить поиск, Найти] visible\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"Could not execute search\");");
+        w.writeLine("System.out.println(\"executeSearch error: \" + e.getMessage());");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
@@ -1546,6 +1565,17 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
+        // Strategy 4 (E3Core PropertyGrid): the form is a 2-column table «Наименование/Значение»
+        // — fields are NOT real <input>s until you click the value cell, then an inline editor
+        // appears. Try this when the regular input search failed.
+        w.openBlock("if (param == null)");
+        w.writeLine("boolean clicked = fillPropertyGridCell(title != null && !title.isBlank() ? title : paramName, value);");
+        w.openBlock("if (clicked)");
+        w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: PropertyGrid cell)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+
         w.openBlock("if (param != null)");
         w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: \" + strategy + \")\");");
         w.openBlock("try");
@@ -1556,7 +1586,7 @@ public class TestGenerator {
         w.writeLine("param.sendKeys(value);");
         w.closeBlock();
         w.openBlock("else");
-        w.writeLine("System.out.println(\"Could not fill search param: \" + paramName + (title == null ? \"\" : \" (title='\" + title + \"')\") + \" (no input matched name/id/label)\");");
+        w.writeLine("System.out.println(\"Could not fill search param: \" + paramName + (title == null ? \"\" : \" (title='\" + title + \"')\") + \" (no input matched name/id/label/PropertyGrid)\");");
         // Diagnostic dump: list ALL visible inputs / textareas so we can see what's actually on
         // the page. Without this we keep guessing at selectors blindly.
         w.openBlock("try");
@@ -1599,6 +1629,91 @@ public class TestGenerator {
         // Covers ExtJS 3 (.x-grid3-hd*), ExtJS 4/5 (.x-column-header, .x-column-header-text),
         // and plain HTML (<th>, <td.header>). Normalises whitespace so XML titles with non-breaking
         // spaces or doubled spaces still match the rendered text.
+        // fillPropertyGridCell: E3Core search and add forms render as a 2-column ExtJS PropertyGrid
+        // («Наименование» / «Значение»). The value cells are NOT real input fields until clicked —
+        // a click promotes them to an inline editor. So:
+        //   1. find the row whose left cell contains the field label (Russian title like
+        //      «Наименование ГСК/ОГСК» or «Кадастровый номер»)
+        //   2. click the right cell (or the row) to spawn the inline editor
+        //   3. type the value into the newly-visible input
+        //   4. Tab to commit
+        // Returns true on success.
+        w.openBlock("protected boolean fillPropertyGridCell(String rowLabel, String value)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        // Find rows of the PropertyGrid. ExtJS uses .x-grid3-row in v3 and .x-grid-row in v4+,
+        // each containing two cells (label, value). We match the row whose first cell text
+        // contains the label.
+        w.writeLine("String labelLc = rowLabel == null ? \"\" : rowLabel.toLowerCase();");
+        // Strip the trailing "*" that PropertyGrid uses to mark required fields.
+        w.writeLine("String cleanLabel = rowLabel == null ? \"\" : rowLabel.replace(\"*\", \"\").trim();");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, table.x-grid-table tr, tr.x-grid-data-row\"));");
+        w.writeLine("WebElement targetValueCell = null;");
+        w.openBlock("for (WebElement row : rows)");
+        w.openBlock("try");
+        w.openBlock("if (!row.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("List<WebElement> cells = row.findElements(By.cssSelector(\"td, .x-grid3-cell, .x-grid-cell\"));");
+        w.openBlock("if (cells.size() < 2)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String leftText = cells.get(0).getText();");
+        w.openBlock("if (leftText == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String leftClean = leftText.replace(\"*\", \"\").trim();");
+        w.writeLine("boolean leftLc = leftClean.toLowerCase().contains(cleanLabel.toLowerCase());");
+        w.writeLine("boolean labelLc2 = cleanLabel.toLowerCase().contains(leftClean.toLowerCase());");
+        w.openBlock("if (leftClean.equalsIgnoreCase(cleanLabel) || leftLc || labelLc2)");
+        w.writeLine("targetValueCell = cells.get(cells.size() - 1);");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (targetValueCell == null)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Click value cell once and again — ExtJS PropertyGrid sometimes needs two clicks
+        // (first selects row, second activates editor).
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(targetValueCell).click().pause(150).click().perform();");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Now there should be an inline editor input visible. Type into it.
+        w.writeLine("List<WebElement> editors = driver.findElements(By.cssSelector(\".x-grid-editor input, .x-form-text:not(.x-combo-noedit), input.x-form-field\"));");
+        w.openBlock("for (WebElement ed : editors)");
+        w.openBlock("try");
+        w.openBlock("if (ed.isDisplayed() && ed.isEnabled())");
+        w.openBlock("try");
+        w.writeLine("ed.clear();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("ed.sendKeys(value);");
+        w.writeLine("ed.sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"fillPropertyGridCell error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         w.openBlock("protected boolean isColumnPresent(String columnTitle)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
