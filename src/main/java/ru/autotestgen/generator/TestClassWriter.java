@@ -240,6 +240,12 @@ public class TestClassWriter {
         w.openBlock("if (totalCount > 0)");
         w.writeLine("assertTrue(foundCount >= 1, \"0 of \" + totalCount + \" expected fields visible — navigation likely failed entirely. Missing: \" + String.join(\", \", missing));");
         w.closeBlock();
+        // After verifying fields, leave navigation in a useful state for the next tests in the
+        // class: right-click the first row and choose «Загрузить выбранные объекты в дерево» —
+        // this is the documented E3Core action that opens the «Единый объект» card.
+        // testGrid* tests run next and can rely on the card being already loaded.
+        w.writeLine("step(\"load row into tree\", () -> loadRowIntoTree());");
+        w.writeLine("shot(\"after_load_into_tree\");");
         w.closeBlock();
         w.writeLine();
     }

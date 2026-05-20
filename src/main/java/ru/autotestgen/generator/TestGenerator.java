@@ -2162,6 +2162,90 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // loadRowIntoTree(): right-click first row of the result grid, then click
+        // «Загрузить выбранные объекты в дерево» — the documented E3Core way to open a
+        // record's «Единый объект» card. Returns true if any item was clicked. Caller
+        // should then waitUntil(isOnRecordCard()) to confirm the card actually opened.
+        // We call this at the END of testFieldsPresent so the next testGrid* tests start
+        // with the card already loaded (instead of having to open it from scratch).
+        w.openBlock("protected boolean loadRowIntoTree()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.writeLine("WebElement firstRow = null;");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed())");
+        w.writeLine("firstRow = r; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (firstRow == null)");
+        w.writeLine("System.out.println(\"loadRowIntoTree: no visible row in the result grid\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Right-click on first row to open context menu
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
+        w.writeLine("Thread.sleep(600);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"loadRowIntoTree: contextClick failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Find «Загрузить выбранные объекты в дерево» in the context menu
+        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"));");
+        w.openBlock("for (WebElement m : items)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed())");
+        w.writeLine("System.out.println(\"loadRowIntoTree: clicking '\" + m.getText().trim() + \"' from context menu\");");
+        w.writeLine("tryClickAllWays(m);");
+        w.writeLine("Thread.sleep(800);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Diagnostic dump: what items WERE in the context menu? Helps when the menu opens but
+        // doesn't have the expected entry.
+        w.writeLine("List<WebElement> anyItems = driver.findElements(By.cssSelector(\".x-menu-item-text\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement m : anyItems)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed() && shown < 10)");
+        w.writeLine("System.out.println(\"  context menu has: '\" + m.getText().trim() + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (shown == 0)");
+        w.writeLine("System.out.println(\"loadRowIntoTree: context menu didn't open after right-click\");");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"loadRowIntoTree: 'Загрузить выбранные объекты в дерево' not found\");");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"loadRowIntoTree failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // clickEntityMenuItem: robust replacement for the brittle menuAction. Uses stem-matching
         // (same as descendMenu) instead of contains(text(), exact). The v6.5 run showed menuAction
         // failing silently because contains(text(),'ГСК/ОГСК') doesn't match items that ExtJS may
