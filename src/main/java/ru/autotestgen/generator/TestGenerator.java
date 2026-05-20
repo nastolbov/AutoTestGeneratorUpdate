@@ -599,6 +599,11 @@ public class TestGenerator {
         // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
         w.writeLine("private boolean navigationAttempted = false;");
         w.writeLine("private boolean cachedNavigationOk = false;");
+        // Cache card-open result: after the first openRecordCard attempt fails, subsequent
+        // testGrid* tests in the same class instance skip the 5-strategy retry (which costs
+        // ~30-50 seconds per attempt). Saves ~2-3 minutes per typical run.
+        w.writeLine("private boolean cardOpenAttempted = false;");
+        w.writeLine("private boolean cachedCardOpenOk = false;");
         // Screenshot bookkeeping — currentTestName captured in @BeforeEach, stepCounter resets per test.
         w.writeLine("protected String currentTestName = \"test\";");
         w.writeLine("protected int stepCounter = 0;");
@@ -1369,6 +1374,16 @@ public class TestGenerator {
         // Tries three strategies in order — double-click, right-click+«Изменить»/«Открыть»,
         // and menuAction(entity, «Изменить»). Stops at the first one that produces a dialog.
         w.openBlock("protected boolean openRecordCard()");
+        // Cache: if a previous openRecordCard call in this test class already failed all five
+        // strategies, return false immediately. Saves ~30-50 seconds per subsequent testGrid*
+        // test in the same class.
+        w.openBlock("if (cardOpenAttempted)");
+        w.openBlock("if (!cachedCardOpenOk)");
+        w.writeLine("System.out.println(\"openRecordCard: cached miss — skipping retry\");");
+        w.closeBlock();
+        w.writeLine("return cachedCardOpenOk;");
+        w.closeBlock();
+        w.writeLine("cardOpenAttempted = true;");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
@@ -1398,9 +1413,10 @@ public class TestGenerator {
         w.writeLine("    .pause(Duration.ofMillis(400))");
         w.writeLine("    .click()");
         w.writeLine("    .perform();");
-        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 12, \"card after select+open\");");
+        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 5, \"card after select+open\");");
         w.openBlock("if (opened1)");
         w.writeLine("System.out.println(\"openRecordCard: opened via select + open (two clicks)\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1409,9 +1425,10 @@ public class TestGenerator {
         // Strategy 1b: native doubleClick — fallback for builds where one fast double-click works
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
-        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 10, \"card after double-click\");");
+        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 4, \"card after double-click\");");
         w.openBlock("if (opened1b)");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1424,9 +1441,10 @@ public class TestGenerator {
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
         w.writeLine("    firstRow);");
-        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 10, \"card after JS dblclick\");");
+        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 4, \"card after JS dblclick\");");
         w.openBlock("if (opened1c)");
         w.writeLine("System.out.println(\"openRecordCard: opened via JS dblclick event\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1446,9 +1464,10 @@ public class TestGenerator {
         w.openBlock("if (m.isDisplayed())");
         w.writeLine("System.out.println(\"openRecordCard: clicking 'Загрузить выбранные объекты в дерево' from context menu\");");
         w.writeLine("tryClickAllWays(m);");
-        w.writeLine("boolean opened1d = waitUntil(d -> isOnRecordCard(), 12, \"card after load-to-tree\");");
+        w.writeLine("boolean opened1d = waitUntil(d -> isOnRecordCard(), 6, \"card after load-to-tree\");");
         w.openBlock("if (opened1d)");
         w.writeLine("System.out.println(\"openRecordCard: opened via 'Загрузить выбранные объекты в дерево'\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1478,6 +1497,7 @@ public class TestGenerator {
         w.writeLine("clickSafely(m); Thread.sleep(800);");
         w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via right-click menu '\" + m.getText().trim() + \"'\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1501,6 +1521,7 @@ public class TestGenerator {
         w.writeLine("clickSafely(b); Thread.sleep(800);");
         w.openBlock("if (isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via toolbar 'Изменить'\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1515,9 +1536,10 @@ public class TestGenerator {
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(200);");
         w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("boolean opened4 = waitUntil(d -> isOnRecordCard(), 8, \"card after Enter\");");
+        w.writeLine("boolean opened4 = waitUntil(d -> isOnRecordCard(), 4, \"card after Enter\");");
         w.openBlock("if (opened4)");
         w.writeLine("System.out.println(\"openRecordCard: opened via Enter key\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1540,6 +1562,7 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(800);");
         w.openBlock("if (clicked && isOnRecordCard())");
         w.writeLine("System.out.println(\"openRecordCard: opened via clickEntityMenuItem\");");
+        w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
