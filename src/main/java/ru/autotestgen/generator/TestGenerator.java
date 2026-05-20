@@ -1377,11 +1377,32 @@ public class TestGenerator {
         w.writeLine("System.out.println(\"openRecordCard: no visible row to open\");");
         w.writeLine("return false;");
         w.closeBlock();
-        // Strategy 1: double-click
+        // Strategy 1: select-then-open. User confirmed the stand needs two separate clicks:
+        // first click selects the row (highlights it), second click opens the «Единый объект»
+        // view. A fast Actions.doubleClick() bundles the two clicks too tightly and ExtJS
+        // doesn't fire the row-activated event. So we do an explicit click → pause → click
+        // → wait up to 5s for the card to appear (page load can be slow).
+        w.openBlock("try");
+        w.writeLine("new Actions(driver)");
+        w.writeLine("    .moveToElement(firstRow)");
+        w.writeLine("    .click()");
+        w.writeLine("    .pause(Duration.ofMillis(400))");
+        w.writeLine("    .click()");
+        w.writeLine("    .perform();");
+        // waitUntil polls every ~250ms for up to 5s — gives the page time to render «Единый объект».
+        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 5, \"card after select+open\");");
+        w.openBlock("if (opened1)");
+        w.writeLine("System.out.println(\"openRecordCard: opened via select + open (two clicks)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 1b: native doubleClick — fallback for builds where one fast double-click works
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
-        w.writeLine("Thread.sleep(800);");
-        w.openBlock("if (isOnRecordCard())");
+        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 4, \"card after double-click\");");
+        w.openBlock("if (opened1b)");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1437,8 +1458,9 @@ public class TestGenerator {
         // Strategy 4: Enter key on selected row — some ExtJS grids open on keyboard activation
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(200);");
-        w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER); Thread.sleep(700);");
-        w.openBlock("if (isOnRecordCard())");
+        w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("boolean opened4 = waitUntil(d -> isOnRecordCard(), 4, \"card after Enter\");");
+        w.openBlock("if (opened4)");
         w.writeLine("System.out.println(\"openRecordCard: opened via Enter key\");");
         w.writeLine("return true;");
         w.closeBlock();
