@@ -1398,7 +1398,6 @@ public class TestGenerator {
         w.writeLine("    .pause(Duration.ofMillis(400))");
         w.writeLine("    .click()");
         w.writeLine("    .perform();");
-        // waitUntil polls every ~250ms for up to 5s — gives the page time to render «Единый объект».
         w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 5, \"card after select+open\");");
         w.openBlock("if (opened1)");
         w.writeLine("System.out.println(\"openRecordCard: opened via select + open (two clicks)\");");
@@ -1414,6 +1413,54 @@ public class TestGenerator {
         w.openBlock("if (opened1b)");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
         w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 1c: JS-dispatched native dblclick — ExtJS 3 listens for raw DOM event, but
+        // Selenium's Actions sometimes generates two separate `click` events instead. dispatching
+        // a real `dblclick` MouseEvent via JS bypasses this.
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
+        w.writeLine("    firstRow);");
+        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 5, \"card after JS dblclick\");");
+        w.openBlock("if (opened1c)");
+        w.writeLine("System.out.println(\"openRecordCard: opened via JS dblclick event\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 1d: right-click → «Загрузить выбранные объекты в дерево». This is the action
+        // the user's screenshot showed in the context menu. After it executes, the object is
+        // loaded into a separate «Единый объект» window which is what we want to detect.
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("List<WebElement> loadItems = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"));");
+        w.openBlock("for (WebElement m : loadItems)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed())");
+        w.writeLine("System.out.println(\"openRecordCard: clicking 'Загрузить выбранные объекты в дерево' from context menu\");");
+        w.writeLine("tryClickAllWays(m);");
+        w.writeLine("boolean opened1d = waitUntil(d -> isOnRecordCard(), 8, \"card after load-to-tree\");");
+        w.openBlock("if (opened1d)");
+        w.writeLine("System.out.println(\"openRecordCard: opened via 'Загрузить выбранные объекты в дерево'\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Close any remaining context menu
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
