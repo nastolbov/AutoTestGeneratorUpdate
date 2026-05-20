@@ -1172,15 +1172,24 @@ public class TestGenerator {
         w.writeLine("String trimmed = searchName.trim().replaceAll(\"\\\\s+\", \" \");");
         w.writeLine("WebElement searchLink = findTreeNode(trimmed);");
         w.openBlock("if (searchLink == null)");
-        // Self-healing: tree window probably closed. Re-trigger menu lookup via the robust
-        // stem-matching helper to bring it back, then look again.
+        // 1st fallback: tree might be closed. Re-trigger menu lookup to bring it back.
         w.writeLine("System.out.println(\"openSearch: tree node '\" + trimmed + \"' not visible — re-opening tree via clickEntityMenuItem('Найти')\");");
         w.writeLine("clickEntityMenuItem(entityName(), new String[]{ \"\\u041d\\u0430\\u0439\\u0442\\u0438\" });");
         w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         w.writeLine("searchLink = findTreeNode(trimmed);");
         w.closeBlock();
         w.openBlock("if (searchLink == null)");
-        w.writeLine("System.out.println(\"Could not open search: \" + searchName + \" (tree node not found even after re-opening tree)\");");
+        // 2nd fallback: named searches like «Поиск ОГСК», «Поиск объединений» often live as
+        // DIRECT submenu items of the entity, not as tree nodes. Try clicking the search name
+        // straight via the same robust stem-matching helper.
+        w.writeLine("System.out.println(\"openSearch: '\" + trimmed + \"' not a tree node — trying as direct menu item\");");
+        w.writeLine("boolean directClicked = clickEntityMenuItem(entityName(), new String[]{ trimmed });");
+        w.openBlock("if (directClicked)");
+        // Result grid is auto-rendered for named searches; no double-click / submit needed.
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"Could not open search: \" + searchName + \" (neither tree node nor direct menu item)\");");
         w.writeLine("return;");
         w.closeBlock();
         w.openBlock("try");

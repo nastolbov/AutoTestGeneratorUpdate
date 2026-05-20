@@ -597,7 +597,14 @@ public class TestClassWriter {
         }
         w.writeLine();
         w.writeLine("shot(\"params_filled\");");
-        w.writeLine("step(\"execute search\", () -> executeSearch());");
+        // Parameterless searches like «Поиск ОГСК», «Поиск объединений» auto-execute when the
+        // tree node or menu item is clicked — no separate submit button. Only parametric searches
+        // («по параметрам») require executeSearch.
+        if (!search.getParams().isEmpty()) {
+            w.writeLine("step(\"execute search\", () -> executeSearch());");
+        } else {
+            w.writeLine("// search '" + search.getName().replace("\"", "\\\"") + "' has no params — auto-executes on open, no submit click needed");
+        }
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_search\");");
 
