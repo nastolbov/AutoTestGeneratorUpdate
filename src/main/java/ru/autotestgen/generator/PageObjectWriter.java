@@ -56,19 +56,51 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Generic helper to fill a PropertyGrid field by its display name (fast)
+        // Generic helper to fill a PropertyGrid field by its display name.
+        // ВАЖНО: для надёжности сначала пробуем ExtJS API (setValue по fieldLabel),
+        // и только потом fall-back на DOM-клик ячейки + inline-редактор.
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
-        w.writeLine("// Reduce implicit wait for fast field lookup");
+        // Strategy 1: ExtJS API — самый надёжный путь, работает даже если cell не отрисована
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var target = arguments[0]; var val = arguments[1];\"");
+        w.writeLine("    + \"  var fields = [];\"");
+        w.writeLine("    + \"  if (Ext.ComponentQuery) fields = Ext.ComponentQuery.query('field');\"");
+        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
+        w.writeLine("    + \"  if (fields.length === 0 && mgr) {\"");
+        w.writeLine("    + \"    var iter = mgr.all && mgr.all.each ? mgr.all : mgr;\"");
+        w.writeLine("    + \"    iter.each(function(c) { if (c && c.setValue && (c.fieldLabel !== undefined || c.name !== undefined || c.boxLabel !== undefined)) fields.push(c); });\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  var match = fields.filter(function(f) {\"");
+        w.writeLine("    + \"    var visible = true;\"");
+        w.writeLine("    + \"    try { if (typeof f.isVisible === 'function') visible = f.isVisible(); } catch (vv) {}\"");
+        w.writeLine("    + \"    if (!visible) return false;\"");
+        w.writeLine("    + \"    return (f.fieldLabel && f.fieldLabel.indexOf(target) >= 0)\"");
+        w.writeLine("    + \"        || (f.name && f.name === target)\"");
+        w.writeLine("    + \"        || (f.boxLabel && f.boxLabel.indexOf(target) >= 0);\"");
+        w.writeLine("    + \"  });\"");
+        w.writeLine("    + \"  if (match.length === 0) return 'no-field';\"");
+        w.writeLine("    + \"  match[0].setValue(val);\"");
+        w.writeLine("    + \"  return 'set';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\",");
+        w.writeLine("    fieldName, value);");
+        w.openBlock("if (\"set\".equals(result))");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Strategy 2: DOM PropertyGrid click (fallback for non-Ext or hidden fields)
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
         w.openBlock("try");
-        w.writeLine("// Find the row with the field name in property grid");
         w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(\"//div[contains(@class, 'x-grid3-cell-inner')][contains(text(), '\" + fieldName + \"')]\"));");
         w.openBlock("if (nameCells.isEmpty())");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement nameCell = nameCells.get(0);");
-        w.writeLine("// Click the value cell (adjacent td in same row)");
         w.writeLine("java.util.List<WebElement> rows = nameCell.findElements(By.xpath(\"ancestor::tr\"));");
         w.openBlock("if (rows.isEmpty())");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
@@ -77,8 +109,7 @@ public class PageObjectWriter {
         w.writeLine("java.util.List<WebElement> cells = rows.get(0).findElements(By.cssSelector(\"td\"));");
         w.openBlock("if (cells.size() >= 2)");
         w.writeLine("cells.get(1).click();");
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("// Wait for inline editor (findElements = no implicit wait timeout)");
+        w.writeLine("Thread.sleep(300);");
         w.writeLine("java.util.List<WebElement> editors = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden'])\"));");
         w.openBlock("for (WebElement editor : editors)");
         w.openBlock("if (editor.isDisplayed())");
@@ -88,7 +119,7 @@ public class PageObjectWriter {
         w.writeLine("break;");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("Thread.sleep(50);");
+        w.writeLine("Thread.sleep(100);");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
