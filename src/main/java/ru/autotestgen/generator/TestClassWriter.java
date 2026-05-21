@@ -101,13 +101,16 @@ public class TestClassWriter {
         w.writeLine();
 
         // @BeforeEach — ensure result grid is always available before each test.
-        // resetState() closes any open card/dialog (including the result-grid window in
-        // E3Core, which is itself an x-window), so we can't rely on the previous test's
-        // navigation. Re-navigate + re-execute search every time. ~3-5s overhead per test,
-        // but unblocks the ~38 tests that previously skipped on 'no visible data cell'.
+        // resetState() closes any open card AND the result-grid window (which in
+        // E3Core is itself an x-window), so we can't rely on the previous test's
+        // navigation. Reset the navigation cache flag so navigateToEntity actually
+        // re-runs (without that, the navigationAttempted guard returns instantly).
         w.writeLine("@BeforeEach");
         w.openBlock("void setUp()");
         w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
         w.writeLine("navigateToEntity(\"" + entity.getName() + "\", \"" + entity.getFeatureName() + "\");");
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");

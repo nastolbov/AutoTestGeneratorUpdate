@@ -597,17 +597,17 @@ public class TestGenerator {
         w.writeLine("protected boolean navigationOk = false;");
         // Cache so navigation is attempted at most ONCE per test class. After a failed first try,");
         // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
-        w.writeLine("private boolean navigationAttempted = false;");
-        w.writeLine("private boolean cachedNavigationOk = false;");
+        w.writeLine("protected boolean navigationAttempted = false;");
+        w.writeLine("protected boolean cachedNavigationOk = false;");
         // Cache card-open result: after the first openRecordCard attempt fails, subsequent
         // testGrid* tests in the same class instance skip the 5-strategy retry (which costs
         // ~30-50 seconds per attempt). Saves ~2-3 minutes per typical run.
-        w.writeLine("private boolean cardOpenAttempted = false;");
+        w.writeLine("protected boolean cardOpenAttempted = false;");
         w.writeLine("private boolean cachedCardOpenOk = false;");
         // Cache add-dialog state: if waitForDialog times out once in this test class, mark the
         // dialog as unreachable. CRUD tests that come later (testCreate, testUpdate, …) hit the
         // cache and return false immediately instead of waiting another 4s each.
-        w.writeLine("private boolean addDialogFailed = false;");
+        w.writeLine("protected boolean addDialogFailed = false;");
         // Screenshot bookkeeping — currentTestName captured in @BeforeEach, stepCounter resets per test.
         w.writeLine("protected String currentTestName = \"test\";");
         w.writeLine("protected int stepCounter = 0;");
