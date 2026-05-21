@@ -1143,13 +1143,59 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // openViaExtApi: дёргает ExtJS API напрямую через JavaScript, минуя Selenium-Actions.
+        // На стенде стоит ExtJS 3 (классы x-grid3-*), синтетические DOM-события которой
+        // не активируют rowdblclick. Зато прямой вызов через `grid.fireEvent('rowdblclick', ...)`
+        // обходит это ограничение и реально открывает «Единый объект».
+        // Поддерживает обе ветки API: ExtJS 4+ (Ext.ComponentQuery) и ExtJS 3 (Ext.ComponentMgr).
+        w.openBlock("protected boolean openViaExtApi()");
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var grids = [];\"");
+        w.writeLine("    + \"  if (Ext.ComponentQuery) { grids = Ext.ComponentQuery.query('grid'); }\"");
+        w.writeLine("    + \"  if ((!grids || grids.length === 0) && Ext.ComponentMgr) {\"");
+        w.writeLine("    + \"    Ext.ComponentMgr.all.each(function(c) { if (c.getXType && (c.getXType() === 'grid' || c.getXType() === 'gridpanel' || c.getXType() === 'editorgrid')) grids.push(c); });\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  if (!grids || grids.length === 0) return 'no-grid';\"");
+        w.writeLine("    + \"  var visible = grids.filter(function(g) { return g.rendered && !g.hidden; });\"");
+        w.writeLine("    + \"  var g = visible.length > 0 ? visible[visible.length - 1] : grids[grids.length - 1];\"");
+        w.writeLine("    + \"  var store = g.getStore && g.getStore(); var count = store ? store.getCount() : 0;\"");
+        w.writeLine("    + \"  if (count === 0) return 'empty-store';\"");
+        w.writeLine("    + \"  var record = store.getAt(0); var view = g.view || g.getView();\"");
+        w.writeLine("    + \"  if (g.fireEvent) {\"");
+        w.writeLine("    + \"    g.fireEvent('rowdblclick', g, 0, null);\"");
+        w.writeLine("    + \"    g.fireEvent('itemdblclick', view, record, null, 0, null);\"");
+        w.writeLine("    + \"    return 'fired';\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-fireEvent';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"openViaExtApi: \" + result);");
+        w.writeLine("return \"fired\".equals(result);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"openViaExtApi error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // selectAndOpenRecord: документированный пользователем сценарий E3Core:
-        //   1. выделить строку результата (одиночный клик),
+        //   0. ПЕРВЫМ ДЕЛОМ — попытка через ExtJS API (openViaExtApi). Если ExtJS-grid
+        //      реагирует на fireEvent('rowdblclick') — карточка открывается за 100мс.
+        //   1. fallback: выделить строку (одиночный клик),
         //   2. дождаться выделения,
         //   3. двойной клик — откроется карточка записи / редактор.
-        // ПКМ-меню на этом стенде не реагирует на Selenium-события, поэтому
-        // эта пара "click + dblclick" — рабочий способ войти в форму записи.
         w.openBlock("protected boolean selectAndOpenRecord()");
+        // Strategy 0: ExtJS API — самый надёжный вариант для ExtJS-grid'ов
+        w.openBlock("if (openViaExtApi())");
+        w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 4, \"card after ExtJS API\");");
+        w.openBlock("if (opened)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
@@ -1449,6 +1495,16 @@ public class TestGenerator {
         w.writeLine("return cachedCardOpenOk;");
         w.closeBlock();
         w.writeLine("cardOpenAttempted = true;");
+        // Strategy 0: ExtJS API. На ExtJS-grid'ах синтетический click из Selenium не активирует
+        // row-dblclick, зато прямой вызов через JS работает.
+        w.openBlock("if (openViaExtApi())");
+        w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 4, \"card after ExtJS API\");");
+        w.openBlock("if (opened0)");
+        w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
+        w.writeLine("cachedCardOpenOk = true;");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
@@ -1766,6 +1822,19 @@ public class TestGenerator {
         w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: PropertyGrid cell)\");");
         w.writeLine("return;");
         w.closeBlock();
+        // Strategy 5: ExtJS API. Если ни обычный input, ни PropertyGrid-ячейка не сработали,
+        // дёргаем поле напрямую через Ext-API по fieldLabel/name. Работает даже когда DOM-инпут
+        // для поля не отрисован.
+        w.writeLine("String labelToTry = title != null && !title.isBlank() ? title : paramName;");
+        w.openBlock("if (setFieldViaExtApi(labelToTry, value))");
+        w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: Ext API)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Также пробуем по второму имени
+        w.openBlock("if (!labelToTry.equals(paramName) && setFieldViaExtApi(paramName, value))");
+        w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: Ext API by name)\");");
+        w.writeLine("return;");
+        w.closeBlock();
         w.closeBlock();
 
         w.openBlock("if (param != null)");
@@ -1827,6 +1896,39 @@ public class TestGenerator {
         //   1. find the row whose left cell contains the field label (Russian title like
         //      «Наименование ГСК/ОГСК» or «Кадастровый номер»)
         //   2. click the right cell (or the row) to spawn the inline editor
+        // setFieldViaExtApi: устанавливает значение ExtJS form-field'а по его fieldLabel
+        // или name через ExtJS API. Это работает даже там, где DOM-инпут не существует
+        // (например в свёрнутом PropertyGrid). Возвращает true если поле найдено и значение
+        // установлено.
+        w.openBlock("protected boolean setFieldViaExtApi(String labelOrName, String value)");
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var target = arguments[0]; var val = arguments[1];\"");
+        w.writeLine("    + \"  var fields = [];\"");
+        w.writeLine("    + \"  if (Ext.ComponentQuery) fields = Ext.ComponentQuery.query('field');\"");
+        w.writeLine("    + \"  if (fields.length === 0 && Ext.ComponentMgr) {\"");
+        w.writeLine("    + \"    Ext.ComponentMgr.all.each(function(c) { if (c.setValue && c.fieldLabel !== undefined) fields.push(c); });\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  var match = fields.filter(function(f) { return (f.fieldLabel && f.fieldLabel.indexOf(target) >= 0) || (f.name && f.name === target) || (f.boxLabel && f.boxLabel.indexOf(target) >= 0); });\"");
+        w.writeLine("    + \"  if (match.length === 0) return 'no-field';\"");
+        w.writeLine("    + \"  match[0].setValue(val);\"");
+        w.writeLine("    + \"  return 'set';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\",");
+        w.writeLine("    labelOrName, value);");
+        w.openBlock("if (\"set\".equals(result))");
+        w.writeLine("System.out.println(\"setFieldViaExtApi: '\" + labelOrName + \"' = '\" + value + \"' (via Ext.field.setValue)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         //   3. type the value into the newly-visible input
         //   4. Tab to commit
         // Returns true on success.
