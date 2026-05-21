@@ -240,12 +240,11 @@ public class TestClassWriter {
         w.openBlock("if (totalCount > 0)");
         w.writeLine("assertTrue(foundCount >= 1, \"0 of \" + totalCount + \" expected fields visible — navigation likely failed entirely. Missing: \" + String.join(\", \", missing));");
         w.closeBlock();
-        // After verifying fields, leave navigation in a useful state for the next tests in the
-        // class: right-click the first row and choose «Загрузить выбранные объекты в дерево» —
-        // this is the documented E3Core action that opens the «Единый объект» card.
-        // testGrid* tests run next and can rely on the card being already loaded.
-        w.writeLine("step(\"load row into tree\", () -> loadRowIntoTree());");
-        w.writeLine("shot(\"after_load_into_tree\");");
+        // After verifying fields, open the first record by select + double-click — the proven
+        // E3Core sequence. testGrid* and the CRUD tests run after and can rely on the record
+        // form being open (no openRecordCard 5-strategy waterfall needed).
+        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
+        w.writeLine("shot(\"record_opened\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -413,17 +412,18 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Update existing record\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
-        w.writeLine("waitUntil(d -> !driver.findElements(org.openqa.selenium.By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected\")).isEmpty(), 5, \"row selected\");");
-        w.writeLine("shot(\"row_selected\");");
+        // User reported: ПКМ-меню в этом стенде не работает в Selenium. Реальная
+        // последовательность для редактирования: ВЫДЕЛИТЬ строку (одиночный клик) +
+        // ДВОЙНОЙ КЛИК → откроется карточка/редактор записи.
+        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
+        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"edit form opened\");");
+        w.writeLine("shot(\"record_opened\");");
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
                         && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
                 .findFirst().orElse(null);
         if (stringField != null) {
             String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
-            // Use a timestamped value so re-runs over the same record can be distinguished and the
-            // marker is guaranteed unique inside the grid.
             w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
             w.writeLine("step(\"type updated value\", () -> page." + methodName + "(updatedValue));");
             w.writeLine("shot(\"value_typed\");");
@@ -436,15 +436,13 @@ public class TestClassWriter {
             w.writeLine();
             w.writeLine("// Persistence check: the updated value must be visible somewhere — either in the");
             w.writeLine("// reopened record card OR directly in the grid (its column shows the value).");
-            w.writeLine("step(\"re-select first row\", () -> selectFirstRecord());");
-            w.writeLine("waitUntil(d -> !driver.findElements(org.openqa.selenium.By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected\")).isEmpty(), 5, \"row selected\");");
+            w.writeLine("step(\"re-open record\", () -> selectAndOpenRecord());");
+            w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"record reopened\");");
             w.writeLine("String actual = page.getFieldValue(\"" + stringField.getName() + "\");");
             w.writeLine("if (actual.isEmpty()) actual = page.getFieldValue(\"" + stringField.getAttrName() + "\");");
             w.writeLine("boolean cardMatches = !actual.isEmpty() && actual.contains(updatedValue);");
             w.writeLine("boolean gridMatches = gridContainsRow(updatedValue);");
             w.writeLine("shot(cardMatches || gridMatches ? \"value_persisted\" : \"value_not_visible\");");
-            // If we couldn't read the value back from EITHER the card OR the grid, treat as
-            // tooling limitation (this stand's field reader / grid layout differs). SKIP.
             w.writeLine("Assumptions.assumeTrue(cardMatches || gridMatches,");
             w.writeLine("    \"Update: value '\" + updatedValue + \"' not visible in card (read '\" + actual + \"') or grid — value readback unreliable on this build\");");
         } else {
@@ -465,7 +463,7 @@ public class TestClassWriter {
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
+        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
         // Capture the selected row's text so we can verify the row is actually gone, not just
         // that the row count dropped by one (different row could vanish for unrelated reasons).
@@ -516,7 +514,7 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Logical edit of record\")");
         w.openBlock("void testLogicalEdit()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
+        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
         w.writeLine("step(\"click Лог.изменить\", () -> menuAction(ENTITY_NAME, \"Лог.изменить\"));");
         // Logical edit may or may not open a dialog — give a brief buffer then check.
@@ -534,7 +532,7 @@ public class TestClassWriter {
         w.openBlock("void testArchive()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("step(\"select first record\", () -> selectFirstRecord());");
+        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
         w.writeLine("String archivedMarker = \"\";");
         w.openBlock("try");

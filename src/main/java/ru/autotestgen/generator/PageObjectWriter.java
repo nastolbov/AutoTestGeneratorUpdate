@@ -271,15 +271,21 @@ public class PageObjectWriter {
 
     private void writeFilAllRequiredMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillRequiredFields()");
+        // KEY: каждое обязательное поле ДОЛЖНО быть заполнено, иначе сервер вернёт ошибку
+        // валидации и testCreate провалится. Если TestDataFactory не смогла сгенерировать значение
+        // (FK/Ref-поле), даём хотя бы "1" — это типовое значение для FK-пикера на E3Core. fillX в
+        // PageObject сам разберётся (попробует вписать в инпут, потом откроет дропдаун).
         for (Property prop : properties) {
             if (!prop.isRequired() || isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
-            if (value != null) {
-                w.writeLine(methodName + "(\"" + value + "\");");
-            } else if ("Directory".equals(prop.getStereoType())) {
-                w.writeLine("// " + prop.getName() + " - select first available option in dropdown");
+            if (value == null) {
+                // FK / Directory / Ref — нет генерируемого значения. Используем "1" как универсальный
+                // fallback (выбор первого доступного варианта в пикере).
+                w.writeLine("// " + prop.getName() + " — required FK/Ref, default to first option");
                 w.writeLine(methodName + "(\"1\");");
+            } else {
+                w.writeLine(methodName + "(\"" + value + "\");");
             }
         }
         w.closeBlock();
@@ -292,11 +298,12 @@ public class PageObjectWriter {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
-            if (value != null) {
-                w.writeLine(methodName + "(\"" + value + "\");");
-            } else if ("Directory".equals(prop.getStereoType()) || "Ref".equals(prop.getStereoType())) {
-                w.writeLine("// " + prop.getName() + " - dropdown/reference field");
+            if (value == null) {
+                // FK / Directory / Ref — default "1"
+                w.writeLine("// " + prop.getName() + " — FK/Ref, default to first option");
                 w.writeLine(methodName + "(\"1\");");
+            } else {
+                w.writeLine(methodName + "(\"" + value + "\");");
             }
         }
         w.closeBlock();

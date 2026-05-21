@@ -1139,6 +1139,67 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // selectAndOpenRecord: документированный пользователем сценарий E3Core:
+        //   1. выделить строку результата (одиночный клик),
+        //   2. дождаться выделения,
+        //   3. двойной клик — откроется карточка записи / редактор.
+        // ПКМ-меню на этом стенде не реагирует на Selenium-события, поэтому
+        // эта пара "click + dblclick" — рабочий способ войти в форму записи.
+        w.openBlock("protected boolean selectAndOpenRecord()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.writeLine("WebElement firstRow = null;");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed())");
+        w.writeLine("firstRow = r; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (firstRow == null)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: no visible row\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Step 1: single click to select
+        w.openBlock("try");
+        w.writeLine("firstRow.click();");
+        w.writeLine("Thread.sleep(400);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click failed: \" + e.getMessage());");
+        w.closeBlock();
+        // Step 2: double-click on the same row to open the record
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        // Fallback: JS dblclick event
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
+        w.writeLine("    firstRow);");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e2)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: dblclick failed: \" + e2.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click sequence executed\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // Helper: check for errors
         w.openBlock("protected boolean isErrorPresent()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
