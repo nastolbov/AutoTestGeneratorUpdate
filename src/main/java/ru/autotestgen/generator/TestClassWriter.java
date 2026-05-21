@@ -532,6 +532,9 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
+        // E3Core открывает ExtJS-confirm «Да/Нет» — без клика на «Да» удаление не применяется.
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"after_confirm\");");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_delete\");");
         w.writeLine();
@@ -597,6 +600,8 @@ public class TestClassWriter {
         w.writeLine("step(\"click в Архив in card toolbar\", () -> clickEditDropdownAction(\"в Архив\"));");
         w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"after_confirm\");");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_archive\");");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after archiving\");");

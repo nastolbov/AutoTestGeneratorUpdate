@@ -1293,6 +1293,55 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // confirmDialogYes: после Удалить / в Архив E3Core открывает ExtJS-confirm («Да/Нет»),
+        // и без подтверждения операция не применяется. Ждём диалог до 3с и кликаем «Да»
+        // (либо «Yes», «OK», «Подтвердить») если он появился.
+        w.openBlock("protected boolean confirmDialogYes()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.openBlock("try");
+        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-window') or contains(@class,'x-message-box')]//button[\"");
+        w.writeLine("    + \" normalize-space(.)='\\u0414\\u0430'\"");
+        w.writeLine("    + \" or normalize-space(.)='Yes'\"");
+        w.writeLine("    + \" or normalize-space(.)='OK'\"");
+        w.writeLine("    + \" or normalize-space(.)='\\u041f\\u043e\\u0434\\u0442\\u0432\\u0435\\u0440\\u0434\\u0438\\u0442\\u044c'\"");
+        w.writeLine("    + \"]\"");
+        w.writeLine("    + \" | //button[contains(@class,'x-btn')][.//span[\"");
+        w.writeLine("    + \" normalize-space(.)='\\u0414\\u0430'\"");
+        w.writeLine("    + \" or normalize-space(.)='Yes'\"");
+        w.writeLine("    + \" or normalize-space(.)='OK'\"");
+        w.writeLine("    + \" or normalize-space(.)='\\u041f\\u043e\\u0434\\u0442\\u0432\\u0435\\u0440\\u0434\\u0438\\u0442\\u044c'\"");
+        w.writeLine("    + \"]]\"");
+        w.writeLine("));");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed() && b.isEnabled())");
+        w.writeLine("System.out.println(\"confirmDialogYes: clicking '\" + b.getText().trim() + \"'\");");
+        w.writeLine("tryClickAllWays(b);");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("Thread.sleep(150);");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"confirmDialogYes: no confirm dialog appeared in 3s\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"confirmDialogYes error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // Helper: open search by tree-node name. Tries direct double-click first; if the tree
         // isn't visible (e.g. after the first search the tree window closed), re-opens it via
         // menuAction(entityName(), "Найти") and retries.
