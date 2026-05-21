@@ -1896,6 +1896,86 @@ public class TestGenerator {
         //   1. find the row whose left cell contains the field label (Russian title like
         //      «Наименование ГСК/ОГСК» or «Кадастровый номер»)
         //   2. click the right cell (or the row) to spawn the inline editor
+        // clickEditDropdownAction: на «Едином объекте» CRUD-действия (Сохранить Изменения,
+        // Удалить, Лог.изменить, в Архив) лежат В ВЫПАДАЮЩЕМ СПИСКЕ кнопки «Редактирование»,
+        // которая находится в нижней панели карточки записи, А НЕ в главном меню сущности.
+        // 1. Найти и кликнуть кнопку «Редактирование» внизу карточки.
+        // 2. Дождаться выпадающего меню.
+        // 3. Кликнуть пункт с нужным именем (Удалить / в Архив / Лог.изменить / Сохранить
+        //    Изменения).
+        w.openBlock("protected boolean clickEditDropdownAction(String actionName)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        // Find the «Редактирование» button (toolbar button at bottom of card)
+        w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//span[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]]\"));");
+        w.writeLine("WebElement editBtn = null;");
+        w.openBlock("for (WebElement b : editBtns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed())");
+        w.writeLine("editBtn = b; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (editBtn == null)");
+        w.writeLine("System.out.println(\"clickEditDropdownAction: 'Редактирование' button not visible on card\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Click the «Редактирование» button via tryClickAllWays
+        w.writeLine("System.out.println(\"clickEditDropdownAction: clicking 'Редактирование' to open dropdown\");");
+        w.writeLine("tryClickAllWays(editBtn);");
+        w.writeLine("Thread.sleep(500);");
+        // Now find the action item in the opened dropdown menu
+        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.), '\" + actionName + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + actionName + \"')]\"));");
+        w.openBlock("for (WebElement m : items)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed())");
+        w.writeLine("System.out.println(\"clickEditDropdownAction: clicking '\" + actionName + \"'\");");
+        w.writeLine("tryClickAllWays(m);");
+        w.writeLine("Thread.sleep(700);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"clickEditDropdownAction: action '\" + actionName + \"' not found in dropdown\");");
+        // Dump visible menu items for diagnostics
+        w.writeLine("List<WebElement> anyItems = driver.findElements(By.cssSelector(\".x-menu-item-text\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement m : anyItems)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed() && shown < 10)");
+        w.writeLine("System.out.println(\"  dropdown has: '\" + m.getText().trim() + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Close dropdown
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"clickEditDropdownAction failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // setFieldViaExtApi: устанавливает значение ExtJS form-field'а по его fieldLabel
         // или name через ExtJS API. Это работает даже там, где DOM-инпут не существует
         // (например в свёрнутом PropertyGrid). Возвращает true если поле найдено и значение

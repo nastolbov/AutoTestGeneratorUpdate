@@ -427,7 +427,12 @@ public class TestClassWriter {
             w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
             w.writeLine("step(\"type updated value\", () -> page." + methodName + "(updatedValue));");
             w.writeLine("shot(\"value_typed\");");
+            // На карточке сохранение через «Редактирование» → «Сохранить Изменения» внизу.
+            // Если этой кнопки нет (мы на форме добавления) — fallback на «Готово».
+            w.writeLine("boolean savedViaDropdown = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+            w.openBlock("if (!savedViaDropdown)");
             w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+            w.closeBlock();
             w.writeLine("waitForDialogClose();");
             w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_save\");");
@@ -476,7 +481,7 @@ public class TestClassWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("step(\"click Удалить\", () -> menuAction(ENTITY_NAME, \"Удалить\"));");
+        w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"Удалить\"));");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
@@ -516,7 +521,7 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
-        w.writeLine("step(\"click Лог.изменить\", () -> menuAction(ENTITY_NAME, \"Лог.изменить\"));");
+        w.writeLine("step(\"click Лог.изменить in card toolbar\", () -> clickEditDropdownAction(\"Лог.изменить\"));");
         // Logical edit may or may not open a dialog — give a brief buffer then check.
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_action\");");
@@ -542,7 +547,7 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("step(\"click в Архив\", () -> menuAction(ENTITY_NAME, \"в Архив\"));");
+        w.writeLine("step(\"click в Архив in card toolbar\", () -> clickEditDropdownAction(\"в Архив\"));");
         w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
         w.writeLine("waitForGridSettle();");
