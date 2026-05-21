@@ -93,6 +93,7 @@ public class XmlModelParser {
         assoc.setFeatureName(attr(reader, "featureName"));
         assoc.setAssociationId(attr(reader, "associationID"));
         assoc.setFlagDisplay("1".equals(attr(reader, "flag_display")));
+        assoc.setAddFromTree("1".equals(attr(reader, "addFromTree")));
 
         int depth = 1;
         while (reader.hasNext() && depth > 0) {

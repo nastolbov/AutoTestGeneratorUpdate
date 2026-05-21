@@ -11,6 +11,7 @@ public class Association {
     private String associateItemGuid;
     private String searchGuid;
     private boolean flagDisplay;
+    private boolean addFromTree;
 
     public String getGuid() { return guid; }
     public void setGuid(String guid) { this.guid = guid; }
@@ -41,4 +42,7 @@ public class Association {
 
     public boolean isFlagDisplay() { return flagDisplay; }
     public void setFlagDisplay(boolean flagDisplay) { this.flagDisplay = flagDisplay; }
+
+    public boolean isAddFromTree() { return addFromTree; }
+    public void setAddFromTree(boolean addFromTree) { this.addFromTree = addFromTree; }
 }

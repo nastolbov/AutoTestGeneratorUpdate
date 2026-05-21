@@ -40,6 +40,10 @@ public final class EntityClassifier {
         if (dictReason != null) {
             return new Classification(EntityKind.REFERENCE_DICTIONARY, dictReason);
         }
+        String fkOnlyReason = isFkTargetOnly(entity, model);
+        if (fkOnlyReason != null) {
+            return new Classification(EntityKind.REFERENCE_DICTIONARY, fkOnlyReason);
+        }
         return new Classification(EntityKind.PRIMARY, "has menu entry, CRUD and own searches");
     }
 
@@ -58,6 +62,57 @@ public final class EntityClassifier {
             }
         }
         return null;
+    }
+
+    /**
+     * Сущность считается «целью FK-пикера» (а не реальной самостоятельной), если она
+     * присутствует в чужих ассоциациях как AssociateItem, но ни в одной из этих
+     * родительских сущностей нет PropertyGroup со stereoType="Grid", чьё имя
+     * по корням слов совпадает с именем нашей сущности. То есть никто не показывает
+     * её строки таблицей в табе карточки — её только подбирают как FK.
+     * Используется чтобы отсеять Адрес / Дом на улице — их нет в основном меню,
+     * они открываются только из карточки Должностного лица как picker.
+     */
+    private static String isFkTargetOnly(EntityObject entity, AppModel model) {
+        String guid = entity.getGuid();
+        if (guid == null) return null;
+        int fkRefs = 0;
+        int navRefs = 0;
+        String referrer = null;
+        for (EntityObject other : model.getEntities()) {
+            if (other == entity) continue;
+            if (other.getGuid() != null && other.getGuid().equals(guid)) continue;
+            // Skip refs from entities that are children OF this one (reverse-pointer
+            // back to parent shouldn't count as 'someone uses me as FK').
+            if (isChildOf(other, entity)) continue;
+            for (Association a : other.getAssociations()) {
+                if (!guid.equals(a.getAssociateItemGuid())) continue;
+                // addFromTree=1 OR flag_display=1 means parent shows this entity in its UI
+                // (left tree node or grid tab) — it's a real navigable child, not an FK picker.
+                if (a.isAddFromTree() || a.isFlagDisplay()) {
+                    navRefs++;
+                } else {
+                    fkRefs++;
+                    if (referrer == null) referrer = other.getName();
+                }
+            }
+        }
+        if (fkRefs > 0 && navRefs == 0) {
+            return "FK picker target — referenced as AssociateItem from '" + referrer
+                    + "' (all incoming associations have addFromTree=0 & flag_display=0)";
+        }
+        return null;
+    }
+
+    /** true if `child` appears as a Grid row inside `parent` (by name-stem match). */
+    private static boolean isChildOf(EntityObject child, EntityObject parent) {
+        for (PropertyGroup pg : parent.getPropertyGroups()) {
+            if (!"Grid".equals(pg.getStereoType())) continue;
+            String gridName = pg.getName();
+            if (gridName == null || gridName.isEmpty()) continue;
+            if (nameStemsMatch(child.getName(), gridName)) return true;
+        }
+        return false;
     }
 
     private static String isReferenceDictionary(EntityObject entity, AppModel model) {
