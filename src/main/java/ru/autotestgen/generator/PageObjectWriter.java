@@ -145,10 +145,16 @@ public class PageObjectWriter {
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
-        // Для FK/picker (есть стрелка триггера) — открываем список и берём первый пункт
-        // стрелкой вниз + Enter. Иначе обычный ввод текста.
+        // Триггер-стрелка может означать combobox (FK/Directory) ИЛИ date-picker.
+        // Combobox требует выбора из списка (ARROW_DOWN + ENTER), а date-field принимает
+        // прямой ввод и валидирует по маске. Различаем по классам:
+        //  - x-combo / x-combo-noedit → combobox → picker
+        //  - иначе (включая x-form-date-field, обычный text input) → печатаем value.
+        w.writeLine("String editorClass = editor.getAttribute(\"class\");");
+        w.writeLine("if (editorClass == null) editorClass = \"\";");
+        w.writeLine("boolean isCombo = editorClass.contains(\"x-combo\");");
         w.openBlock("try");
-        w.openBlock("if (visibleTrigger != null)");
+        w.openBlock("if (visibleTrigger != null && isCombo)");
         w.writeLine("editor.clear();");
         w.writeLine("visibleTrigger.click();");
         w.writeLine("Thread.sleep(400);");
@@ -157,7 +163,7 @@ public class PageObjectWriter {
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(150);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK (picker, first option)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK (combobox, first option)\");");
         w.closeBlock();
         w.openBlock("else");
         w.writeLine("editor.clear();");
