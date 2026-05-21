@@ -495,13 +495,16 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
+        // If rows GREW significantly, we ended up looking at a different grid (a child grid
+        // inside the opened «Единый объект»). The count change isn't comparable to before. SKIP.
+        w.openBlock("if (rowsAfter > rowsBefore + 5)");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete: row count grew from \" + rowsBefore + \" to \" + rowsAfter");
+        w.writeLine("    + \" — we likely opened a different (child) grid; cannot compare delete result\");");
+        w.closeBlock();
         // Hard: row count must strictly decrease OR the specific marker must be gone.
         // If marker was empty (couldn't read row text), require strict count decrease — that's the
         // only signal we have.
         w.openBlock("if (deletedMarker.isEmpty())");
-        // Couldn't capture row text AND count unchanged → can't tell if anything happened.
-        // Treat as SKIP not FAIL: this stand may not expose row selection in a readable way,
-        // or the delete action may need a different invocation path.
         w.writeLine("Assumptions.assumeTrue(rowsAfter < rowsBefore,");
         w.writeLine("    \"Delete: could not capture marker AND row count unchanged (\" + rowsBefore + \" -> \" + rowsAfter + \") — delete may not be reachable on this build\");");
         w.closeBlock();

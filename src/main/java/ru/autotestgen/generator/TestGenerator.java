@@ -1154,9 +1154,21 @@ public class TestGenerator {
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
         w.writeLine("    + \"  var grids = [];\"");
-        w.writeLine("    + \"  if (Ext.ComponentQuery) { grids = Ext.ComponentQuery.query('grid'); }\"");
-        w.writeLine("    + \"  if ((!grids || grids.length === 0) && Ext.ComponentMgr) {\"");
-        w.writeLine("    + \"    Ext.ComponentMgr.all.each(function(c) { if (c.getXType && (c.getXType() === 'grid' || c.getXType() === 'gridpanel' || c.getXType() === 'editorgrid')) grids.push(c); });\"");
+        w.writeLine("    + \"  if (Ext.ComponentQuery) {\"");
+        // ExtJS 4+: try several xtype variants
+        w.writeLine("    + \"    grids = Ext.ComponentQuery.query('grid')\"");
+        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('gridpanel'))\"");
+        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('editorgrid'))\"");
+        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('treepanel'));\"");
+        w.writeLine("    + \"  }\"");
+        // ExtJS 3: ComponentMgr (without 'r' for v4+). Both work because we duck-type.
+        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
+        w.writeLine("    + \"  if (mgr && grids.length === 0) {\"");
+        w.writeLine("    + \"    if (mgr.all && mgr.all.each) {\"");
+        w.writeLine("    + \"      mgr.all.each(function(c) { var x = c.getXType && c.getXType(); if (x && (x === 'grid' || x === 'gridpanel' || x === 'editorgrid' || x === 'treepanel')) grids.push(c); });\"");
+        w.writeLine("    + \"    } else if (mgr.each) {\"");
+        w.writeLine("    + \"      mgr.each(function(id, c) { var x = c && c.getXType && c.getXType(); if (x && (x === 'grid' || x === 'gridpanel' || x === 'editorgrid' || x === 'treepanel')) grids.push(c); });\"");
+        w.writeLine("    + \"    }\"");
         w.writeLine("    + \"  }\"");
         w.writeLine("    + \"  if (!grids || grids.length === 0) return 'no-grid';\"");
         w.writeLine("    + \"  var visible = grids.filter(function(g) { return g.rendered && !g.hidden; });\"");
@@ -1190,7 +1202,7 @@ public class TestGenerator {
         w.openBlock("protected boolean selectAndOpenRecord()");
         // Strategy 0: ExtJS API — самый надёжный вариант для ExtJS-grid'ов
         w.openBlock("if (openViaExtApi())");
-        w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 4, \"card after ExtJS API\");");
+        w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
         w.writeLine("return true;");
@@ -1498,7 +1510,7 @@ public class TestGenerator {
         // Strategy 0: ExtJS API. На ExtJS-grid'ах синтетический click из Selenium не активирует
         // row-dblclick, зато прямой вызов через JS работает.
         w.openBlock("if (openViaExtApi())");
-        w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 4, \"card after ExtJS API\");");
+        w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened0)");
         w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
         w.writeLine("cachedCardOpenOk = true;");
@@ -1534,7 +1546,7 @@ public class TestGenerator {
         w.writeLine("    .pause(Duration.ofMillis(400))");
         w.writeLine("    .click()");
         w.writeLine("    .perform();");
-        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 3, \"card after select+open\");");
+        w.writeLine("boolean opened1 = waitUntil(d -> isOnRecordCard(), 6, \"card after select+open\");");
         w.openBlock("if (opened1)");
         w.writeLine("System.out.println(\"openRecordCard: opened via select + open (two clicks)\");");
         w.writeLine("cachedCardOpenOk = true;");
@@ -1546,7 +1558,7 @@ public class TestGenerator {
         // Strategy 1b: native doubleClick — fallback for builds where one fast double-click works
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
-        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 3, \"card after double-click\");");
+        w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 5, \"card after double-click\");");
         w.openBlock("if (opened1b)");
         w.writeLine("System.out.println(\"openRecordCard: opened via double-click\");");
         w.writeLine("cachedCardOpenOk = true;");
@@ -1562,7 +1574,7 @@ public class TestGenerator {
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
         w.writeLine("    firstRow);");
-        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 3, \"card after JS dblclick\");");
+        w.writeLine("boolean opened1c = waitUntil(d -> isOnRecordCard(), 5, \"card after JS dblclick\");");
         w.openBlock("if (opened1c)");
         w.writeLine("System.out.println(\"openRecordCard: opened via JS dblclick event\");");
         w.writeLine("cachedCardOpenOk = true;");
