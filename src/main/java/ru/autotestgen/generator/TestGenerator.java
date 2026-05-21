@@ -1205,6 +1205,7 @@ public class TestGenerator {
         w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1251,6 +1252,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click sequence executed\");");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -1513,6 +1515,7 @@ public class TestGenerator {
         w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened0)");
         w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1908,6 +1911,33 @@ public class TestGenerator {
         //   1. find the row whose left cell contains the field label (Russian title like
         //      «Наименование ГСК/ОГСК» or «Кадастровый номер»)
         //   2. click the right cell (or the row) to spawn the inline editor
+        // waitForCardLoaded: «Единый объект» открывается быстро, но данные внутри подгружаются
+        // отдельно (видно по индикатору «Загрузка данных...»). Пока данные не пришли, в карточке
+        // НЕТ ни кнопки «Редактирование», ни PropertyGrid'а с полями. Этот хелпер ждёт пока:
+        //   1. индикатор загрузки исчезнет, ИЛИ
+        //   2. появится кнопка «Редактирование», ИЛИ
+        //   3. появится список property-групп («Сведения», «История», «Документы»)
+        // Используется ПОСЛЕ openRecordCard / selectAndOpenRecord, перед clickEditDropdownAction.
+        w.openBlock("protected boolean waitForCardLoaded(int seconds)");
+        w.writeLine("return waitUntil(d -> {");
+        w.writeLine("    try {");
+        // Check 1: «Редактирование» button is visible (data loaded, toolbar rendered)
+        w.writeLine("        List<WebElement> edit = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
+        w.writeLine("        if (edit.stream().anyMatch(WebElement::isDisplayed)) return true;");
+        // Check 2: property-group rows like «Сведения», «История», «Документы» are visible
+        w.writeLine("        List<WebElement> grp = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0418\\u0441\\u0442\\u043e\\u0440\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0414\\u043e\\u043a\\u0443\\u043c\\u0435\\u043d\\u0442\\u044b')]\"));");
+        w.writeLine("        long groupsVisible = grp.stream().filter(WebElement::isDisplayed).count();");
+        w.writeLine("        if (groupsVisible >= 2) return true;");
+        // Check 3: «Загрузка данных» spinner is gone (negative — wait until it disappears)
+        w.writeLine("        List<WebElement> loading = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u043a\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445')]\"));");
+        // Если индикатор виден — карточка ещё грузится, не готова.
+        w.writeLine("        if (loading.stream().anyMatch(WebElement::isDisplayed)) return false;");
+        w.writeLine("        return false;");
+        w.writeLine("    } catch (Exception e) { return false; }");
+        w.writeLine("}, seconds, \"card data loaded\");");
+        w.closeBlock();
+        w.writeLine();
+
         // clickEditDropdownAction: на «Едином объекте» CRUD-действия (Сохранить Изменения,
         // Удалить, Лог.изменить, в Архив) лежат В ВЫПАДАЮЩЕМ СПИСКЕ кнопки «Редактирование»,
         // которая находится в нижней панели карточки записи, А НЕ в главном меню сущности.
@@ -1917,6 +1947,8 @@ public class TestGenerator {
         //    Изменения).
         w.openBlock("protected boolean clickEditDropdownAction(String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        // ВАЖНО: ждём пока карточка полностью прогрузится, иначе кнопка «Редактирование» ещё не отрисована
+        w.writeLine("waitForCardLoaded(8);");
         w.openBlock("try");
         // Find the «Редактирование» button (toolbar button at bottom of card)
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
