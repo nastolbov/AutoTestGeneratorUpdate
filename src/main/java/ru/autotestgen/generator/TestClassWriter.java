@@ -416,7 +416,7 @@ public class TestClassWriter {
         // последовательность для редактирования: ВЫДЕЛИТЬ строку (одиночный клик) +
         // ДВОЙНОЙ КЛИК → откроется карточка/редактор записи.
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"edit form opened\");");
+        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 4, \"edit form opened\");");
         w.writeLine("shot(\"record_opened\");");
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
@@ -437,7 +437,7 @@ public class TestClassWriter {
             w.writeLine("// Persistence check: the updated value must be visible somewhere — either in the");
             w.writeLine("// reopened record card OR directly in the grid (its column shows the value).");
             w.writeLine("step(\"re-open record\", () -> selectAndOpenRecord());");
-            w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"record reopened\");");
+            w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 4, \"record reopened\");");
             w.writeLine("String actual = page.getFieldValue(\"" + stringField.getName() + "\");");
             w.writeLine("if (actual.isEmpty()) actual = page.getFieldValue(\"" + stringField.getAttrName() + "\");");
             w.writeLine("boolean cardMatches = !actual.isEmpty() && actual.contains(updatedValue);");
