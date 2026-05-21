@@ -1147,44 +1147,43 @@ public class TestGenerator {
         // На стенде стоит ExtJS 3 (классы x-grid3-*), синтетические DOM-события которой
         // не активируют rowdblclick. Зато прямой вызов через `grid.fireEvent('rowdblclick', ...)`
         // обходит это ограничение и реально открывает «Единый объект».
-        // Поддерживает обе ветки API: ExtJS 4+ (Ext.ComponentQuery) и ExtJS 3 (Ext.ComponentMgr).
+        // Стратегия: ищем DOM-элемент .x-grid3 → берём его id → Ext.getCmp(id) даёт компонент.
         w.openBlock("protected boolean openViaExtApi()");
         w.openBlock("try");
         w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        // Находим DOM-узлы грида и поднимаемся к их Ext-компоненту через Ext.getCmp(id)
+        w.writeLine("    + \"  var nodes = document.querySelectorAll('.x-grid3, .x-grid-panel, .x-grid');\"");
         w.writeLine("    + \"  var grids = [];\"");
-        w.writeLine("    + \"  if (Ext.ComponentQuery) {\"");
-        // ExtJS 4+: try several xtype variants
-        w.writeLine("    + \"    grids = Ext.ComponentQuery.query('grid')\"");
-        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('gridpanel'))\"");
-        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('editorgrid'))\"");
-        w.writeLine("    + \"      .concat(Ext.ComponentQuery.query('treepanel'));\"");
-        w.writeLine("    + \"  }\"");
-        // ExtJS 3: ComponentMgr (without 'r' for v4+). Both work because we duck-type.
-        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
-        w.writeLine("    + \"  if (mgr && grids.length === 0) {\"");
-        w.writeLine("    + \"    if (mgr.all && mgr.all.each) {\"");
-        w.writeLine("    + \"      mgr.all.each(function(c) { var x = c.getXType && c.getXType(); if (x && (x === 'grid' || x === 'gridpanel' || x === 'editorgrid' || x === 'treepanel')) grids.push(c); });\"");
-        w.writeLine("    + \"    } else if (mgr.each) {\"");
-        w.writeLine("    + \"      mgr.each(function(id, c) { var x = c && c.getXType && c.getXType(); if (x && (x === 'grid' || x === 'gridpanel' || x === 'editorgrid' || x === 'treepanel')) grids.push(c); });\"");
+        w.writeLine("    + \"  for (var i = 0; i < nodes.length; i++) {\"");
+        w.writeLine("    + \"    var n = nodes[i];\"");
+        w.writeLine("    + \"    if (n.offsetWidth === 0 || n.offsetHeight === 0) continue;\"");
+        w.writeLine("    + \"    var id = n.id; if (!id) continue;\"");
+        w.writeLine("    + \"    var cmp = Ext.getCmp ? Ext.getCmp(id) : null;\"");
+        w.writeLine("    + \"    if (!cmp) {\"");
+        // Подняться к ближайшему элементу с id, который зарегистрирован в Ext
+        w.writeLine("    + \"      var p = n; while (p && p.parentElement) { if (p.id && Ext.getCmp && Ext.getCmp(p.id)) { cmp = Ext.getCmp(p.id); break; } p = p.parentElement; }\"");
         w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"    if (cmp && cmp.fireEvent && cmp.getStore) grids.push(cmp);\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  if (!grids || grids.length === 0) return 'no-grid';\"");
-        w.writeLine("    + \"  var visible = grids.filter(function(g) { return g.rendered && !g.hidden; });\"");
-        w.writeLine("    + \"  var g = visible.length > 0 ? visible[visible.length - 1] : grids[grids.length - 1];\"");
-        w.writeLine("    + \"  var store = g.getStore && g.getStore(); var count = store ? store.getCount() : 0;\"");
-        w.writeLine("    + \"  if (count === 0) return 'empty-store';\"");
-        w.writeLine("    + \"  var record = store.getAt(0); var view = g.view || g.getView();\"");
-        w.writeLine("    + \"  if (g.fireEvent) {\"");
-        w.writeLine("    + \"    g.fireEvent('rowdblclick', g, 0, null);\"");
-        w.writeLine("    + \"    g.fireEvent('itemdblclick', view, record, null, 0, null);\"");
-        w.writeLine("    + \"    return 'fired';\"");
+        w.writeLine("    + \"  if (grids.length === 0) return 'no-grid';\"");
+        // Выбираем грид с непустым стором, предпочтительно тот, у кого больше всего строк
+        w.writeLine("    + \"  var best = null; var bestCount = -1;\"");
+        w.writeLine("    + \"  for (var j = 0; j < grids.length; j++) {\"");
+        w.writeLine("    + \"    var g = grids[j]; var s = g.getStore && g.getStore(); var c = s ? s.getCount() : 0;\"");
+        w.writeLine("    + \"    if (c > bestCount) { best = g; bestCount = c; }\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-fireEvent';\"");
+        w.writeLine("    + \"  if (!best || bestCount === 0) return 'empty-store';\"");
+        w.writeLine("    + \"  var record = best.getStore().getAt(0); var view = best.view || best.getView();\"");
+        w.writeLine("    + \"  best.fireEvent('rowdblclick', best, 0, null);\"");
+        w.writeLine("    + \"  best.fireEvent('itemdblclick', view, record, null, 0, null);\"");
+        // Дополнительно — bubble cell-click событие в DOM, на случай если в обработчике этого нужно
+        w.writeLine("    + \"  try { if (view && view.getRow) { var rowEl = view.getRow(0); if (rowEl) { var cells = rowEl.querySelectorAll('.x-grid3-cell'); if (cells.length) cells[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window})); } } } catch (ee) {}\"");
+        w.writeLine("    + \"  return 'fired:' + bestCount;\"");
         w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\");");
         w.writeLine("System.out.println(\"openViaExtApi: \" + result);");
-        w.writeLine("return \"fired\".equals(result);");
+        w.writeLine("return result != null && String.valueOf(result).startsWith(\"fired\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"openViaExtApi error: \" + e.getMessage());");
@@ -1192,6 +1191,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
+
 
         // selectAndOpenRecord: документированный пользователем сценарий E3Core:
         //   0. ПЕРВЫМ ДЕЛОМ — попытка через ExtJS API (openViaExtApi). Если ExtJS-grid
@@ -1211,47 +1211,49 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
-        w.writeLine("WebElement firstRow = null;");
-        w.openBlock("for (WebElement r : rows)");
+        // ExtJS 3 в gridview слушает dblclick на DOM-cell (.x-grid3-cell), не на TR.
+        // Поэтому ищем именно cell в первой row, не сам TR.
+        w.writeLine("List<WebElement> cells = driver.findElements(By.cssSelector(\".x-grid3-row .x-grid3-cell, .x-grid-row .x-grid-cell, tr.x-grid3-row td, .x-grid3-row td\"));");
+        w.writeLine("WebElement firstCell = null;");
+        w.openBlock("for (WebElement c : cells)");
         w.openBlock("try");
-        w.openBlock("if (r.isDisplayed())");
-        w.writeLine("firstRow = r; break;");
+        w.openBlock("if (c.isDisplayed() && c.getSize().getHeight() > 5)");
+        w.writeLine("firstCell = c; break;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        w.openBlock("if (firstRow == null)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: no visible row\");");
+        w.openBlock("if (firstCell == null)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: no visible data cell\");");
         w.writeLine("return false;");
         w.closeBlock();
-        // Step 1: single click to select
+        // Шаг 1: single click для выделения строки
         w.openBlock("try");
-        w.writeLine("firstRow.click();");
+        w.writeLine("firstCell.click();");
         w.writeLine("Thread.sleep(400);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: single-click failed: \" + e.getMessage());");
         w.closeBlock();
-        // Step 2: double-click on the same row to open the record
+        // Шаг 2: dblclick по той же ячейке через Actions
         w.openBlock("try");
-        w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
+        w.writeLine("new Actions(driver).moveToElement(firstCell).doubleClick().perform();");
         w.writeLine("Thread.sleep(500);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        // Fallback: JS dblclick event
+        // Fallback: JS dispatchEvent + bubbles
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
-        w.writeLine("    firstRow);");
+        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window, detail: 2}));\",");
+        w.writeLine("    firstCell);");
         w.writeLine("Thread.sleep(500);");
         w.closeBlock();
         w.openBlock("catch (Exception e2)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: dblclick failed: \" + e2.getMessage());");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click sequence executed\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click on cell executed\");");
         w.writeLine("waitForCardLoaded(8);");
         w.writeLine("return true;");
         w.closeBlock();
