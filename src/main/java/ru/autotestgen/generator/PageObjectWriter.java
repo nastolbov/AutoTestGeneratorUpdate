@@ -59,79 +59,120 @@ public class PageObjectWriter {
         // Generic helper to fill a PropertyGrid field by its display name.
         // ВАЖНО: для надёжности сначала пробуем ExtJS API (setValue по fieldLabel),
         // и только потом fall-back на DOM-клик ячейки + inline-редактор.
+        // fillPropertyGridField: открывает inline-редактор ячейки PropertyGrid по русскому
+        // имени поля и вводит value. Логирует результат каждой попытки чтобы было видно,
+        // какие именно обязательные поля не заполняются (раньше падали в silent skip и в
+        // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
-        // Strategy 1: ExtJS API — самый надёжный путь, работает даже если cell не отрисована
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
         w.openBlock("try");
-        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
-        w.writeLine("    + \"  var target = arguments[0]; var val = arguments[1];\"");
-        w.writeLine("    + \"  var fields = [];\"");
-        w.writeLine("    + \"  if (Ext.ComponentQuery) fields = Ext.ComponentQuery.query('field');\"");
-        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
-        w.writeLine("    + \"  if (fields.length === 0 && mgr) {\"");
-        w.writeLine("    + \"    var iter = mgr.all && mgr.all.each ? mgr.all : mgr;\"");
-        w.writeLine("    + \"    iter.each(function(c) { if (c && c.setValue && (c.fieldLabel !== undefined || c.name !== undefined || c.boxLabel !== undefined)) fields.push(c); });\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  function nameMatch(f) {\"");
-        w.writeLine("    + \"    return (f.fieldLabel && f.fieldLabel.indexOf(target) >= 0)\"");
-        w.writeLine("    + \"        || (f.name && f.name === target)\"");
-        w.writeLine("    + \"        || (f.boxLabel && f.boxLabel.indexOf(target) >= 0);\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  function isVis(f) {\"");
-        w.writeLine("    + \"    try { return typeof f.isVisible !== 'function' || f.isVisible(); } catch (vv) { return true; }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  var byName = fields.filter(nameMatch);\"");
-        w.writeLine("    + \"  if (byName.length === 0) return 'no-field';\"");
-        w.writeLine("    + \"  var visMatch = byName.filter(isVis);\"");
-        w.writeLine("    + \"  if (visMatch.length === 0) return 'no-visible';\"");
-        w.writeLine("    + \"  var pick = visMatch[0];\"");
-        w.writeLine("    + \"  pick.setValue(val);\"");
-        w.writeLine("    + \"  try {\"");
-        w.writeLine("    + \"    var got = pick.getValue && pick.getValue();\"");
-        w.writeLine("    + \"    if (got != null && String(got).length === 0 && String(val).length > 0) return 'set-empty';\"");
-        w.writeLine("    + \"  } catch (gv) {}\"");
-        w.writeLine("    + \"  return 'set';\"");
-        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\",");
-        w.writeLine("    fieldName, value);");
-        w.openBlock("if (\"set\".equals(result))");
+        // Поиск лейбла поля: пробуем сразу несколько вариантов нормализации текста,
+        // потому что у обязательных полей может быть '*' или вложенные em/span.
+        w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
+        w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
+        w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
+        w.writeLine("    + \" or contains(text(), '\" + fieldName + \"')\"");
+        w.writeLine("    + \"]\";");
+        w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(xp));");
+        w.openBlock("if (nameCells.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (label cell not in DOM)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("WebElement nameCell = null;");
+        w.openBlock("for (WebElement c : nameCells)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("nameCell = c; break;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 2: DOM PropertyGrid click (fallback for non-Ext or hidden fields)
-        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
-        w.openBlock("try");
-        w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(\"//div[contains(@class, 'x-grid3-cell-inner')][contains(text(), '\" + fieldName + \"')]\"));");
-        w.openBlock("if (nameCells.isEmpty())");
+        w.closeBlock();
+        w.openBlock("if (nameCell == null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (label found but not visible)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
-        w.writeLine("WebElement nameCell = nameCells.get(0);");
         w.writeLine("java.util.List<WebElement> rows = nameCell.findElements(By.xpath(\"ancestor::tr\"));");
         w.openBlock("if (rows.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no ancestor tr)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("java.util.List<WebElement> cells = rows.get(0).findElements(By.cssSelector(\"td\"));");
-        w.openBlock("if (cells.size() >= 2)");
-        w.writeLine("cells.get(1).click();");
-        w.writeLine("Thread.sleep(300);");
+        w.openBlock("if (cells.size() < 2)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (row has \" + cells.size() + \" cells)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Двойной клик по value-ячейке надёжнее single — PropertyGrid в ExtJS 3
+        // активирует inline-editor именно по dblclick.
+        w.writeLine("WebElement valueCell = cells.get(1);");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(valueCell).doubleClick().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { valueCell.click(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(400);");
+        // Сначала ищем триггер-кнопку: для FK/Directory полей (combobox) нужно сначала
+        // открыть выпадающий список, и потом стрелкой+Enter выбрать первый пункт.
+        w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(\"img.x-form-trigger, div.x-form-trigger\"));");
+        w.writeLine("WebElement visibleTrigger = null;");
+        w.openBlock("for (WebElement t : triggers)");
+        w.openBlock("try");
+        w.openBlock("if (t.isDisplayed())");
+        w.writeLine("visibleTrigger = t; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("java.util.List<WebElement> editors = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden'])\"));");
-        w.openBlock("for (WebElement editor : editors)");
-        w.openBlock("if (editor.isDisplayed())");
+        w.writeLine("WebElement editor = null;");
+        w.openBlock("for (WebElement ed : editors)");
+        w.openBlock("try");
+        w.openBlock("if (ed.isDisplayed())");
+        w.writeLine("editor = ed; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (editor == null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no visible editor input after dblclick)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Для FK/picker (есть стрелка триггера) — открываем список и берём первый пункт
+        // стрелкой вниз + Enter. Иначе обычный ввод текста.
+        w.openBlock("try");
+        w.openBlock("if (visibleTrigger != null)");
+        w.writeLine("editor.clear();");
+        w.writeLine("visibleTrigger.click();");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ARROW_DOWN);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK (picker, first option)\");");
+        w.closeBlock();
+        w.openBlock("else");
         w.writeLine("editor.clear();");
         w.writeLine("editor.sendKeys(value);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("Thread.sleep(100);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"')\");");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("// Silent fail — some fields may not be editable");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \")\");");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(120);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL outer (\" + e.getClass().getSimpleName() + \")\");");
         w.closeBlock();
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
