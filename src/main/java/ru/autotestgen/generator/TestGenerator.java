@@ -2650,8 +2650,8 @@ public class TestGenerator {
 
         // waitForGridSettle: wait until visible row count is stable for ~500ms. Used after Create /
         // Delete / Archive / Search to ensure the result grid reflects the new state.
-        // IMPORTANT: ignore "0 rows stable" — grid is still loading; only declare settled once
-        // a row appears (or the absolute timeout expires).
+        // Don't settle on 0 rows in the first 3s — gives the grid a head start to begin loading
+        // before we accept "stably empty" (legitimately empty result sets pass through quickly).
         w.openBlock("protected boolean waitForGridSettle()");
         w.writeLine("final long started = System.currentTimeMillis();");
         w.writeLine("final int[] prev = { Integer.MIN_VALUE };");
@@ -2662,14 +2662,13 @@ public class TestGenerator {
         w.writeLine("        if (stableSince[0] < 0) stableSince[0] = System.currentTimeMillis();");
         w.writeLine("        boolean stableLongEnough = System.currentTimeMillis() - stableSince[0] >= 500;");
         w.writeLine("        if (!stableLongEnough) return false;");
-        w.writeLine("        // Don't settle on 0 rows in the first 8s — grid is probably still loading.");
-        w.writeLine("        if (n == 0 && System.currentTimeMillis() - started < 8000) return false;");
+        w.writeLine("        if (n == 0 && System.currentTimeMillis() - started < 3000) return false;");
         w.writeLine("        return true;");
         w.writeLine("    }");
         w.writeLine("    prev[0] = n;");
         w.writeLine("    stableSince[0] = System.currentTimeMillis();");
         w.writeLine("    return false;");
-        w.writeLine("}, 15, \"grid settle\");");
+        w.writeLine("}, 10, \"grid settle\");");
         w.closeBlock();
         w.writeLine();
 

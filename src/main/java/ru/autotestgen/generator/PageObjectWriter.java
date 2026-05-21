@@ -84,8 +84,13 @@ public class PageObjectWriter {
         w.writeLine("    + \"  var byName = fields.filter(nameMatch);\"");
         w.writeLine("    + \"  if (byName.length === 0) return 'no-field';\"");
         w.writeLine("    + \"  var visMatch = byName.filter(isVis);\"");
-        w.writeLine("    + \"  var pick = visMatch.length ? visMatch[0] : byName[0];\"");
+        w.writeLine("    + \"  if (visMatch.length === 0) return 'no-visible';\"");
+        w.writeLine("    + \"  var pick = visMatch[0];\"");
         w.writeLine("    + \"  pick.setValue(val);\"");
+        w.writeLine("    + \"  try {\"");
+        w.writeLine("    + \"    var got = pick.getValue && pick.getValue();\"");
+        w.writeLine("    + \"    if (got != null && String(got).length === 0 && String(val).length > 0) return 'set-empty';\"");
+        w.writeLine("    + \"  } catch (gv) {}\"");
         w.writeLine("    + \"  return 'set';\"");
         w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\",");
         w.writeLine("    fieldName, value);");
