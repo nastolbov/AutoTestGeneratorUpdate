@@ -297,6 +297,11 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
+        // Запомним id активного окна ДО клика — иначе если пикер не открылся, Ext.WindowMgr
+        // вернёт тот же диалог Сведения, и мы dblclick'нем его property-row (как было в прошлой
+        // версии — пик попал на 'Дата изменения').
+        w.writeLine("String activeBefore = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null; return aw ? aw.id : null; } catch (e) { return null; }\");");
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(valueCell).doubleClick().perform();");
         w.closeBlock();
@@ -306,7 +311,8 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(500);");
         w.writeLine("java.util.List<WebElement> items = collectVisibleDropdownItems();");
         w.openBlock("if (items.isEmpty())");
-        w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(\"img.x-form-trigger, div.x-form-trigger\"));");
+        w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(");
+        w.writeLine("    \"img.x-form-trigger, div.x-form-trigger, .x-form-trigger-wrap img, td.x-trigger-cell img\"));");
         w.openBlock("for (WebElement t : triggers)");
         w.openBlock("try");
         w.openBlock("if (t.isDisplayed())");
@@ -321,20 +327,33 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
         w.closeBlock();
-        // E3Core: FK поля часто открывают отдельное МОДАЛЬНОЕ окно-пикер с гридом записей,
-        // а не inline-выпадашку. Активное окно (Ext.WindowMgr.getActive) после dblclick = это
-        // окно-пикер. Берём случайную видимую строку его грида и dblclick'ом подтверждаем выбор.
+        // F4 на активном элементе — стандартный ExtJS combobox expand. Иногда нужен после
+        // dblclick если editor открылся, но dropdown не подтянулся автоматом.
+        w.openBlock("if (items.isEmpty())");
+        w.openBlock("try");
+        w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.F4);");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("items = collectVisibleDropdownItems();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // E3Core: FK поля часто открывают отдельное МОДАЛЬНОЕ окно-пикер с гридом записей.
+        // Берём активное окно ТОЛЬКО если его id ОТЛИЧАЕТСЯ от activeBefore — иначе мы
+        // вернёмся в тот же диалог редактирования и dblclick'нем его property-row.
         w.openBlock("if (items.isEmpty())");
         w.openBlock("try");
         w.writeLine("Object pickerRow = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"if (typeof Ext === 'undefined' || !Ext.WindowMgr || !Ext.WindowMgr.getActive) return null;\"");
+        w.writeLine("    \"var before = arguments[0];\"");
+        w.writeLine("    + \"if (typeof Ext === 'undefined' || !Ext.WindowMgr || !Ext.WindowMgr.getActive) return null;\"");
         w.writeLine("    + \"var aw = Ext.WindowMgr.getActive(); if (!aw || !aw.getEl) return null;\"");
+        w.writeLine("    + \"if (before && aw.id === before) return null;\"");
         w.writeLine("    + \"var root = aw.getEl().dom || aw.getEl();\"");
         w.writeLine("    + \"var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
         w.writeLine("    + \"var vis = [];\"");
         w.writeLine("    + \"for (var i = 0; i < rows.length; i++) { if (rows[i].offsetHeight > 0 && rows[i].offsetWidth > 0) vis.push(rows[i]); }\"");
         w.writeLine("    + \"if (vis.length === 0) return null;\"");
-        w.writeLine("    + \"return vis[Math.floor(Math.random() * vis.length)];\");");
+        w.writeLine("    + \"return vis[Math.floor(Math.random() * vis.length)];\", activeBefore);");
         w.openBlock("if (pickerRow instanceof WebElement)");
         w.writeLine("WebElement row = (WebElement) pickerRow;");
         w.writeLine("String rowText = row.getText() == null ? \"\" : row.getText().trim();");
@@ -353,7 +372,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
         w.openBlock("if (items.isEmpty())");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown items, no picker window)\");");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown, no NEW picker window; activeBefore=\" + activeBefore + \")\");");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
