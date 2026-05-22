@@ -266,6 +266,93 @@ public class PageObjectWriter {
         // только выбор из готового списка справочника.
         w.openBlock("private void fillFKViaDropdown(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
+        // СТРАТЕГИЯ A (по требованию заказчика): без кликов и UI-жестов.
+        // Через ExtJS API находим PropertyGrid'у этого поля customEditor.field — это ComboBox.
+        // Триггерим store.load() и ждём пока справочник догрузится (до 3с). Затем берём из
+        // store случайную запись и ставим rec.set('value', displayValue) в PropertyGrid.
+        // Если ничего не нашли (нет combo / пустой store даже после load) — переходим к
+        // СТРАТЕГИИ B (клики по ячейке как fallback).
+        w.openBlock("try");
+        w.writeLine("Object loadInfo = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var name = arguments[0];\"");
+        w.writeLine("    + \"  var all = Ext.ComponentMgr && Ext.ComponentMgr.all ? Ext.ComponentMgr.all : (Ext.ComponentManager && Ext.ComponentManager.all ? Ext.ComponentManager.all : null);\"");
+        w.writeLine("    + \"  if (!all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var items = [];\"");
+        w.writeLine("    + \"  if (all.items) items = all.items;\"");
+        w.writeLine("    + \"  else if (all.each) all.each(function(c){items.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in all) items.push(all[k]);\"");
+        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
+        w.writeLine("    + \"    var c = items[i]; if (!c || !c.rendered || !c.getStore || !c.customEditors) continue;\"");
+        w.writeLine("    + \"    if (c.getEl && c.getEl().dom && (c.getEl().dom.offsetWidth === 0 || c.getEl().dom.offsetHeight === 0)) continue;\"");
+        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
+        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue; var d = rec.data;\"");
+        w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
+        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        w.writeLine("    + \"        var key = nn || dn; var ed = c.customEditors[key];\"");
+        w.writeLine("    + \"        if (!ed) return 'no-editor:' + key;\"");
+        w.writeLine("    + \"        var cb = ed.field || ed;\"");
+        w.writeLine("    + \"        if (!cb || !cb.getStore) return 'no-combo:' + key;\"");
+        w.writeLine("    + \"        var st = cb.getStore();\"");
+        w.writeLine("    + \"        var cnt = st && st.getCount ? st.getCount() : 0;\"");
+        // Сохраняем grid+rec+cb в окне для второго JS-вызова (после ожидания загрузки).
+        w.writeLine("    + \"        window.__fkCtx = { propGrid: c, propRec: rec, combo: cb, store: st, key: key };\"");
+        // Триггерим store.load если пустой
+        w.writeLine("    + \"        if (cnt === 0 && st.load) { try { st.load(); } catch (le) {} }\"");
+        w.writeLine("    + \"        return 'found:' + key + '/count=' + cnt;\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' lookup: \" + loadInfo);");
+        w.openBlock("if (loadInfo != null && String.valueOf(loadInfo).startsWith(\"found:\"))");
+        // Полл-ждём пока store догрузится (до 3с). Шаг 200мс.
+        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
+        w.writeLine("int storeCount = 0;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("Object c = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"return (window.__fkCtx && window.__fkCtx.store && window.__fkCtx.store.getCount) ? window.__fkCtx.store.getCount() : 0;\");");
+        w.writeLine("storeCount = c == null ? 0 : ((Number) c).intValue();");
+        w.openBlock("if (storeCount > 0)");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("if (storeCount == 0)");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (store stayed empty after load)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Берём случайную запись и ставим в PropertyGrid
+        w.writeLine("Object setResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  var ctx = window.__fkCtx; if (!ctx) return 'no-ctx';\"");
+        w.writeLine("    + \"  var st = ctx.store; var cb = ctx.combo; var rec = ctx.propRec; var grid = ctx.propGrid;\"");
+        w.writeLine("    + \"  var n = st.getCount(); if (n === 0) return 'empty-after-load';\"");
+        w.writeLine("    + \"  var idx = Math.floor(Math.random() * n);\"");
+        w.writeLine("    + \"  var fkRec = st.getAt(idx);\"");
+        w.writeLine("    + \"  var vf = cb.valueField || 'id'; var df = cb.displayField || 'name';\"");
+        w.writeLine("    + \"  var fkId = fkRec.get ? fkRec.get(vf) : null;\"");
+        w.writeLine("    + \"  var fkDisp = fkRec.get ? fkRec.get(df) : '';\"");
+        // Ставим displayValue в PropertyGrid record. Если у combo есть rawValue / valueField,
+        // PropertyGrid рендерит displayValue, но при сохранении передаёт реальный id.
+        w.writeLine("    + \"  try { rec.set('value', fkDisp); } catch (eS1) { try { rec.set('value', fkId); } catch (eS2) {} }\"");
+        w.writeLine("    + \"  if (grid.view && grid.view.refresh) try { grid.view.refresh(); } catch (eR) {}\"");
+        w.writeLine("    + \"  return 'OK:' + fkDisp + '(id=' + fkId + ')';\"");
+        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK via ExtJS API (\" + setResult + \")\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ExtJS API didn't find combo — trying DOM clicks fallback\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception apiEx)");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' API path threw: \" + apiEx.getMessage());");
+        w.closeBlock();
+
+        // === СТРАТЕГИЯ B: DOM клики (fallback) ===
         w.openBlock("try");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
