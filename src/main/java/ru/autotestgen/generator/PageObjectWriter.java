@@ -87,36 +87,11 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
-        // Проверка: есть ли у поля редактор-комбобокс (справочник/FK)? У PropertyGrid в ExtJS 3
-        // редактор хранится в c.customEditors[name] или rec.editor. У ComboBox есть .field.getStore().
-        // Если стор есть и непуст — это выпадающий список: берём случайную запись и ставим ЕЁ valueField.
-        w.writeLine("    + \"        var ed = null;\"");
-        w.writeLine("    + \"        try { if (c.customEditors) { ed = c.customEditors[nn] || c.customEditors[dn]; } } catch (ec) {}\"");
-        w.writeLine("    + \"        if (!ed) { try { ed = rec.editor; } catch (er) {} }\"");
-        w.writeLine("    + \"        var comboField = null;\"");
-        w.writeLine("    + \"        try { if (ed && ed.field && ed.field.getStore) comboField = ed.field; else if (ed && ed.getStore) comboField = ed; } catch (ef) {}\"");
-        w.writeLine("    + \"        if (comboField && comboField.getStore) {\"");
-        w.writeLine("    + \"          try {\"");
-        w.writeLine("    + \"            var st = comboField.getStore();\"");
-        // Для combobox с remote-загрузкой store пустой пока не открыли — пробуем загрузить.
-        w.writeLine("    + \"            if (st.getCount() === 0 && st.load) { try { st.load(); } catch (le) {} }\"");
-        w.writeLine("    + \"            if (st.getCount && st.getCount() > 0) {\"");
-        w.writeLine("    + \"              var idx = Math.floor(Math.random() * st.getCount());\"");
-        w.writeLine("    + \"              var fkRec = st.getAt(idx);\"");
-        w.writeLine("    + \"              var vf = comboField.valueField || 'id';\"");
-        w.writeLine("    + \"              var df = comboField.displayField || 'name';\"");
-        w.writeLine("    + \"              var fkId = fkRec.get ? fkRec.get(vf) : (fkRec.data ? fkRec.data[vf] : null);\"");
-        w.writeLine("    + \"              var fkDisp = fkRec.get ? fkRec.get(df) : (fkRec.data ? fkRec.data[df] : '');\"");
-        // У PropertyGrid отображаемое значение — это displayField, реальное хранимое — valueField.
-        // Чтобы и в UI отрисовалось, и при save ушёл правильный ID, ставим displayField (rec.set
-        // обычно сам пересобирает по value через rawValue/displayValue).
-        w.writeLine("    + \"              try { rec.set('value', fkDisp); } catch (eS1) { try { rec.set('value', fkId); } catch (eS2) {} }\"");
-        w.writeLine("    + \"              if (c.view && c.view.refresh) try { c.view.refresh(); } catch (eR) {}\"");
-        w.writeLine("    + \"              return 'set-fk:' + (dn || nn) + '=' + fkDisp + '(id=' + fkId + ')';\"");
-        w.writeLine("    + \"            }\"");
-        w.writeLine("    + \"            return 'fk-empty:' + (dn || nn);\"");
-        w.writeLine("    + \"          } catch (eFK) { return 'fk-err:' + eFK.message; }\"");
-        w.writeLine("    + \"        }\"");
+        // Если у поля есть customEditor — это комбобокс/справочник. Не ставим значение через API
+        // (rec.set('value', '1') бы пропустил валидацию визуально, но сервер на Готово отверг бы),
+        // а отдаём управление DOM-пути — он откроет выпадашку и кликнет случайный пункт.
+        w.writeLine("    + \"        var nm = nn || dn || name;\"");
+        w.writeLine("    + \"        if (c.customEditors && c.customEditors[nm]) { return 'skip-combo:' + nm; }\"");
         w.writeLine("    + \"        try { rec.set('value', value); } catch (e1) { try { rec.set('value', String(value)); } catch (e2) { return 'set-fail:' + e2.message; } }\"");
         w.writeLine("    + \"        if (c.view && c.view.refresh) try { c.view.refresh(); } catch (er) {}\"");
         w.writeLine("    + \"        return 'set:' + (dn || nn);\"");
@@ -185,9 +160,24 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(400);");
-        // Сначала ищем триггер-кнопку: для FK/Directory полей (combobox) нужно сначала
-        // открыть выпадающий список, и потом стрелкой+Enter выбрать первый пункт.
+        w.writeLine("Thread.sleep(500);");
+        // Заказчик: «при нажатии на поле спустя пол секунды появляется выпадашка — каждую
+        // строчку надо проверить». Ищем видимый combo-list/boundlist. Если он есть — это FK
+        // и берём СЛУЧАЙНУЮ видимую строку.
+        w.writeLine("java.util.List<WebElement> dropdownItems = driver.findElements(By.cssSelector(");
+        w.writeLine("    \".x-combo-list-inner .x-combo-list-item, .x-combo-list .x-combo-list-item, .x-boundlist-item, .x-menu-list .x-menu-list-item\"));");
+        w.writeLine("java.util.List<WebElement> visibleItems = new java.util.ArrayList<>();");
+        w.openBlock("for (WebElement it : dropdownItems)");
+        w.openBlock("try");
+        w.openBlock("if (it.isDisplayed() && it.getText() != null && !it.getText().trim().isEmpty())");
+        w.writeLine("visibleItems.add(it);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Ищем триггер-кнопку: для FK/Directory полей (combobox) нужно открыть выпадающий список,
+        // если он не открылся автоматически после dblclick.
         w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(\"img.x-form-trigger, div.x-form-trigger\"));");
         w.writeLine("WebElement visibleTrigger = null;");
         w.openBlock("for (WebElement t : triggers)");
@@ -199,6 +189,37 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
+        // Если выпадашки нет, но есть триггер — кликаем триггер и снова проверяем.
+        w.openBlock("if (visibleItems.isEmpty() && visibleTrigger != null)");
+        w.writeLine("try { visibleTrigger.click(); Thread.sleep(500); } catch (Exception ignored) {}");
+        w.writeLine("dropdownItems = driver.findElements(By.cssSelector(");
+        w.writeLine("    \".x-combo-list-inner .x-combo-list-item, .x-combo-list .x-combo-list-item, .x-boundlist-item\"));");
+        w.openBlock("for (WebElement it : dropdownItems)");
+        w.openBlock("try");
+        w.openBlock("if (it.isDisplayed() && it.getText() != null && !it.getText().trim().isEmpty())");
+        w.writeLine("visibleItems.add(it);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        // Если выпадашка таки появилась — берём случайный пункт и кликаем.
+        w.openBlock("if (!visibleItems.isEmpty())");
+        w.writeLine("WebElement pick = visibleItems.get(new java.util.Random().nextInt(visibleItems.size()));");
+        w.writeLine("String pickedText = pick.getText().trim();");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(pick).click().perform();");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK FK (dropdown, picked '\" + pickedText + \"' из \" + visibleItems.size() + \" вариантов)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Выпадашки нет — обычное текст/дата поле. Ищем input и печатаем value.
         w.writeLine("java.util.List<WebElement> editors = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden'])\"));");
         w.writeLine("WebElement editor = null;");
         w.openBlock("for (WebElement ed : editors)");
@@ -215,32 +236,11 @@ public class PageObjectWriter {
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
-        // Триггер-стрелка может означать combobox (FK/Directory) ИЛИ date-picker.
-        // Combobox требует выбора из списка (ARROW_DOWN + ENTER), а date-field принимает
-        // прямой ввод и валидирует по маске. Различаем по классам:
-        //  - x-combo / x-combo-noedit → combobox → picker
-        //  - иначе (включая x-form-date-field, обычный text input) → печатаем value.
-        w.writeLine("String editorClass = editor.getAttribute(\"class\");");
-        w.writeLine("if (editorClass == null) editorClass = \"\";");
-        w.writeLine("boolean isCombo = editorClass.contains(\"x-combo\");");
         w.openBlock("try");
-        w.openBlock("if (visibleTrigger != null && isCombo)");
-        w.writeLine("editor.clear();");
-        w.writeLine("visibleTrigger.click();");
-        w.writeLine("Thread.sleep(400);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ARROW_DOWN);");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK (combobox, first option)\");");
-        w.closeBlock();
-        w.openBlock("else");
         w.writeLine("editor.clear();");
         w.writeLine("editor.sendKeys(value);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"')\");");
-        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \")\");");
