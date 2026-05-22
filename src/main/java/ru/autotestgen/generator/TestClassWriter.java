@@ -289,9 +289,9 @@ public class TestClassWriter {
         w.writeLine("shot(\"card_opened\");");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
-        w.writeLine("waitForDialog();");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"after_add\");");
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open after Edit>Добавить\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine();
         w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
         w.writeLine("shot(\"after_clear\");");
@@ -302,7 +302,7 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_submit\");");
         w.writeLine();
-        w.writeLine("boolean dialogStillOpen = isDialogOpen();");
+        w.writeLine("boolean dialogStillOpen = isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("boolean hasErrors = page.hasValidationErrors();");
         w.writeLine("int errorFieldCount = 0;");
         for (Property prop : requiredProperties) {
@@ -332,9 +332,9 @@ public class TestClassWriter {
         w.writeLine("waitForCardLoaded(8);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
-        w.writeLine("waitForDialog();");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open after Edit>Добавить\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
         w.writeLine("shot(\"cleared\");");
         Property first = requiredProperties.get(0);
@@ -350,7 +350,7 @@ public class TestClassWriter {
         w.writeLine("shot(\"after_submit\");");
         w.writeLine();
         // Hard: with only the first required field filled, the others must still block submit.
-        w.writeLine("boolean dialogStillOpen = isDialogOpen();");
+        w.writeLine("boolean dialogStillOpen = isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("boolean hasErrors = page.hasValidationErrors();");
         w.writeLine("assertTrue(dialogStillOpen || hasErrors,");
         w.writeLine("    \"Partial fill must not pass validation: dialog should stay open OR errors should be shown for the remaining required fields\");");
@@ -382,9 +382,9 @@ public class TestClassWriter {
         w.writeLine("shot(\"card_opened\");");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
-        w.writeLine("waitForDialog();");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open after Edit>Добавить\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         w.writeLine("shot(\"all_fields_filled\");");
         if (markerField != null) {
@@ -435,9 +435,9 @@ public class TestClassWriter {
         w.writeLine("waitForCardLoaded(8);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
-        w.writeLine("waitForDialog();");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open after Edit>Добавить\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
         w.writeLine("shot(\"required_filled\");");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
@@ -828,9 +828,9 @@ public class TestClassWriter {
         w.writeLine("waitForCardLoaded(8);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
-        w.writeLine("waitForDialog();");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(isDialogOpen(), \"Add dialog did not open after Edit>Добавить\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("java.util.List<String> maskFailures = new java.util.ArrayList<>();");
         for (Property prop : maskedProperties) {
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());

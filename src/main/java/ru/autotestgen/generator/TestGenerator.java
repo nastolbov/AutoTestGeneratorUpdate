@@ -2328,6 +2328,24 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // Helper: is a button with the given visible text currently shown (without clicking it).
+        w.openBlock("protected boolean isButtonVisible(String buttonText)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//button[contains(normalize-space(.), '\" + buttonText + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//span[contains(normalize-space(.), '\" + buttonText + \"')]]\"));");
+        w.writeLine("return btns.stream().anyMatch(WebElement::isDisplayed);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // Helper: take screenshot on failure
         w.openBlock("protected void takeScreenshot(String testName)");
         w.openBlock("try");
@@ -2713,6 +2731,16 @@ public class TestGenerator {
 
         w.openBlock("protected boolean waitForDialogClose()");
         w.writeLine("return waitUntil(d -> !isDialogOpen(), 4, \"dialog close\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // waitForAddForm: после Edit>Добавить форма создания записи может открыться двумя
+        // способами — как модальное окно .x-window ИЛИ как навигированная карточка («Единый
+        // объект»: форма встроена в страницу, отдельного окна нет). isDialogOpen() ловит только
+        // первый случай, поэтому на «Едином объекте» testCreate ложно скипался. Считаем форму
+        // открытой, если виден диалог ИЛИ кнопка сохранения формы «Готово».
+        w.openBlock("protected boolean waitForAddForm()");
+        w.writeLine("return waitUntil(d -> isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"), 6, \"add form\");");
         w.closeBlock();
         w.writeLine();
 
