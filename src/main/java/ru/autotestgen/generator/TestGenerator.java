@@ -864,7 +864,7 @@ public class TestGenerator {
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
         w.writeLine("menuBtn.click();");
         w.writeLine("Thread.sleep(300);");
-        w.openBlock("if (descendMenu(entityName, 3, new java.util.HashSet<>()))");
+        w.openBlock("if (descendMenu(entityName, \"\\u041d\\u0430\\u0439\\u0442\\u0438\", 3, new java.util.HashSet<>()))");
         w.writeLine("navigationOk = true;");
         w.writeLine("return;");
         w.closeBlock();
@@ -886,6 +886,47 @@ public class TestGenerator {
         w.closeBlock(); // end navigateE3Core
         w.writeLine();
 
+        // addViaMenu: открывает диалог «Добавить» через ГЛАВНОЕ меню — тот же путь, что
+        // navigateE3Core делает для «Найти», но кликает пункт «Добавить» в подменю сущности.
+        // По требованию заказчика create-форма открывается ИМЕННО так, а НЕ из карточки записи
+        // через «Редактирование → Добавить» (этого пункта в карточке нет — там только
+        // «Сохранить Изменения» / «Удалить»).
+        w.openBlock("protected boolean addViaMenu(String entityName)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.openBlock("for (String menuName : menuButtons)");
+        w.openBlock("try");
+        w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
+        w.writeLine("menuBtn.click();");
+        w.writeLine("Thread.sleep(300);");
+        // Добавить = "Добавить"
+        w.openBlock("if (descendMenu(entityName, \"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\", 3, new java.util.HashSet<>()))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Throwable ignored)");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.closeBlock();
+        w.openBlock("catch (Throwable ignored2)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"addViaMenu failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // descendMenu: recursive submenu walker
         w.writeLine("/**");
         w.writeLine(" * Searches the currently open ExtJS menus (and their submenus, up to maxDepth)");
@@ -893,7 +934,7 @@ public class TestGenerator {
         w.writeLine(" * \"\\u0414\\u043e\\u043b\\u0436\\u043d\\u043e\\u0441\\u0442\\u043d\\u044b\\u0435 \\u043b\\u0438\\u0446\\u0430\" too). If found, hovers it and clicks \"\\u041d\\u0430\\u0439\\u0442\\u0438\" (or \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\") in the");
         w.writeLine(" * revealed submenu; falls back to a direct click on the item itself.");
         w.writeLine(" */");
-        w.openBlock("private boolean descendMenu(String entityName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
+        w.openBlock("private boolean descendMenu(String entityName, String actionName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
         w.writeLine("String pred = entityStemPredicate(entityName, \"text()\");");
         w.writeLine("String predDeep = entityStemPredicate(entityName, \"normalize-space(.)\");");
         w.writeLine("String itemXpath = \"//div[contains(@class,'x-menu')]\"");
@@ -908,8 +949,10 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
         w.writeLine("Thread.sleep(500);");
-        w.writeLine("WebElement actionBtn = findVisibleActionBtn(\"\\u041d\\u0430\\u0439\\u0442\\u0438\");");
-        w.openBlock("if (actionBtn == null)");
+        w.writeLine("WebElement actionBtn = findVisibleActionBtn(actionName);");
+        // Fallback на «Открыть» только когда искали «Найти» — это исторический эквивалент.
+        // Для «Добавить»/«Удалить» fallback'а нет.
+        w.openBlock("if (actionBtn == null && \"\\u041d\\u0430\\u0439\\u0442\\u0438\".equals(actionName))");
         w.writeLine("actionBtn = findVisibleActionBtn(\"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\");");
         w.closeBlock();
         w.openBlock("if (actionBtn != null)");
@@ -979,7 +1022,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(candidate).perform();");
         w.writeLine("Thread.sleep(250);");
-        w.openBlock("if (descendMenu(entityName, maxDepth - 1, tried))");
+        w.openBlock("if (descendMenu(entityName, actionName, maxDepth - 1, tried))");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();

@@ -282,14 +282,9 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Required field validation on empty submit\")");
         w.openBlock("void testRequiredFieldValidation()");
         w.writeLine("shot(\"start\");");
-        // CRUD-старт по требованию заказчика: даббл-клик по первой строке → ждать карточку →
-        // открыть «Редактирование» → «Добавить» → пустая форма для валидации.
-        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("shot(\"card_opened\");");
-        w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
-        w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
+        // Заказчик: «Добавить» открывается через ГЛАВНОЕ меню (не из карточки).
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"after_add\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
@@ -328,10 +323,7 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Partial fill: only first required field\")");
         w.openBlock("void testPartialRequiredFieldValidation()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
@@ -375,17 +367,15 @@ public class TestClassWriter {
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine();
-        // CRUD-старт по требованию заказчика: выделить первую строку → даббл клик → ждать
-        // карточку → «Редактирование» → «Добавить». Не из главного меню.
-        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("shot(\"card_opened\");");
-        w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
-        w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
+        // Заказчик: «Добавить» открывается через ГЛАВНОЕ меню — путь как у Найти,
+        // но кликаем «Добавить» вместо «Найти». В карточке записи пункта «Добавить» НЕТ
+        // (там только «Сохранить Изменения» / «Удалить»), поэтому старый путь через
+        // selectAndOpenRecord → clickEditDropdownAction('Добавить') заведомо не работал.
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         w.writeLine("shot(\"all_fields_filled\");");
         if (markerField != null) {
@@ -431,10 +421,7 @@ public class TestClassWriter {
         w.openBlock("void testCreateOnlyRequired()");
         w.writeLine("shot(\"start\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
@@ -831,10 +818,7 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Masked fields accept correct format\")");
         w.openBlock("void testMaskedFieldInput()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("shot(\"dialog_opened\");");
