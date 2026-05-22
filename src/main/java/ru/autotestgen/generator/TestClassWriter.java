@@ -88,6 +88,7 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");
         w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
+        w.writeLine("private static final String FEATURE_NAME = \"" + entity.getFeatureName() + "\";");
         w.writeLine();
 
         // Override entityName() so BaseTest helpers (menuAction, openSearch, openRecordCard) look
@@ -544,14 +545,20 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
         w.writeLine();
+        // ВАЖНО: после удаления текущий грид — это либо карточка, либо child-грид внутри
+        // карточки, либо вообще тот же экран с одной строкой про удалённый объект. Считать
+        // строки и искать маркер ТАМ бессмысленно. Возвращаемся к таблице результатов
+        // (закрываем карточку → ре-навигируем → ре-выполняем поиск) и только потом сравниваем.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
+        w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
-        // If rows GREW significantly, we ended up looking at a different grid (a child grid
-        // inside the opened «Единый объект»). The count change isn't comparable to before. SKIP.
-        w.openBlock("if (rowsAfter > rowsBefore + 5)");
-        w.writeLine("Assumptions.assumeTrue(false, \"Delete: row count grew from \" + rowsBefore + \" to \" + rowsAfter");
-        w.writeLine("    + \" — we likely opened a different (child) grid; cannot compare delete result\");");
-        w.closeBlock();
         // Hard: row count must strictly decrease OR the specific marker must be gone.
         // If marker was empty (couldn't read row text), require strict count decrease — that's the
         // only signal we have.
@@ -561,7 +568,8 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("else");
         w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
-        w.writeLine("    \"Delete: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND marker '\" + deletedMarker + \"' still in grid\");");
+        w.writeLine("    \"Delete: после ре-навигации к таблице результатов rows \" + rowsBefore + \" -> \" + rowsAfter");
+        w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась\");");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
