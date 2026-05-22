@@ -1213,21 +1213,26 @@ public class TestGenerator {
         w.openBlock("protected boolean selectAndOpenRecord()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Find a visible row in the result grid. Prefer .x-grid3-row (ExtJS 3) — generic
-        // <tr> matches the main shell toolbar too.
-        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row\"));");
-        w.writeLine("WebElement firstRow = null;");
-        w.openBlock("for (WebElement r : rows)");
-        w.openBlock("try");
-        w.openBlock("if (r.isDisplayed() && r.getSize().getHeight() > 5)");
-        w.writeLine("firstRow = r; break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
+        // Find a visible row in the result grid. На одном экране может быть НЕСКОЛЬКО гридов
+        // (параметры поиска + результаты + side-панели). Группируем видимые .x-grid3-row по
+        // родительскому ext-гриду и берём строку из САМОЙ БОЛЬШОЙ группы — это всегда грид
+        // результатов поиска (10 строк), а не грид параметров (1-3 строки).
+        w.writeLine("WebElement firstRow = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var rows = document.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"var groups = {};\"");
+        w.writeLine("    + \"for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"  var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"  var p = r.parentElement;\"");
+        w.writeLine("    + \"  while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"  var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"  if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"console.log('selectAndOpenRecord: group sizes = ' + Object.keys(groups).map(function(k){return k+':'+groups[k].length;}).join(', '));\"");
+        w.writeLine("    + \"return bestKey ? groups[bestKey][0] : null;\");");
         w.openBlock("if (firstRow != null)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on first visible row\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on first row of largest visible grid group\");");
         // Step 1: single-click to select the row
         w.openBlock("try");
         w.writeLine("firstRow.click();");
