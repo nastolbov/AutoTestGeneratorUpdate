@@ -32,6 +32,16 @@ public class TestRunner {
     }
 
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl, Consumer<String> lineConsumer) throws IOException {
+        return run(projectDir, xmlFileName, baseUrl, lineConsumer, null);
+    }
+
+    /**
+     * Runs the generated tests. When {@code testFilter} is non-empty it is passed to Surefire
+     * as {@code -Dtest=<filter>}, so only the selected test classes / methods run.
+     * Filter syntax (Surefire): {@code Class1Test,Class2Test#testCreate*+testUpdate*}.
+     */
+    public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
+                             Consumer<String> lineConsumer, String testFilter) throws IOException {
         long startTime = System.currentTimeMillis();
 
         // Verify pom.xml exists
@@ -41,7 +51,15 @@ public class TestRunner {
         }
 
         // Run mvn test (working dir is already the project dir, so just "pom.xml")
-        ProcessBuilder pb = new ProcessBuilder("mvn", "test");
+        List<String> cmd = new ArrayList<>();
+        cmd.add("mvn");
+        cmd.add("test");
+        if (testFilter != null && !testFilter.isBlank()) {
+            cmd.add("-Dtest=" + testFilter);
+            // Don't fail the build when a filtered class has no matching methods.
+            cmd.add("-DfailIfNoTests=false");
+        }
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         pb.directory(projectDir.toFile());
 

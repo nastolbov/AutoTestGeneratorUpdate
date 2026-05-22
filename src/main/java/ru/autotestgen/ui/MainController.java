@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import ru.autotestgen.generator.*;
@@ -16,11 +17,15 @@ import ru.autotestgen.model.EntityObject;
 import ru.autotestgen.model.TestCaseResult;
 import ru.autotestgen.model.TestRunResult;
 import ru.autotestgen.common.ParserException;
+import ru.autotestgen.common.Transliterator;
 import ru.autotestgen.data.ReportDao;
 import ru.autotestgen.parser.XmlModelParser;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class MainController {
 
@@ -43,7 +48,21 @@ public class MainController {
     @FXML private Button btnParse;
     @FXML private Button btnGenerate;
     @FXML private Button btnRunTests;
+    @FXML private Button btnRunSelected;
     @FXML private Button btnShowHistory;
+
+    /** Test-type categories: {label, Surefire method-name pattern(s)}. */
+    private static final String[][] TEST_CATEGORIES = {
+        {"Поля формы",            "testFieldsPresent"},
+        {"Создание",              "testCreate*"},
+        {"Изменение",             "testUpdate*"},
+        {"Удаление",              "testDelete*"},
+        {"Лог. удаление / Архив", "testLogicalEdit*+testArchive*"},
+        {"Валидация",             "testRequiredFieldValidation*+testPartialRequiredFieldValidation*"},
+        {"Поиск",                 "testSearch*"},
+        {"Гриды",                 "testGrid*"},
+        {"Маски полей",           "testMaskedFieldInput*"},
+    };
 
     // Entity list
     @FXML private ListView<String> entityListView;
@@ -80,6 +99,7 @@ public class MainController {
 
         btnGenerate.setDisable(true);
         btnRunTests.setDisable(true);
+        btnRunSelected.setDisable(true);
         progressBar.setVisible(false);
 
         // Test level selector
@@ -214,6 +234,7 @@ public class MainController {
             log("Тесты сгенерированы в: " + outputPath);
             statusLabel.setText("Тесты сгенерированы");
             btnRunTests.setDisable(false);
+            btnRunSelected.setDisable(false);
 
         } catch (Exception e) {
             showAlert("Ошибка генерации", e.getMessage());
@@ -223,6 +244,92 @@ public class MainController {
 
     @FXML
     private void onRunTests() {
+        launchRun(null);
+    }
+
+    /**
+     * Opens a dialog to pick entities and test types, then runs only the selected subset.
+     * Empty test-type selection = run all tests of the chosen entities.
+     */
+    @FXML
+    private void onRunSelected() {
+        if (currentModel == null || currentModel.getEntities().isEmpty()) {
+            showAlert("Ошибка", "Сначала разберите XML и сгенерируйте тесты.");
+            return;
+        }
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Выбор тестов для запуска");
+        dlg.setHeaderText("Отметьте сущности и виды тестов.\n"
+                + "Если ни один вид не отмечен — запускаются все тесты выбранных сущностей.");
+        ButtonType runBtn = new ButtonType("Запустить", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(runBtn, ButtonType.CANCEL);
+
+        // Entity checkboxes
+        List<CheckBox> entityChecks = new ArrayList<>();
+        VBox entityBox = new VBox(4);
+        for (EntityObject entity : currentModel.getEntities()) {
+            CheckBox cb = new CheckBox(entity.getName());
+            cb.setUserData(Transliterator.toClassName(entity.getName()) + "Test");
+            entityChecks.add(cb);
+            entityBox.getChildren().add(cb);
+        }
+        CheckBox allEntities = new CheckBox("— выбрать все сущности —");
+        allEntities.setOnAction(e -> entityChecks.forEach(c -> c.setSelected(allEntities.isSelected())));
+
+        // Test-type checkboxes
+        List<CheckBox> typeChecks = new ArrayList<>();
+        VBox typeBox = new VBox(4);
+        for (String[] cat : TEST_CATEGORIES) {
+            CheckBox cb = new CheckBox(cat[0]);
+            cb.setUserData(cat[1]);
+            typeChecks.add(cb);
+            typeBox.getChildren().add(cb);
+        }
+
+        VBox left = new VBox(6, new Label("Сущности:"), allEntities,
+                new ScrollPane(entityBox));
+        VBox right = new VBox(6, new Label("Виды тестов:"), typeBox);
+        ((ScrollPane) left.getChildren().get(2)).setPrefHeight(320);
+        ((ScrollPane) left.getChildren().get(2)).setFitToWidth(true);
+        left.setPrefWidth(320);
+        HBox content = new HBox(20, left, right);
+        content.setStyle("-fx-padding: 10;");
+        dlg.getDialogPane().setContent(content);
+
+        Optional<ButtonType> res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != runBtn) {
+            return;
+        }
+
+        List<String> classes = entityChecks.stream()
+                .filter(CheckBox::isSelected)
+                .map(c -> (String) c.getUserData())
+                .toList();
+        if (classes.isEmpty()) {
+            showAlert("Ошибка", "Не выбрана ни одна сущность.");
+            return;
+        }
+        List<String> methodPatterns = typeChecks.stream()
+                .filter(CheckBox::isSelected)
+                .map(c -> (String) c.getUserData())
+                .toList();
+        String methodSuffix = methodPatterns.isEmpty() ? "" : "#" + String.join("+", methodPatterns);
+
+        StringBuilder filter = new StringBuilder();
+        for (String cls : classes) {
+            if (filter.length() > 0) filter.append(",");
+            filter.append(cls).append(methodSuffix);
+        }
+        log("Запуск выбранных тестов: -Dtest=" + filter);
+        launchRun(filter.toString());
+    }
+
+    /**
+     * Runs the generated tests. {@code testFilter} null/blank = run everything;
+     * otherwise it is passed to Surefire as {@code -Dtest=<filter>}.
+     */
+    private void launchRun(String testFilter) {
         String outputPath = outputDirField.getText();
         if (outputPath == null || outputPath.isEmpty()) {
             showAlert("Ошибка", "Укажите каталог с тестами.");
@@ -232,14 +339,17 @@ public class MainController {
         progressBar.setVisible(true);
         progressBar.setProgress(-1);
         btnRunTests.setDisable(true);
+        btnRunSelected.setDisable(true);
         statusLabel.setText("Запуск тестов...");
-        log("Запуск тестов...");
+        log(testFilter == null || testFilter.isBlank()
+                ? "Запуск всех тестов..." : "Запуск выбранных тестов...");
 
         Task<TestRunResult> task = new Task<>() {
             @Override
             protected TestRunResult call() throws Exception {
                 TestRunner runner = new TestRunner();
-                return runner.run(Path.of(outputPath), getXmlFileName(), urlField.getText());
+                return runner.run(Path.of(outputPath), getXmlFileName(), urlField.getText(),
+                        null, testFilter);
             }
         };
 
@@ -249,6 +359,7 @@ public class MainController {
             reportDao.saveRun(result);
             progressBar.setVisible(false);
             btnRunTests.setDisable(false);
+            btnRunSelected.setDisable(false);
             statusLabel.setText("Тесты завершены");
             log("Тесты завершены. Всего: " + result.getTotalTests()
                     + ", Успешно: " + result.getPassed()
@@ -272,6 +383,7 @@ public class MainController {
         task.setOnFailed(event -> {
             progressBar.setVisible(false);
             btnRunTests.setDisable(false);
+            btnRunSelected.setDisable(false);
             statusLabel.setText("Ошибка запуска тестов");
             log("Ошибка: " + task.getException().getMessage());
             showAlert("Ошибка", task.getException().getMessage());
