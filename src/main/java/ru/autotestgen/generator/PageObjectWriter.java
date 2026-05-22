@@ -65,6 +65,14 @@ public class PageObjectWriter {
         // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
+        // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки,
+        // ExtJS API НЕ годится: rec.set('value', '1') пройдёт молча, но сервер на Готово отвергнет.
+        w.openBlock("if (value == null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' — FK field, opening dropdown\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("fillFKViaDropdown(fieldName);");
+        w.writeLine("return;");
+        w.closeBlock();
         // ПЕРВАЯ ПОПЫТКА: ExtJS API. Прямо ставим record.set('value', value) в стор грида
         // свойств — не зависит от состояния inline-редактора, не падает InvalidElementState.
         w.openBlock("try");
@@ -87,11 +95,6 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
-        // Если у поля есть customEditor — это комбобокс/справочник. Не ставим значение через API
-        // (rec.set('value', '1') бы пропустил валидацию визуально, но сервер на Готово отверг бы),
-        // а отдаём управление DOM-пути — он откроет выпадашку и кликнет случайный пункт.
-        w.writeLine("    + \"        var nm = nn || dn || name;\"");
-        w.writeLine("    + \"        if (c.customEditors && c.customEditors[nm]) { return 'skip-combo:' + nm; }\"");
         w.writeLine("    + \"        try { rec.set('value', value); } catch (e1) { try { rec.set('value', String(value)); } catch (e2) { return 'set-fail:' + e2.message; } }\"");
         w.writeLine("    + \"        if (c.view && c.view.refresh) try { c.view.refresh(); } catch (er) {}\"");
         w.writeLine("    + \"        return 'set:' + (dn || nn);\"");
@@ -253,6 +256,109 @@ public class PageObjectWriter {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // fillFKViaDropdown: для FK/Ref-полей. Находит ячейку value, делает dblclick, ждёт пол
+        // секунды, ищет выпадающий список (.x-combo-list-item / .x-boundlist-item). Если списка
+        // нет — пробует кликнуть видимую кнопку-триггер (стрелочку справа от инпута). Когда
+        // пункты появились — выбирает СЛУЧАЙНЫЙ и кликает по нему. Не пытается ничего печатать —
+        // только выбор из готового списка справочника.
+        w.openBlock("private void fillFKViaDropdown(String fieldName)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
+        w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
+        w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
+        w.writeLine("    + \"]\";");
+        w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(xp));");
+        w.writeLine("WebElement nameCell = null;");
+        w.openBlock("for (WebElement c : nameCells)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("nameCell = c; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (nameCell == null)");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (label cell not in DOM)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("java.util.List<WebElement> rows = nameCell.findElements(By.xpath(\"ancestor::tr\"));");
+        w.openBlock("if (rows.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (no ancestor tr)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("java.util.List<WebElement> cells = rows.get(0).findElements(By.cssSelector(\"td\"));");
+        w.openBlock("if (cells.size() < 2)");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (row has \" + cells.size() + \" cells)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("WebElement valueCell = cells.get(1);");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(valueCell).doubleClick().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { valueCell.click(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("java.util.List<WebElement> items = collectVisibleDropdownItems();");
+        w.openBlock("if (items.isEmpty())");
+        w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(\"img.x-form-trigger, div.x-form-trigger\"));");
+        w.openBlock("for (WebElement t : triggers)");
+        w.openBlock("try");
+        w.openBlock("if (t.isDisplayed())");
+        w.writeLine("t.click(); Thread.sleep(500);");
+        w.writeLine("items = collectVisibleDropdownItems();");
+        w.openBlock("if (!items.isEmpty())");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (items.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown items appeared)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
+        w.writeLine("String pickedText = pick.getText() == null ? \"\" : pick.getText().trim();");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(pick).click().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK ('\" + pickedText + \"' из \" + items.size() + \" вариантов)\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = ERR (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        w.openBlock("private java.util.List<WebElement> collectVisibleDropdownItems()");
+        w.writeLine("java.util.List<WebElement> all = driver.findElements(By.cssSelector(");
+        w.writeLine("    \".x-combo-list-inner .x-combo-list-item, .x-combo-list .x-combo-list-item, .x-boundlist-item, .x-menu-list .x-menu-list-item\"));");
+        w.writeLine("java.util.List<WebElement> visible = new java.util.ArrayList<>();");
+        w.openBlock("for (WebElement it : all)");
+        w.openBlock("try");
+        w.openBlock("if (it.isDisplayed() && it.getText() != null && !it.getText().trim().isEmpty())");
+        w.writeLine("visible.add(it);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return visible;");
         w.closeBlock();
         w.writeLine();
 
@@ -436,10 +542,11 @@ public class PageObjectWriter {
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
             if (value == null) {
-                // FK / Directory / Ref — нет генерируемого значения. Используем "1" как универсальный
-                // fallback (выбор первого доступного варианта в пикере).
-                w.writeLine("// " + prop.getName() + " — required FK/Ref, default to first option");
-                w.writeLine(methodName + "(\"1\");");
+                // FK / Directory / Ref — нет генерируемого значения. Передаём null —
+                // fillPropertyGridField это распознаёт и идёт в DOM-пикер выпадающего списка,
+                // где берёт случайный пункт.
+                w.writeLine("// " + prop.getName() + " — required FK/Ref, dropdown picker");
+                w.writeLine(methodName + "(null);");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
@@ -455,9 +562,9 @@ public class PageObjectWriter {
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
             if (value == null) {
-                // FK / Directory / Ref — default "1"
-                w.writeLine("// " + prop.getName() + " — FK/Ref, default to first option");
-                w.writeLine(methodName + "(\"1\");");
+                // FK / Directory / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
+                w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
+                w.writeLine(methodName + "(null);");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
