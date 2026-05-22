@@ -893,6 +893,27 @@ public class TestGenerator {
         // «Сохранить Изменения» / «Удалить»).
         w.openBlock("protected boolean addViaMenu(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        // Aggressive cleanup перед открытием меню: закрываем ВСЕ x-window'ы и шлём ESC.
+        // Без этого если предыдущий тест (например testRequiredFieldValidation) оставил
+        // диалог с ошибками валидации, новый «Добавить» открывается ПОВЕРХ него, и
+        // waitForAddForm видит старый «Готово» вместо нового — addFormOpen=true,
+        // а тест на самом деле льёт данные в чужой диалог.
+        w.openBlock("try");
+        w.writeLine("java.util.List<WebElement> closes = driver.findElements(By.cssSelector(\".x-window .x-tool-close, .x-window .x-window-close\"));");
+        w.openBlock("for (WebElement c : closes)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("c.click(); Thread.sleep(150);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.openBlock("try");
         w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
         w.openBlock("for (String menuName : menuButtons)");
