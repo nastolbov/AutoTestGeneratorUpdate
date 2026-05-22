@@ -88,6 +88,10 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");
         w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
+        // Маркер записи, созданной testCreate. testDelete удаляет именно её (а не первую
+        // попавшуюся строку с реальными данными стенда). PER_CLASS-lifecycle сохраняет поле
+        // между тест-методами одного класса.
+        w.writeLine("private String lastCreatedMarker = \"\";");
         w.writeLine();
 
         // Override entityName() so BaseTest helpers (menuAction, openSearch, openRecordCard) look
@@ -406,6 +410,9 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
+        // Запоминаем маркер только если запись реально оказалась в гриде — testDelete по нему
+        // найдёт и удалит именно эту запись.
+        w.writeLine("if (markerInGrid) lastCreatedMarker = createdMarker;");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
             // Hard: strict row count increase OR marker visible. Strict increase is the cleaner
@@ -516,17 +523,29 @@ public class TestClassWriter {
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
+        // По требованию заказчика testDelete удаляет ИМЕННО запись, созданную testCreate
+        // (по уникальному маркеру). Если testCreate не отработал (маркер пуст) — fallback
+        // на первую строку грида.
+        w.writeLine("String deletedMarker = lastCreatedMarker;");
+        w.writeLine("boolean opened;");
+        w.openBlock("if (!lastCreatedMarker.isEmpty())");
+        w.writeLine("opened = step(\"open record created in testCreate\", () -> selectAndOpenRecordByMarker(lastCreatedMarker));");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("opened = step(\"select + open record\", () -> selectAndOpenRecord());");
+        w.closeBlock();
+        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open the record to delete (created marker '\" + deletedMarker + \"')\");");
         w.writeLine("shot(\"row_selected\");");
-        // Capture the selected row's text so we can verify the row is actually gone, not just
-        // that the row count dropped by one (different row could vanish for unrelated reasons).
-        w.writeLine("String deletedMarker = \"\";");
+        // Если маркера от testCreate нет — пытаемся снять текст выделенной строки, чтобы
+        // потом проверить, что исчезла именно она.
+        w.openBlock("if (deletedMarker.isEmpty())");
         w.openBlock("try");
         w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
         w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
         w.writeLine("deletedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("try");
         w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"Удалить\"));");

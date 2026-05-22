@@ -2438,6 +2438,101 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // selectAndOpenRecordByMarker(marker): находит в гриде строку, какое-либо поле которой
+        // содержит marker, ВЫДЕЛЯЕТ её и открывает карточку. Используется testDelete, чтобы
+        // удалить именно ту запись, которую создал testCreate, а не первую попавшуюся строку
+        // с реальными данными стенда.
+        w.openBlock("protected boolean selectAndOpenRecordByMarker(String marker)");
+        w.openBlock("if (marker == null || marker.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Strategy 0: ExtJS API — ищем запись с marker в сторе, выделяем её и шлём rowdblclick.
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var marker = arguments[0];\"");
+        w.writeLine("    + \"  var nodes = document.querySelectorAll('.x-grid3, .x-grid-panel, .x-grid');\"");
+        w.writeLine("    + \"  var grids = [];\"");
+        w.writeLine("    + \"  for (var i = 0; i < nodes.length; i++) {\"");
+        w.writeLine("    + \"    var n = nodes[i];\"");
+        w.writeLine("    + \"    if (n.offsetWidth === 0 || n.offsetHeight === 0) continue;\"");
+        w.writeLine("    + \"    var id = n.id; if (!id) continue;\"");
+        w.writeLine("    + \"    var cmp = Ext.getCmp ? Ext.getCmp(id) : null;\"");
+        w.writeLine("    + \"    if (!cmp) { var p = n; while (p && p.parentElement) { if (p.id && Ext.getCmp && Ext.getCmp(p.id)) { cmp = Ext.getCmp(p.id); break; } p = p.parentElement; } }\"");
+        w.writeLine("    + \"    if (cmp && cmp.fireEvent && cmp.getStore) grids.push(cmp);\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  if (grids.length === 0) return 'no-grid';\"");
+        w.writeLine("    + \"  for (var j = 0; j < grids.length; j++) {\"");
+        w.writeLine("    + \"    var g = grids[j]; var s = g.getStore && g.getStore(); if (!s) continue;\"");
+        w.writeLine("    + \"    var c = s.getCount ? s.getCount() : 0;\"");
+        w.writeLine("    + \"    for (var k = 0; k < c; k++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(k); if (!rec) continue; var d = rec.data || {}; var hit = false;\"");
+        w.writeLine("    + \"      for (var key in d) { try { if (d[key] != null && String(d[key]).indexOf(marker) >= 0) { hit = true; break; } } catch (ee) {} }\"");
+        w.writeLine("    + \"      if (hit) {\"");
+        w.writeLine("    + \"        try { var sm = g.getSelectionModel && g.getSelectionModel(); if (sm) { if (sm.selectRow) sm.selectRow(k); else if (sm.select) sm.select(rec); } } catch (se) {}\"");
+        w.writeLine("    + \"        var view = g.view || g.getView();\"");
+        w.writeLine("    + \"        g.fireEvent('rowdblclick', g, k, null);\"");
+        w.writeLine("    + \"        g.fireEvent('itemdblclick', view, rec, null, k, null);\"");
+        w.writeLine("    + \"        return 'fired:' + k;\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'not-found';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", marker);");
+        w.writeLine("System.out.println(\"selectAndOpenRecordByMarker: \" + result);");
+        w.openBlock("if (result != null && String.valueOf(result).startsWith(\"fired\"))");
+        w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after marker open\");");
+        w.openBlock("if (opened)");
+        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"selectAndOpenRecordByMarker error: \" + e.getMessage());");
+        w.closeBlock();
+        // Strategy 1: DOM fallback — кликаем по строке с marker, затем двойной клик.
+        w.openBlock("try");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
+        w.writeLine("WebElement target = null;");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed() && r.getText() != null && r.getText().contains(marker))");
+        w.writeLine("target = r; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (target == null)");
+        w.writeLine("System.out.println(\"selectAndOpenRecordByMarker: row with marker not found\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("target.click(); Thread.sleep(400);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(target).doubleClick().perform(); Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"selectAndOpenRecordByMarker fallback error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // getVisibleRowCount(): count visible grid rows. Used by CRUD tests to verify strict deltas.
         w.openBlock("protected int getVisibleRowCount()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
