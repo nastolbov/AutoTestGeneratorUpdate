@@ -1273,7 +1273,13 @@ public class TestGenerator {
         w.writeLine("    + \"var bestKey = null, bestCount = 0;\"");
         w.writeLine("    + \"for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
         w.writeLine("    + \"console.log('selectAndOpenRecord: group sizes = ' + Object.keys(groups).map(function(k){return k+':'+groups[k].length;}).join(', '));\"");
-        w.writeLine("    + \"return bestKey ? groups[bestKey][0] : null;\");");
+        // Возвращаем ВНУТРЕННЮЮ ЯЧЕЙКУ первой строки, а не саму <tr>. ExtJS 3 ловит
+        // rowdblclick через cellmousedown — кликать надо в .x-grid3-cell.
+        w.writeLine("    + \"if (!bestKey) return null;\"");
+        w.writeLine("    + \"var row = groups[bestKey][0];\"");
+        w.writeLine("    + \"var cells = row.querySelectorAll('.x-grid3-cell, .x-grid-cell, td');\"");
+        w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) { var ce = cells[ci]; if (ce.offsetHeight > 0 && ce.offsetWidth > 0) return ce; }\"");
+        w.writeLine("    + \"return row;\");");
         w.openBlock("if (firstRow != null)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on first row of largest visible grid group\");");
         // Step 1: single-click to select the row

@@ -65,6 +65,46 @@ public class PageObjectWriter {
         // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
+        // ПЕРВАЯ ПОПЫТКА: ExtJS API. Прямо ставим record.set('value', value) в стор грида
+        // свойств — не зависит от состояния inline-редактора, не падает InvalidElementState.
+        w.openBlock("try");
+        w.writeLine("Object res = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var name = arguments[0], value = arguments[1];\"");
+        w.writeLine("    + \"  var all = Ext.ComponentMgr && Ext.ComponentMgr.all ? Ext.ComponentMgr.all : (Ext.ComponentManager && Ext.ComponentManager.all ? Ext.ComponentManager.all : null);\"");
+        w.writeLine("    + \"  if (!all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var items = [];\"");
+        w.writeLine("    + \"  if (all.items) items = all.items;\"");
+        w.writeLine("    + \"  else if (all.each) all.each(function(c){items.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in all) items.push(all[k]);\"");
+        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
+        w.writeLine("    + \"    var c = items[i]; if (!c || !c.rendered || !c.getStore) continue;\"");
+        w.writeLine("    + \"    if (c.getEl && c.getEl().dom && (c.getEl().dom.offsetWidth === 0 || c.getEl().dom.offsetHeight === 0)) continue;\"");
+        w.writeLine("    + \"    var s = c.getStore(); if (!s || !s.getCount) continue;\"");
+        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue; var d = rec.data;\"");
+        w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
+        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        w.writeLine("    + \"        try { rec.set('value', value); } catch (e1) { try { rec.set('value', String(value)); } catch (e2) { return 'set-fail:' + e2.message; } }\"");
+        w.writeLine("    + \"        if (c.view && c.view.refresh) try { c.view.refresh(); } catch (er) {}\"");
+        w.writeLine("    + \"        return 'set:' + (dn || nn);\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'not-found';\"");
+        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
+        w.openBlock("if (res != null && String.valueOf(res).startsWith(\"set:\"))");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK via ExtJS API ('\" + value + \"')\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API result: \" + res + \" — falling back to DOM\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception jsEx)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API threw: \" + jsEx.getMessage() + \" — falling back to DOM\");");
+        w.closeBlock();
         w.openBlock("try");
         // Поиск лейбла поля: пробуем сразу несколько вариантов нормализации текста,
         // потому что у обязательных полей может быть '*' или вложенные em/span.
