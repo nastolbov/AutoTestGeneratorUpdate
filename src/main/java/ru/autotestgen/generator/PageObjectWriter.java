@@ -321,8 +321,39 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
         w.closeBlock();
+        // E3Core: FK поля часто открывают отдельное МОДАЛЬНОЕ окно-пикер с гридом записей,
+        // а не inline-выпадашку. Активное окно (Ext.WindowMgr.getActive) после dblclick = это
+        // окно-пикер. Берём случайную видимую строку его грида и dblclick'ом подтверждаем выбор.
         w.openBlock("if (items.isEmpty())");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown items appeared)\");");
+        w.openBlock("try");
+        w.writeLine("Object pickerRow = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined' || !Ext.WindowMgr || !Ext.WindowMgr.getActive) return null;\"");
+        w.writeLine("    + \"var aw = Ext.WindowMgr.getActive(); if (!aw || !aw.getEl) return null;\"");
+        w.writeLine("    + \"var root = aw.getEl().dom || aw.getEl();\"");
+        w.writeLine("    + \"var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"var vis = [];\"");
+        w.writeLine("    + \"for (var i = 0; i < rows.length; i++) { if (rows[i].offsetHeight > 0 && rows[i].offsetWidth > 0) vis.push(rows[i]); }\"");
+        w.writeLine("    + \"if (vis.length === 0) return null;\"");
+        w.writeLine("    + \"return vis[Math.floor(Math.random() * vis.length)];\");");
+        w.openBlock("if (pickerRow instanceof WebElement)");
+        w.writeLine("WebElement row = (WebElement) pickerRow;");
+        w.writeLine("String rowText = row.getText() == null ? \"\" : row.getText().trim();");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(row).click().pause(java.time.Duration.ofMillis(150)).doubleClick().perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { row.click(); Thread.sleep(200); new org.openqa.selenium.interactions.Actions(driver).moveToElement(row).doubleClick().perform(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK picker-window ('\" + rowText + \"')\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (items.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown items, no picker window)\");");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
