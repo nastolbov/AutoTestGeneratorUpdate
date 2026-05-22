@@ -308,16 +308,16 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(500);");
-        w.writeLine("java.util.List<WebElement> items = collectVisibleDropdownItems();");
+        // ExtJS combo list загружается асинхронно — ждём появления пунктов до 2.5с поллингом.
+        w.writeLine("java.util.List<WebElement> items = pollDropdownItems(2500);");
         w.openBlock("if (items.isEmpty())");
         w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(");
         w.writeLine("    \"img.x-form-trigger, div.x-form-trigger, .x-form-trigger-wrap img, td.x-trigger-cell img\"));");
         w.openBlock("for (WebElement t : triggers)");
         w.openBlock("try");
         w.openBlock("if (t.isDisplayed())");
-        w.writeLine("t.click(); Thread.sleep(500);");
-        w.writeLine("items = collectVisibleDropdownItems();");
+        w.writeLine("t.click();");
+        w.writeLine("items = pollDropdownItems(2000);");
         w.openBlock("if (!items.isEmpty())");
         w.writeLine("break;");
         w.closeBlock();
@@ -332,8 +332,7 @@ public class PageObjectWriter {
         w.openBlock("if (items.isEmpty())");
         w.openBlock("try");
         w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.F4);");
-        w.writeLine("Thread.sleep(500);");
-        w.writeLine("items = collectVisibleDropdownItems();");
+        w.writeLine("items = pollDropdownItems(1500);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -373,6 +372,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.openBlock("if (items.isEmpty())");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown, no NEW picker window; activeBefore=\" + activeBefore + \")\");");
+        w.writeLine("dumpDropdownDiagnostic();");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
@@ -397,7 +397,7 @@ public class PageObjectWriter {
 
         w.openBlock("private java.util.List<WebElement> collectVisibleDropdownItems()");
         w.writeLine("java.util.List<WebElement> all = driver.findElements(By.cssSelector(");
-        w.writeLine("    \".x-combo-list-inner .x-combo-list-item, .x-combo-list .x-combo-list-item, .x-boundlist-item, .x-menu-list .x-menu-list-item\"));");
+        w.writeLine("    \".x-combo-list-inner .x-combo-list-item, .x-combo-list .x-combo-list-item, .x-combo-list-item, .x-boundlist-item, .x-menu-list .x-menu-list-item, .x-combo-list-inner > div\"));");
         w.writeLine("java.util.List<WebElement> visible = new java.util.ArrayList<>();");
         w.openBlock("for (WebElement it : all)");
         w.openBlock("try");
@@ -409,6 +409,54 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("return visible;");
+        w.closeBlock();
+        w.writeLine();
+
+        // pollDropdownItems: ждёт пока выпадающий список появится (до timeoutMs мс),
+        // опрашивая DOM каждые 200мс. ExtJS combo list иногда подгружается store'ом
+        // асинхронно — фиксированная пауза 500мс была слишком короткой.
+        w.openBlock("private java.util.List<WebElement> pollDropdownItems(int timeoutMs)");
+        w.writeLine("long deadline = System.currentTimeMillis() + timeoutMs;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("java.util.List<WebElement> items = collectVisibleDropdownItems();");
+        w.openBlock("if (!items.isEmpty())");
+        w.writeLine("return items;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return java.util.Collections.emptyList();");
+        w.closeBlock();
+        w.writeLine();
+
+        // dumpDropdownDiagnostic: на FAIL fillFKViaDropdown — печатает что РЕАЛЬНО видно в
+        // DOM, чтобы понять под какой селектор / класс открывается список на этом стенде.
+        w.openBlock("private void dumpDropdownDiagnostic()");
+        w.openBlock("try");
+        w.writeLine("System.out.println(\"  [fill-FK] dropdown diagnostic:\");");
+        w.writeLine("java.util.List<WebElement> all = driver.findElements(By.cssSelector(");
+        w.writeLine("    \"[class*='list'], [class*='combo'], [class*='menu'], [role='listbox'], [role='option']\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement e : all)");
+        w.openBlock("try");
+        w.openBlock("if (e.isDisplayed() && shown < 20)");
+        w.writeLine("String cls = e.getAttribute(\"class\");");
+        w.writeLine("String txt = e.getText() == null ? \"\" : e.getText().trim();");
+        w.openBlock("if (cls != null && txt.length() > 0 && txt.length() < 100)");
+        w.writeLine("System.out.println(\"    class='\" + cls + \"' text='\" + txt + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
 
