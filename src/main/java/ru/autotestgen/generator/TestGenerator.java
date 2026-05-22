@@ -1168,13 +1168,19 @@ public class TestGenerator {
         w.writeLine("    + \"    if (cmp && cmp.fireEvent && cmp.getStore) grids.push(cmp);\"");
         w.writeLine("    + \"  }\"");
         w.writeLine("    + \"  if (grids.length === 0) return 'no-grid';\"");
-        // Выбираем грид с непустым стором, предпочтительно тот, у кого больше всего строк
-        w.writeLine("    + \"  var best = null; var bestCount = -1;\"");
+        // Выбираем грид с наибольшим числом ВИДИМЫХ отрендеренных строк (это всегда таблица
+        // результатов поиска, а не какой-нибудь служебный грид-меню/история с большим store).
+        w.writeLine("    + \"  var best = null; var bestVisible = -1;\"");
         w.writeLine("    + \"  for (var j = 0; j < grids.length; j++) {\"");
         w.writeLine("    + \"    var g = grids[j]; var s = g.getStore && g.getStore(); var c = s ? s.getCount() : 0;\"");
-        w.writeLine("    + \"    if (c > bestCount) { best = g; bestCount = c; }\"");
+        w.writeLine("    + \"    if (c === 0) continue;\"");
+        // Считаем строки .x-grid3-row внутри DOM-узла этого грида, у которых offsetHeight>0
+        w.writeLine("    + \"    var dom = g.getEl ? (g.getEl().dom || g.getEl()) : null; if (!dom) continue;\"");
+        w.writeLine("    + \"    var rows = dom.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"    var visRows = 0; for (var rr = 0; rr < rows.length; rr++) { if (rows[rr].offsetHeight > 0 && rows[rr].offsetWidth > 0) visRows++; }\"");
+        w.writeLine("    + \"    if (visRows > bestVisible) { best = g; bestVisible = visRows; }\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  if (!best || bestCount === 0) return 'empty-store';\"");
+        w.writeLine("    + \"  if (!best || bestVisible <= 0) return 'empty-store';\"");
         w.writeLine("    + \"  var record = best.getStore().getAt(0); var view = best.view || best.getView();\"");
         // Явно ВЫДЕЛЯЕМ строку 0 в SelectionModel грида. Без этого fireEvent('rowdblclick')
         // открывает карточку, но строка результатов остаётся невыделенной — и последующее
@@ -1184,7 +1190,7 @@ public class TestGenerator {
         w.writeLine("    + \"  best.fireEvent('itemdblclick', view, record, null, 0, null);\"");
         // Дополнительно — bubble cell-click событие в DOM, на случай если в обработчике этого нужно
         w.writeLine("    + \"  try { if (view && view.getRow) { var rowEl = view.getRow(0); if (rowEl) { var cells = rowEl.querySelectorAll('.x-grid3-cell'); if (cells.length) cells[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window})); } } } catch (ee) {}\"");
-        w.writeLine("    + \"  return 'fired:' + bestCount;\"");
+        w.writeLine("    + \"  return 'fired:' + bestVisible + '/' + (best.getStore ? best.getStore().getCount() : '?');\"");
         w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\");");
         w.writeLine("System.out.println(\"openViaExtApi: \" + result);");
         w.writeLine("return result != null && String.valueOf(result).startsWith(\"fired\");");
@@ -1983,7 +1989,9 @@ public class TestGenerator {
         // слова «Сведения» в основном меню даёт false positive.
         w.writeLine("        List<WebElement> grp = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0418\\u0441\\u0442\\u043e\\u0440\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0414\\u043e\\u043a\\u0443\\u043c\\u0435\\u043d\\u0442\\u044b')]\"));");
         w.writeLine("        long groupsVisible = grp.stream().filter(WebElement::isDisplayed).count();");
-        w.writeLine("        if (groupsVisible >= 2) return true;");
+        // ВАЖНО: требуем все три ярлыка — на главном UI отдельные слова могут встретиться
+        // (например в дереве сущностей), но все три вместе видны только на карточке.
+        w.writeLine("        if (groupsVisible >= 3) return true;");
         // Signal C: модальное .x-window с формой
         w.writeLine("        List<WebElement> winForm = driver.findElements(By.cssSelector(\".x-window .x-form-field, .x-window input.x-form-text\"));");
         w.writeLine("        if (winForm.stream().anyMatch(WebElement::isDisplayed)) return true;");
@@ -2080,6 +2088,10 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("if (editBtn == null)");
         w.writeLine("System.out.println(\"clickEditDropdownAction: 'Редактирование' button not visible on card\");");
+        // Принудительно печатаем что РЕАЛЬНО на странице — даже если waitForCardLoaded
+        // ложно вернул true, мы тут увидим, какие кнопки/заголовки на экране, и поймём,
+        // открылась ли карточка вообще.
+        w.writeLine("dumpCardDiagnostics();");
         w.writeLine("return false;");
         w.closeBlock();
         // Click the «Редактирование» button via tryClickAllWays
