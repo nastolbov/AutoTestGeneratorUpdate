@@ -1176,6 +1176,10 @@ public class TestGenerator {
         w.writeLine("    + \"  }\"");
         w.writeLine("    + \"  if (!best || bestCount === 0) return 'empty-store';\"");
         w.writeLine("    + \"  var record = best.getStore().getAt(0); var view = best.view || best.getView();\"");
+        // Явно ВЫДЕЛЯЕМ строку 0 в SelectionModel грида. Без этого fireEvent('rowdblclick')
+        // открывает карточку, но строка результатов остаётся невыделенной — и последующее
+        // удаление/изменение применяется «не к той» записи или ни к чему.
+        w.writeLine("    + \"  try { var sm = best.getSelectionModel && best.getSelectionModel(); if (sm) { if (sm.selectRow) sm.selectRow(0); else if (sm.select) sm.select(record || 0); } } catch (se) {}\"");
         w.writeLine("    + \"  best.fireEvent('rowdblclick', best, 0, null);\"");
         w.writeLine("    + \"  best.fireEvent('itemdblclick', view, record, null, 0, null);\"");
         // Дополнительно — bubble cell-click событие в DOM, на случай если в обработчике этого нужно
@@ -2531,6 +2535,15 @@ public class TestGenerator {
         w.openBlock("if (firstRow == null)");
         w.writeLine("System.out.println(\"loadRowIntoTree: no visible row in the result grid\");");
         w.writeLine("return false;");
+        w.closeBlock();
+        // Сначала ОДИНОЧНЫЙ клик — выделяем строку. «Загрузить выбранные объекты»
+        // работает с выделенной строкой; без явного выделения contextClick на части
+        // стендов открывает меню, но строка остаётся невыделенной.
+        w.openBlock("try");
+        w.writeLine("firstRow.click();");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         // Right-click on first row to open context menu
         w.openBlock("try");
