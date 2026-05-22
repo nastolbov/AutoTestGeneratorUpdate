@@ -62,7 +62,13 @@ public class TestDataFactory {
 
     /**
      * Generates data from an E3Core mask pattern.
-     * '9' = digit, 'A' = letter, 'X' = alphanumeric, other chars = literal.
+     *
+     * Placeholder grammar (must stay in sync with {@code matchesMask} in generated tests):
+     *   digit  : '9', '0', '#'
+     *   letter : 'a', 'A', 'L'
+     *   any    : 'X', 'x', '*', '?'
+     *   other chars are treated as literal separators (-, /, ., space, ...).
+     *
      * E.g., mask="999999999999" (INN) -> "123456789012"
      * E.g., mask="99-99" -> "12-34"
      *
@@ -71,30 +77,47 @@ public class TestDataFactory {
      * as an invalid date, masking the real check.
      */
     public static String generateFromMask(String mask) {
+        if (mask == null || mask.isEmpty()) return "";
         if (looksLikeDateMask(mask)) return LocalDate.now().format(DATE_FORMAT);
         if (looksLikeDateTimeMask(mask)) return LocalDate.now().format(DATE_FORMAT) + " 12:00";
         StringBuilder sb = new StringBuilder();
         int digitCounter = 1;
         for (int i = 0; i < mask.length(); i++) {
             char c = mask.charAt(i);
-            switch (c) {
-                case '9' -> sb.append((digitCounter++) % 10); // digits 1,2,3,...,0,1,2,...
-                case 'A' -> sb.append((char) ('A' + (i % 26)));
-                case 'X' -> sb.append((char) ('A' + (i % 26)));
-                default -> sb.append(c); // literal separators like -, /, .
+            if (isDigitMaskChar(c)) {
+                sb.append((digitCounter++) % 10); // digits 1,2,3,...,0,1,2,...
+            } else if (isLetterMaskChar(c) || isAnyMaskChar(c)) {
+                sb.append((char) ('A' + (i % 26)));
+            } else {
+                sb.append(c); // literal separators like -, /, .
             }
         }
         return sb.toString();
     }
 
-    /** True for masks like "99.99.9999", "99/99/9999", "99-99-9999". */
+    /** Mask placeholder for a digit position. */
+    static boolean isDigitMaskChar(char c) {
+        return c == '9' || c == '0' || c == '#';
+    }
+
+    /** Mask placeholder for a letter position. */
+    static boolean isLetterMaskChar(char c) {
+        return c == 'a' || c == 'A' || c == 'L';
+    }
+
+    /** Mask placeholder for an "any character" position. */
+    static boolean isAnyMaskChar(char c) {
+        return c == 'X' || c == 'x' || c == '*' || c == '?';
+    }
+
+    /** True for masks like "99.99.9999", "00/00/0000", "##-##-####". */
     private static boolean looksLikeDateMask(String mask) {
-        return mask != null && mask.matches("9{2}[./\\-]9{2}[./\\-]9{4}");
+        return mask != null && mask.matches("[90#]{2}[./\\-][90#]{2}[./\\-][90#]{4}");
     }
 
     /** True for masks like "99.99.9999 99:99". */
     private static boolean looksLikeDateTimeMask(String mask) {
-        return mask != null && mask.matches("9{2}[./\\-]9{2}[./\\-]9{4}\\s+9{2}[:.]9{2}");
+        return mask != null && mask.matches("[90#]{2}[./\\-][90#]{2}[./\\-][90#]{4}\\s+[90#]{2}[:.][90#]{2}");
     }
 
     /**

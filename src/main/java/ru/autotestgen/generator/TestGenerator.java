@@ -2450,8 +2450,12 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // matchesMask(value, mask): true if value conforms to an ExtJS-style mask.
-        // Mask grammar (ExtJS): '9' = digit, 'a' = letter, '*' = any; literal characters are kept as-is.
+        // matchesMask(value, mask): true if value conforms to an E3Core/ExtJS-style mask.
+        // Mask grammar (must stay in sync with TestDataFactory.generateFromMask):
+        //   digit  : '9', '0', '#'
+        //   letter : 'a', 'A', 'L'
+        //   any    : 'X', 'x', '*', '?'
+        //   other characters are kept as literals.
         // Example: "99.99.9999" → ^\d{2}\.\d{2}\.\d{4}$
         w.openBlock("protected boolean matchesMask(String value, String mask)");
         w.openBlock("if (value == null || mask == null || mask.isEmpty())");
@@ -2460,13 +2464,13 @@ public class TestGenerator {
         w.writeLine("StringBuilder regex = new StringBuilder(\"^\");");
         w.openBlock("for (int i = 0; i < mask.length(); i++)");
         w.writeLine("char c = mask.charAt(i);");
-        w.openBlock("if (c == '9')");
+        w.openBlock("if (c == '9' || c == '0' || c == '#')");
         w.writeLine("regex.append(\"\\\\d\");");
         w.closeBlock();
-        w.openBlock("else if (c == 'a' || c == 'A')");
+        w.openBlock("else if (c == 'a' || c == 'A' || c == 'L')");
         w.writeLine("regex.append(\"[A-Za-zА-Яа-я]\");");
         w.closeBlock();
-        w.openBlock("else if (c == '*')");
+        w.openBlock("else if (c == 'X' || c == 'x' || c == '*' || c == '?')");
         w.writeLine("regex.append(\".\");");
         w.closeBlock();
         w.openBlock("else");

@@ -244,7 +244,7 @@
 | `entityName()` | Имя сущности из имени класса |
 | `gridContainsRow(marker)` | Истина, если какая-либо видимая строка грида содержит маркер |
 | `getVisibleRowCount()` | Число видимых строк грида |
-| `matchesMask(value, mask)` | Соответствие значения ExtJS-маске (9=цифра, a=буква, *=любой) |
+| `matchesMask(value, mask)` | Соответствие значения E3Core/ExtJS-маске (цифра=`9 0 #`, буква=`a A L`, любой=`X x * ?`) |
 | `assertCoverage(found, expected, threshold, missing, ctx)` | Жёсткий ассерт доли покрытия с диагностикой отсутствующих |
 | `refreshGrid()` | Перезапустить пустой поиск (для CRUD-тестов после Delete/Archive) |
 
