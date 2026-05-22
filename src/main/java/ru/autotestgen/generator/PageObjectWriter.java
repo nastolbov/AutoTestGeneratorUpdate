@@ -87,6 +87,36 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        // Проверка: есть ли у поля редактор-комбобокс (справочник/FK)? У PropertyGrid в ExtJS 3
+        // редактор хранится в c.customEditors[name] или rec.editor. У ComboBox есть .field.getStore().
+        // Если стор есть и непуст — это выпадающий список: берём случайную запись и ставим ЕЁ valueField.
+        w.writeLine("    + \"        var ed = null;\"");
+        w.writeLine("    + \"        try { if (c.customEditors) { ed = c.customEditors[nn] || c.customEditors[dn]; } } catch (ec) {}\"");
+        w.writeLine("    + \"        if (!ed) { try { ed = rec.editor; } catch (er) {} }\"");
+        w.writeLine("    + \"        var comboField = null;\"");
+        w.writeLine("    + \"        try { if (ed && ed.field && ed.field.getStore) comboField = ed.field; else if (ed && ed.getStore) comboField = ed; } catch (ef) {}\"");
+        w.writeLine("    + \"        if (comboField && comboField.getStore) {\"");
+        w.writeLine("    + \"          try {\"");
+        w.writeLine("    + \"            var st = comboField.getStore();\"");
+        // Для combobox с remote-загрузкой store пустой пока не открыли — пробуем загрузить.
+        w.writeLine("    + \"            if (st.getCount() === 0 && st.load) { try { st.load(); } catch (le) {} }\"");
+        w.writeLine("    + \"            if (st.getCount && st.getCount() > 0) {\"");
+        w.writeLine("    + \"              var idx = Math.floor(Math.random() * st.getCount());\"");
+        w.writeLine("    + \"              var fkRec = st.getAt(idx);\"");
+        w.writeLine("    + \"              var vf = comboField.valueField || 'id';\"");
+        w.writeLine("    + \"              var df = comboField.displayField || 'name';\"");
+        w.writeLine("    + \"              var fkId = fkRec.get ? fkRec.get(vf) : (fkRec.data ? fkRec.data[vf] : null);\"");
+        w.writeLine("    + \"              var fkDisp = fkRec.get ? fkRec.get(df) : (fkRec.data ? fkRec.data[df] : '');\"");
+        // У PropertyGrid отображаемое значение — это displayField, реальное хранимое — valueField.
+        // Чтобы и в UI отрисовалось, и при save ушёл правильный ID, ставим displayField (rec.set
+        // обычно сам пересобирает по value через rawValue/displayValue).
+        w.writeLine("    + \"              try { rec.set('value', fkDisp); } catch (eS1) { try { rec.set('value', fkId); } catch (eS2) {} }\"");
+        w.writeLine("    + \"              if (c.view && c.view.refresh) try { c.view.refresh(); } catch (eR) {}\"");
+        w.writeLine("    + \"              return 'set-fk:' + (dn || nn) + '=' + fkDisp + '(id=' + fkId + ')';\"");
+        w.writeLine("    + \"            }\"");
+        w.writeLine("    + \"            return 'fk-empty:' + (dn || nn);\"");
+        w.writeLine("    + \"          } catch (eFK) { return 'fk-err:' + eFK.message; }\"");
+        w.writeLine("    + \"        }\"");
         w.writeLine("    + \"        try { rec.set('value', value); } catch (e1) { try { rec.set('value', String(value)); } catch (e2) { return 'set-fail:' + e2.message; } }\"");
         w.writeLine("    + \"        if (c.view && c.view.refresh) try { c.view.refresh(); } catch (er) {}\"");
         w.writeLine("    + \"        return 'set:' + (dn || nn);\"");
@@ -95,8 +125,8 @@ public class PageObjectWriter {
         w.writeLine("    + \"  }\"");
         w.writeLine("    + \"  return 'not-found';\"");
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
-        w.openBlock("if (res != null && String.valueOf(res).startsWith(\"set:\"))");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK via ExtJS API ('\" + value + \"')\");");
+        w.openBlock("if (res != null && (String.valueOf(res).startsWith(\"set:\") || String.valueOf(res).startsWith(\"set-fk:\")))");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK via ExtJS API (\" + res + \")\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
