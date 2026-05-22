@@ -484,6 +484,15 @@ public class PageObjectWriter {
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine("Thread.sleep(200);");
+        // TAB чтобы ExtJS зафиксировал редактирование combo. Иначе следующее FK-поле не
+        // сможет активировать свой editor — ExtJS PropertyGrid считает что предыдущий
+        // edit ещё в процессе.
+        w.openBlock("try");
+        w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK ('\" + pickedText + \"' из \" + items.size() + \" вариантов)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
