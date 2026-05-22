@@ -1204,13 +1204,61 @@ public class TestGenerator {
 
 
         // selectAndOpenRecord: документированный пользователем сценарий E3Core:
-        //   0. ПЕРВЫМ ДЕЛОМ — попытка через ExtJS API (openViaExtApi). Если ExtJS-grid
-        //      реагирует на fireEvent('rowdblclick') — карточка открывается за 100мс.
-        //   1. fallback: выделить строку (одиночный клик),
-        //   2. дождаться выделения,
-        //   3. двойной клик — откроется карточка записи / редактор.
+        //   1. найти первую видимую строку результирующего грида,
+        //   2. одиночный клик по ней (выделение),
+        //   3. dblclick по той же строке — откроется «Единый объект» / карточка.
+        // ExtJS API (openViaExtApi) оставлен как fallback на стенды без бубликабельных
+        // событий — но как ПЕРВЫЙ выбор он промахивается мимо result-grid, если рядом
+        // есть другие гриды (дерево поисков и пр.).
         w.openBlock("protected boolean selectAndOpenRecord()");
-        // Strategy 0: ExtJS API — самый надёжный вариант для ExtJS-grid'ов
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        // Find a visible row in the result grid. Prefer .x-grid3-row (ExtJS 3) — generic
+        // <tr> matches the main shell toolbar too.
+        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row\"));");
+        w.writeLine("WebElement firstRow = null;");
+        w.openBlock("for (WebElement r : rows)");
+        w.openBlock("try");
+        w.openBlock("if (r.isDisplayed() && r.getSize().getHeight() > 5)");
+        w.writeLine("firstRow = r; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (firstRow != null)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on first visible row\");");
+        // Step 1: single-click to select the row
+        w.openBlock("try");
+        w.writeLine("firstRow.click();");
+        w.writeLine("Thread.sleep(400);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  single-click failed: \" + e.getMessage());");
+        w.closeBlock();
+        // Step 2: dblclick via Actions, with JS dispatchEvent as backup
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window, detail: 2}));\",");
+        w.writeLine("    firstRow);");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e2)");
+        w.writeLine("System.out.println(\"  dblclick failed: \" + e2.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        // Если карточка реально открылась — отлично
+        w.openBlock("if (waitForCardLoaded(15))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"selectAndOpenRecord: physical dblclick did not open a card — trying ExtJS API fallback\");");
+        w.closeBlock();
+        // Fallback: ExtJS API
         w.openBlock("if (openViaExtApi())");
         w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
@@ -1219,55 +1267,11 @@ public class TestGenerator {
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
-        w.openBlock("try");
-        // ExtJS 3 в gridview слушает dblclick на DOM-cell (.x-grid3-cell), не на TR.
-        // Поэтому ищем именно cell в первой row, не сам TR.
-        w.writeLine("List<WebElement> cells = driver.findElements(By.cssSelector(\".x-grid3-row .x-grid3-cell, .x-grid-row .x-grid-cell, tr.x-grid3-row td, .x-grid3-row td\"));");
-        w.writeLine("WebElement firstCell = null;");
-        w.openBlock("for (WebElement c : cells)");
-        w.openBlock("try");
-        w.openBlock("if (c.isDisplayed() && c.getSize().getHeight() > 5)");
-        w.writeLine("firstCell = c; break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("if (firstCell == null)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: no visible data cell\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: NO row found and ExtJS API failed\");");
         w.writeLine("return false;");
         w.closeBlock();
-        // Шаг 1: single click для выделения строки
-        w.openBlock("try");
-        w.writeLine("firstCell.click();");
-        w.writeLine("Thread.sleep(400);");
-        w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click failed: \" + e.getMessage());");
-        w.closeBlock();
-        // Шаг 2: dblclick по той же ячейке через Actions
-        w.openBlock("try");
-        w.writeLine("new Actions(driver).moveToElement(firstCell).doubleClick().perform();");
-        w.writeLine("Thread.sleep(500);");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        // Fallback: JS dispatchEvent + bubbles
-        w.openBlock("try");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window, detail: 2}));\",");
-        w.writeLine("    firstCell);");
-        w.writeLine("Thread.sleep(500);");
-        w.closeBlock();
-        w.openBlock("catch (Exception e2)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: dblclick failed: \" + e2.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click on cell executed\");");
-        w.writeLine("waitForCardLoaded(15);");
-        w.writeLine("return true;");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"selectAndOpenRecord error: \" + e.getMessage());");
         w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("finally");
