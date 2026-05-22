@@ -35,7 +35,7 @@
                 <Button fx:id="btnSelectOutputDir" text="Обзор..." onAction="#onSelectOutputDir"/>
             </HBox>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
+            <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
                 <Label text="Уровень тестов:"/>
                 <ComboBox fx:id="testLevelCombo" prefWidth="130"/>
                 <CheckBox fx:id="smokeAllSubsystemsCheck" text="Smoke по всем подсистемам" selected="true"/>
@@ -48,7 +48,7 @@
                 <Button fx:id="btnShowHistory" text="История прогонов" onAction="#onShowHistory"/>
                 <ProgressBar fx:id="progressBar" prefWidth="150"/>
                 <Label fx:id="statusLabel" text="Готово"/>
-            </HBox>
+            </FlowPane>
         </VBox>
     </top>
 
