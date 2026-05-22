@@ -1974,33 +1974,81 @@ public class TestGenerator {
         //   3. появится список property-групп («Сведения», «История», «Документы»)
         // Используется ПОСЛЕ openRecordCard / selectAndOpenRecord, перед clickEditDropdownAction.
         w.openBlock("protected boolean waitForCardLoaded(int seconds)");
-        w.writeLine("return waitUntil(d -> {");
+        w.writeLine("boolean ok = waitUntil(d -> {");
         w.writeLine("    try {");
-        // Check 1: «Редактирование» button is visible (data loaded, toolbar rendered)
+        // Signal A: «Редактирование» button visible — это THE сигнал «карточка готова».
         w.writeLine("        List<WebElement> edit = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
         w.writeLine("        if (edit.stream().anyMatch(WebElement::isDisplayed)) return true;");
-        // Check 2: property-group rows like «Сведения», «История», «Документы» are visible
+        // Signal B: property-group rows. Требуем ≥2 разных лейбла — иначе случайное вхождение
+        // слова «Сведения» в основном меню даёт false positive.
         w.writeLine("        List<WebElement> grp = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0418\\u0441\\u0442\\u043e\\u0440\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0414\\u043e\\u043a\\u0443\\u043c\\u0435\\u043d\\u0442\\u044b')]\"));");
         w.writeLine("        long groupsVisible = grp.stream().filter(WebElement::isDisplayed).count();");
         w.writeLine("        if (groupsVisible >= 2) return true;");
-        // Check 4: на стенде карточка может вообще не показывать «Сведения/История/Документы»,
-        // а сразу рисовать форму. Считаем карточку загруженной, если виден property-grid,
-        // tab-strip или ≥3 кнопок в нижней панели тулбара.
-        w.writeLine("        List<WebElement> pg = driver.findElements(By.cssSelector(\".x-grid-property, .x-form-element, .x-form-text, input.x-form-text\"));");
-        w.writeLine("        long fieldsVisible = pg.stream().filter(WebElement::isDisplayed).count();");
-        w.writeLine("        if (fieldsVisible >= 2) return true;");
-        w.writeLine("        List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text, [role='tab']\"));");
-        w.writeLine("        if (tabs.stream().anyMatch(WebElement::isDisplayed)) return true;");
-        w.writeLine("        List<WebElement> toolbarBtns = driver.findElements(By.cssSelector(\".x-toolbar button, .x-panel-btns button\"));");
-        w.writeLine("        long visibleToolbarBtns = toolbarBtns.stream().filter(WebElement::isDisplayed).count();");
-        w.writeLine("        if (visibleToolbarBtns >= 3) return true;");
-        // Check 3: «Загрузка данных» spinner is gone (negative — wait until it disappears)
+        // Signal C: модальное .x-window с формой
+        w.writeLine("        List<WebElement> winForm = driver.findElements(By.cssSelector(\".x-window .x-form-field, .x-window input.x-form-text\"));");
+        w.writeLine("        if (winForm.stream().anyMatch(WebElement::isDisplayed)) return true;");
+        // Signal D: индикатор «Загрузка данных...» виден — карточка ещё грузится
         w.writeLine("        List<WebElement> loading = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u043a\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445')]\"));");
-        // Если индикатор виден — карточка ещё грузится, не готова.
         w.writeLine("        if (loading.stream().anyMatch(WebElement::isDisplayed)) return false;");
         w.writeLine("        return false;");
         w.writeLine("    } catch (Exception e) { return false; }");
         w.writeLine("}, seconds, \"card data loaded\");");
+        // ДИАГНОСТИКА на таймауте — выводим что РЕАЛЬНО видно на странице, чтобы понять, какой
+        // сигнал готовности добавить под конкретный стенд.
+        w.openBlock("if (!ok)");
+        w.writeLine("dumpCardDiagnostics();");
+        w.closeBlock();
+        w.writeLine("return ok;");
+        w.closeBlock();
+        w.writeLine();
+
+        // dumpCardDiagnostics: на таймауте waitForCardLoaded — печатает что видно на странице.
+        // Список видимых кнопок (текст), список лейблов толщиной с заголовок, видимые .x-window'ы.
+        w.openBlock("protected void dumpCardDiagnostics()");
+        w.openBlock("try");
+        w.writeLine("System.out.println(\"--- card diagnostics (waitForCardLoaded timed out) ---\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.cssSelector(\"button, .x-btn\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed() && shown < 30)");
+        w.writeLine("String t = b.getText() == null ? \"\" : b.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("System.out.println(\"  visible button: '\" + t + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("List<WebElement> windows = driver.findElements(By.cssSelector(\".x-window\"));");
+        w.writeLine("long visibleWindows = windows.stream().filter(WebElement::isDisplayed).count();");
+        w.writeLine("System.out.println(\"  visible .x-window count: \" + visibleWindows);");
+        w.writeLine("List<WebElement> headers = driver.findElements(By.cssSelector(\".x-window-header, .x-panel-header, h1, h2\"));");
+        w.writeLine("int hShown = 0;");
+        w.openBlock("for (WebElement h : headers)");
+        w.openBlock("try");
+        w.openBlock("if (h.isDisplayed() && hShown < 10)");
+        w.writeLine("String t = h.getText() == null ? \"\" : h.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("System.out.println(\"  visible header: '\" + t + \"'\");");
+        w.writeLine("hShown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"--- end card diagnostics ---\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"dumpCardDiagnostics error: \" + e.getMessage());");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
 
