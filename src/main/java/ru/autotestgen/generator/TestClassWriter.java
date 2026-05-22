@@ -284,8 +284,12 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         // Заказчик: «Добавить» открывается через ГЛАВНОЕ меню (не из карточки).
         w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
+        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"after_add\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine();
@@ -324,8 +328,12 @@ public class TestClassWriter {
         w.openBlock("void testPartialRequiredFieldValidation()");
         w.writeLine("shot(\"start\");");
         w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
+        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
@@ -372,8 +380,12 @@ public class TestClassWriter {
         // (там только «Сохранить Изменения» / «Удалить»), поэтому старый путь через
         // selectAndOpenRecord → clickEditDropdownAction('Добавить') заведомо не работал.
         w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
+        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
@@ -422,8 +434,12 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
+        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
@@ -819,8 +835,12 @@ public class TestClassWriter {
         w.openBlock("void testMaskedFieldInput()");
         w.writeLine("shot(\"start\");");
         w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
+        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("java.util.List<String> maskFailures = new java.util.ArrayList<>();");

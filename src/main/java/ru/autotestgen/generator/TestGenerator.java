@@ -1196,8 +1196,12 @@ public class TestGenerator {
         w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
-        // Находим DOM-узлы грида и поднимаемся к их Ext-компоненту через Ext.getCmp(id)
-        w.writeLine("    + \"  var nodes = document.querySelectorAll('.x-grid3, .x-grid-panel, .x-grid');\"");
+        // Скоупимся на АКТИВНОЕ окно (Ext.WindowMgr.getActive()) — это окно, в которое мы только
+        // что навигировали в setUp. Без скоупа на стенде, где открыто несколько окон поиска
+        // одновременно, выбирается грид из чужого окна, и dblclick уходит «не туда».
+        w.writeLine("    + \"  var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : ((Ext.WindowManager && Ext.WindowManager.getActive) ? Ext.WindowManager.getActive() : null);\"");
+        w.writeLine("    + \"  var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"  var nodes = root.querySelectorAll('.x-grid3, .x-grid-panel, .x-grid');\"");
         w.writeLine("    + \"  var grids = [];\"");
         w.writeLine("    + \"  for (var i = 0; i < nodes.length; i++) {\"");
         w.writeLine("    + \"    var n = nodes[i];\"");
@@ -1261,7 +1265,10 @@ public class TestGenerator {
         // родительскому ext-гриду и берём строку из САМОЙ БОЛЬШОЙ группы — это всегда грид
         // результатов поиска (10 строк), а не грид параметров (1-3 строки).
         w.writeLine("WebElement firstRow = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"var rows = document.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        // Скоуп на активное Ext-окно — в нашем целевом window, а не в соседнем поисковом.
+        w.writeLine("    \"var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
         w.writeLine("    + \"var groups = {};\"");
         w.writeLine("    + \"for (var i = 0; i < rows.length; i++) {\"");
         w.writeLine("    + \"  var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
