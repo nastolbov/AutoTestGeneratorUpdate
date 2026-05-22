@@ -302,11 +302,24 @@ public class PageObjectWriter {
         // версии — пик попал на 'Дата изменения').
         w.writeLine("String activeBefore = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null; return aw ? aw.id : null; } catch (e) { return null; }\");");
+        // Жест из реального UX: первый click выделяет PropertyGrid-row, второй (через паузу)
+        // активирует inline-editor на выделенной row, что у E3Core combo триггерит
+        // авто-открытие выпадашки. ExtJS doubleClick из Actions слипал два клика в dblclick-
+        // event, который у этого стенда сбрасывал editor — поэтому никакой dropdown не открывался.
         w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(valueCell).doubleClick().perform();");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver)");
+        w.writeLine("    .moveToElement(valueCell)");
+        w.writeLine("    .click()");
+        w.writeLine("    .pause(java.time.Duration.ofMillis(350))");
+        w.writeLine("    .click()");
+        w.writeLine("    .perform();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("try { valueCell.click(); } catch (Exception ignored) {}");
+        w.openBlock("try");
+        w.writeLine("valueCell.click(); Thread.sleep(350); valueCell.click();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.closeBlock();
         // ExtJS combo list загружается асинхронно — ждём появления пунктов до 2.5с поллингом.
         w.writeLine("java.util.List<WebElement> items = pollDropdownItems(2500);");
