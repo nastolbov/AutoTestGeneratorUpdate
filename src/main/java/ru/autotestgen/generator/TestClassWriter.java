@@ -247,7 +247,7 @@ public class TestClassWriter {
         w.writeLine("int foundInCard = 0;");
         w.writeLine("java.util.List<String> missingInCard = new java.util.ArrayList<>();");
         w.openBlock("if (cardOpened)");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("shot(\"card_opened\");");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
@@ -286,7 +286,7 @@ public class TestClassWriter {
         // открыть «Редактирование» → «Добавить» → пустая форма для валидации.
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("shot(\"card_opened\");");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
@@ -330,7 +330,7 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
@@ -379,7 +379,7 @@ public class TestClassWriter {
         // карточку → «Редактирование» → «Добавить». Не из главного меню.
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("shot(\"card_opened\");");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not found in 'Редактирование' dropdown — entity may not support add from card\");");
@@ -433,7 +433,7 @@ public class TestClassWriter {
         w.writeLine("int rowsBefore = page.getTableRowCount();");
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
@@ -833,7 +833,7 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("Assumptions.assumeTrue(opened, \"Could not open record card to start Add — likely no rows in grid\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("boolean addClicked = step(\"Edit > Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");

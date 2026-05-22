@@ -51,17 +51,20 @@ public class MainController {
     @FXML private Button btnRunSelected;
     @FXML private Button btnShowHistory;
 
-    /** Test-type categories: {label, Surefire method-name pattern(s)}. */
+    /** Test-type categories: {label, Surefire method-name pattern}. One row per real test method. */
     private static final String[][] TEST_CATEGORIES = {
-        {"Поля формы",            "testFieldsPresent"},
-        {"Создание",              "testCreate*"},
-        {"Изменение",             "testUpdate*"},
-        {"Удаление",              "testDelete*"},
-        {"Лог. удаление / Архив", "testLogicalEdit*+testArchive*"},
-        {"Валидация",             "testRequiredFieldValidation*+testPartialRequiredFieldValidation*"},
-        {"Поиск",                 "testSearch*"},
-        {"Гриды",                 "testGrid*"},
-        {"Маски полей",           "testMaskedFieldInput*"},
+        {"Поля формы",                       "testFieldsPresent"},
+        {"Создание (полное)",                "testCreate"},
+        {"Создание (только обязательные)",   "testCreateOnlyRequired"},
+        {"Изменение",                        "testUpdate"},
+        {"Удаление",                         "testDelete"},
+        {"Лог. удаление",                    "testLogicalEdit"},
+        {"Архивирование",                    "testArchive"},
+        {"Валидация (все обязательные)",     "testRequiredFieldValidation"},
+        {"Валидация (частичная)",            "testPartialRequiredFieldValidation"},
+        {"Маски полей",                      "testMaskedFieldInput"},
+        {"Поиск (все варианты)",             "testSearch*"},
+        {"Гриды (все варианты)",             "testGrid*"},
     };
 
     // Entity list
@@ -287,13 +290,27 @@ public class MainController {
             typeBox.getChildren().add(cb);
         }
 
-        VBox left = new VBox(6, new Label("Сущности:"), allEntities,
-                new ScrollPane(entityBox));
-        VBox right = new VBox(6, new Label("Виды тестов:"), typeBox);
-        ((ScrollPane) left.getChildren().get(2)).setPrefHeight(320);
-        ((ScrollPane) left.getChildren().get(2)).setFitToWidth(true);
+        // Live preview of the resulting -Dtest filter.
+        TextArea preview = new TextArea();
+        preview.setEditable(false);
+        preview.setWrapText(true);
+        preview.setPrefRowCount(4);
+        preview.setStyle("-fx-font-family: monospace; -fx-font-size: 11;");
+        Label previewLabel = new Label("Превью фильтра Surefire (-Dtest=):");
+        Runnable refreshPreview = () -> preview.setText(buildTestFilter(entityChecks, typeChecks));
+        for (CheckBox cb : entityChecks) cb.selectedProperty().addListener((o, a, b) -> refreshPreview.run());
+        for (CheckBox cb : typeChecks)   cb.selectedProperty().addListener((o, a, b) -> refreshPreview.run());
+        allEntities.selectedProperty().addListener((o, a, b) -> refreshPreview.run());
+        refreshPreview.run();
+
+        ScrollPane entityScroll = new ScrollPane(entityBox);
+        entityScroll.setPrefHeight(320);
+        entityScroll.setFitToWidth(true);
+        VBox left = new VBox(6, new Label("Сущности:"), allEntities, entityScroll);
         left.setPrefWidth(320);
-        HBox content = new HBox(20, left, right);
+        VBox right = new VBox(6, new Label("Виды тестов:"), typeBox);
+        HBox lists = new HBox(20, left, right);
+        VBox content = new VBox(10, lists, previewLabel, preview);
         content.setStyle("-fx-padding: 10;");
         dlg.getDialogPane().setContent(content);
 
@@ -302,27 +319,32 @@ public class MainController {
             return;
         }
 
+        String filter = buildTestFilter(entityChecks, typeChecks);
+        if (filter.isEmpty()) {
+            showAlert("Ошибка", "Не выбрана ни одна сущность.");
+            return;
+        }
+        log("Запуск выбранных тестов: -Dtest=" + filter);
+        launchRun(filter);
+    }
+
+    private static String buildTestFilter(List<CheckBox> entityChecks, List<CheckBox> typeChecks) {
         List<String> classes = entityChecks.stream()
                 .filter(CheckBox::isSelected)
                 .map(c -> (String) c.getUserData())
                 .toList();
-        if (classes.isEmpty()) {
-            showAlert("Ошибка", "Не выбрана ни одна сущность.");
-            return;
-        }
+        if (classes.isEmpty()) return "";
         List<String> methodPatterns = typeChecks.stream()
                 .filter(CheckBox::isSelected)
                 .map(c -> (String) c.getUserData())
                 .toList();
         String methodSuffix = methodPatterns.isEmpty() ? "" : "#" + String.join("+", methodPatterns);
-
         StringBuilder filter = new StringBuilder();
         for (String cls : classes) {
             if (filter.length() > 0) filter.append(",");
             filter.append(cls).append(methodSuffix);
         }
-        log("Запуск выбранных тестов: -Dtest=" + filter);
-        launchRun(filter.toString());
+        return filter.toString();
     }
 
     /**

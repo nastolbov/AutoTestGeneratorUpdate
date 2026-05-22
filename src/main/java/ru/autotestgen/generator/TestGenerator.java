@@ -1209,7 +1209,7 @@ public class TestGenerator {
         w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1258,7 +1258,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: single-click + double-click on cell executed\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -1570,7 +1570,7 @@ public class TestGenerator {
         w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened0)");
         w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1983,6 +1983,17 @@ public class TestGenerator {
         w.writeLine("        List<WebElement> grp = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0418\\u0441\\u0442\\u043e\\u0440\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0414\\u043e\\u043a\\u0443\\u043c\\u0435\\u043d\\u0442\\u044b')]\"));");
         w.writeLine("        long groupsVisible = grp.stream().filter(WebElement::isDisplayed).count();");
         w.writeLine("        if (groupsVisible >= 2) return true;");
+        // Check 4: на стенде карточка может вообще не показывать «Сведения/История/Документы»,
+        // а сразу рисовать форму. Считаем карточку загруженной, если виден property-grid,
+        // tab-strip или ≥3 кнопок в нижней панели тулбара.
+        w.writeLine("        List<WebElement> pg = driver.findElements(By.cssSelector(\".x-grid-property, .x-form-element, .x-form-text, input.x-form-text\"));");
+        w.writeLine("        long fieldsVisible = pg.stream().filter(WebElement::isDisplayed).count();");
+        w.writeLine("        if (fieldsVisible >= 2) return true;");
+        w.writeLine("        List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text, [role='tab']\"));");
+        w.writeLine("        if (tabs.stream().anyMatch(WebElement::isDisplayed)) return true;");
+        w.writeLine("        List<WebElement> toolbarBtns = driver.findElements(By.cssSelector(\".x-toolbar button, .x-panel-btns button\"));");
+        w.writeLine("        long visibleToolbarBtns = toolbarBtns.stream().filter(WebElement::isDisplayed).count();");
+        w.writeLine("        if (visibleToolbarBtns >= 3) return true;");
         // Check 3: «Загрузка данных» spinner is gone (negative — wait until it disappears)
         w.writeLine("        List<WebElement> loading = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u043a\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445')]\"));");
         // Если индикатор виден — карточка ещё грузится, не готова.
@@ -2003,7 +2014,7 @@ public class TestGenerator {
         w.openBlock("protected boolean clickEditDropdownAction(String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         // ВАЖНО: ждём пока карточка полностью прогрузится, иначе кнопка «Редактирование» ещё не отрисована
-        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("waitForCardLoaded(15);");
         w.openBlock("try");
         // Find the «Редактирование» button (toolbar button at bottom of card)
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
