@@ -399,6 +399,10 @@ public class TestClassWriter {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
         }
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
+        // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
+        // отверг save. Если это «Запись сохранена» — confirmDialogYes просто его закроет.
+        w.writeLine("capturePopupText(\"after-Готово\");");
         // После «Готово» стенд может показать модалку-подтверждение ("Запись сохранена",
         // ExtJS message box). Жмём «ОК»/«Да» если она есть.
         w.writeLine("confirmDialogYes();");

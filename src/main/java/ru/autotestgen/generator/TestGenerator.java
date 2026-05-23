@@ -1389,6 +1389,54 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // capturePopupText: печатает текст самого верхнего видимого .x-window / .x-message-box
+        // (если есть). Используется ПЕРЕД confirmDialogYes — чтобы увидеть ПРИЧИНУ ошибки
+        // валидации формы, а не молча кликать OK на сообщении 'Не заполнено поле X'.
+        w.openBlock("protected void capturePopupText(String tag)");
+        w.openBlock("try");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        // Сначала пробуем ExtJS Ext.MessageBox: его контейнер обычно .x-window-dlg
+        w.writeLine("List<WebElement> mboxes = driver.findElements(By.cssSelector(\".ext-mb-text, .x-window-dlg .x-window-body, .x-message-box .x-window-body\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (WebElement m : mboxes)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed() && shown < 3)");
+        w.writeLine("String t = m.getText() == null ? \"\" : m.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("System.out.println(\"  [popup \" + tag + \"]: '\" + t.replace(\"\\n\", \" | \") + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Fallback: вообще любой .x-window header+body, если выше ничего не нашлось
+        w.openBlock("if (shown == 0)");
+        w.writeLine("List<WebElement> winds = driver.findElements(By.cssSelector(\".x-window\"));");
+        w.openBlock("for (WebElement w2 : winds)");
+        w.openBlock("try");
+        w.openBlock("if (w2.isDisplayed() && shown < 3)");
+        w.writeLine("String t = w2.getText() == null ? \"\" : w2.getText().trim();");
+        w.openBlock("if (!t.isEmpty() && t.length() < 300)");
+        w.writeLine("System.out.println(\"  [popup \" + tag + \" window]: '\" + t.replace(\"\\n\", \" | \") + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // confirmDialogYes: после Удалить / в Архив E3Core открывает ExtJS-confirm («Да/Нет»),
         // и без подтверждения операция не применяется. Ждём диалог до 3с и кликаем «Да»
         // (либо «Yes», «OK», «Подтвердить») если он появился.
