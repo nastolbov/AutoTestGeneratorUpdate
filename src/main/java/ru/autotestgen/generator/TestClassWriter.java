@@ -247,7 +247,7 @@ public class TestClassWriter {
         w.writeLine("int foundInCard = 0;");
         w.writeLine("java.util.List<String> missingInCard = new java.util.ArrayList<>();");
         w.openBlock("if (cardOpened)");
-        w.writeLine("waitForCardLoaded(6);");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("shot(\"card_opened\");");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;

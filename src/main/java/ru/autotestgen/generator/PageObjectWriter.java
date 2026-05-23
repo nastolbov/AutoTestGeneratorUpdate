@@ -146,9 +146,10 @@ public class PageObjectWriter {
         w.writeLine("    + \"setter.call(inp, v);\"");
         w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
         w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
-        w.writeLine("Thread.sleep(50);");
+        // 100мс — компромисс: меньше провоцирует ExtJS на drop-edit, но не тормозит сильно.
+        w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("Thread.sleep(80);");
+        w.writeLine("Thread.sleep(120);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");

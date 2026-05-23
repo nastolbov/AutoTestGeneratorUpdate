@@ -1361,7 +1361,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         // Если карточка реально открылась — отлично
-        w.openBlock("if (waitForCardLoaded(6))");
+        w.openBlock("if (waitForCardLoaded(8))");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical dblclick did not open a card — trying ExtJS API fallback\");");
@@ -1371,7 +1371,7 @@ public class TestGenerator {
         w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
-        w.writeLine("waitForCardLoaded(6);");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1737,7 +1737,7 @@ public class TestGenerator {
         w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened0)");
         w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
-        w.writeLine("waitForCardLoaded(6);");
+        w.writeLine("waitForCardLoaded(8);");
         w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
@@ -2231,7 +2231,7 @@ public class TestGenerator {
         w.openBlock("protected boolean clickEditDropdownAction(String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         // ВАЖНО: ждём пока карточка полностью прогрузится, иначе кнопка «Редактирование» ещё не отрисована
-        w.writeLine("waitForCardLoaded(6);");
+        w.writeLine("waitForCardLoaded(8);");
         w.openBlock("try");
         // Find the «Редактирование» button (toolbar button at bottom of card)
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
