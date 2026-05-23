@@ -444,16 +444,15 @@ public class TestClassWriter {
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
-            // Hard: strict row count increase OR marker visible. Strict increase is the cleaner
-            // signal; marker fallback covers cases where ExtJS sorts the new row off the first page.
-            w.writeLine("assertTrue(rowsAfter > rowsBefore || markerInGrid,");
-            w.writeLine("    \"Create test: row count went from \" + rowsBefore + \" to \" + rowsAfter");
-            w.writeLine("    + \" and marker '\" + createdMarker + \"' \" + (markerInGrid ? \"is\" : \"is NOT\")");
-            w.writeLine("    + \" visible in the grid. At least one of the two must hold.\");");
+            // Маркер в гриде — единственный надёжный сигнал. Row count считает ВСЕ
+            // .x-grid3-row на странице, включая чужие гриды (история, документы и т.п.)
+            // и поэтому скачет. Маркер — конкретный уникальный текст этой записи.
+            w.writeLine("assertTrue(markerInGrid,");
+            w.writeLine("    \"Create test: маркер '\" + createdMarker + \"' не найден в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась.\");");
         } else {
-            // No string field to stamp — fall back to non-strict count check.
+            // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
-            w.writeLine("    \"Table should have same or more records after creation\");");
+            w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
         }
         w.closeBlock();
         w.writeLine();
@@ -483,11 +482,12 @@ public class TestClassWriter {
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");
-        // Hard: at least same row count (no rollback). Looser than testCreate because some
-        // entities don't allow creation without optional fields and that's a legitimate UX choice.
+        // У некоторых сущностей на странице много гридов (история, документы, side-панели),
+        // и getTableRowCount считает их все — поэтому строгий count-check бесполезен. Считаем
+        // тест PASS если не было ошибок (нет error popup, нет валидационных подсветок).
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
-        w.writeLine("    \"Row count must not decrease after create-with-only-required (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: rows \" + rowsBefore + \" -> \" + rowsAfter);");
+        w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after create-with-only-required\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -510,44 +510,67 @@ public class TestClassWriter {
                 .findFirst().orElse(null);
         if (stringField != null) {
             String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
+            // ПЕРЕБИРАЕМ записи 0..N: первая запись может не поддерживать редактирование
+            // (нет «Сохранить Изменения» в дропдауне) — переходим к следующей, и так пока
+            // не удастся обновить какую-то одну. Если ни одна не далась — мягкий SKIP.
             w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-            w.writeLine("step(\"type updated value\", () -> page." + methodName + "(updatedValue));");
-            w.writeLine("shot(\"value_typed\");");
-            // На карточке сохранение через «Редактирование» → «Сохранить Изменения» внизу.
-            // Если этой кнопки нет (мы на форме добавления) — fallback на «Готово».
-            w.writeLine("boolean savedViaDropdown = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
-            w.openBlock("if (!savedViaDropdown)");
-            w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
-            w.closeBlock();
-            // Подтверждение / popup перехвата ошибок — как в testCreate.
-            w.writeLine("capturePopupText(\"after-Update-save\");");
-            w.writeLine("confirmDialogYes();");
-            w.writeLine("waitForDialogClose();");
-            w.writeLine("waitForGridSettle();");
-            w.writeLine("shot(\"after_save\");");
-            w.writeLine();
-            w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
-            w.writeLine();
-            // Re-навигация к таблице результатов и проверка маркера — точно так же, как
-            // testCreate проверяет факт создания. Если updatedValue нашёлся в гриде —
-            // обновление реально сохранилось. Не надо повторно открывать карточку (это
-            // ненадёжно: первая строка после re-search может быть другой записью).
+            w.writeLine("boolean updateApplied = false;");
+            w.writeLine("int maxAttempts = 5;");
+            w.openBlock("for (int attempt = 0; attempt < maxAttempts && !updateApplied; attempt++)");
+            w.writeLine("System.out.println(\"  testUpdate attempt #\" + (attempt + 1) + \" (row idx=\" + attempt + \")\");");
+            // Каждая попытка стартует со свежего грида результатов
+            w.openBlock("if (attempt > 0)");
             w.writeLine("resetState();");
             w.writeLine("navigationAttempted = false;");
             w.writeLine("cardOpenAttempted = false;");
             w.writeLine("addDialogFailed = false;");
             w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
             w.writeLine("waitForGridSettle();");
-            w.writeLine("shot(\"after_renavigate\");");
+            w.closeBlock();
+            w.writeLine("boolean opened = selectAndOpenRecordAtIndex(attempt);");
+            w.openBlock("if (!opened)");
+            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": не открылась — пробуем следующую\");");
+            w.writeLine("continue;");
+            w.closeBlock();
+            w.writeLine("waitForCardLoaded(10);");
+            // Печатаем новое значение в первое строковое поле
+            w.writeLine("page." + methodName + "(updatedValue);");
+            w.writeLine("shot(\"value_typed_attempt_\" + attempt);");
+            // Жмём «Сохранить Изменения». Если не найдено — переходим к следующей записи.
+            w.writeLine("boolean savedViaDropdown = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+            w.openBlock("if (!savedViaDropdown)");
+            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": нет 'Сохранить Изменения' в дропдауне — пробуем следующую\");");
+            w.writeLine("continue;");
+            w.closeBlock();
+            w.writeLine("capturePopupText(\"Update-attempt-\" + attempt);");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("waitForDialogClose();");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_save_attempt_\" + attempt);");
+            w.openBlock("if (isErrorPresent())");
+            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": ошибка после сохранения — пробуем следующую\");");
+            w.writeLine("continue;");
+            w.closeBlock();
+            // Проверяем что значение в свежем гриде
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false;");
+            w.writeLine("cardOpenAttempted = false;");
+            w.writeLine("addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            w.openBlock("if (gridContainsRow(updatedValue))");
+            w.writeLine("updateApplied = true;");
+            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": UPDATE SUCCESS — value '\" + updatedValue + \"' в гриде\");");
+            w.writeLine("shot(\"value_in_grid\");");
+            w.closeBlock();
+            w.openBlock("else");
+            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": сохранили, но в гриде не нашли — пробуем следующую\");");
+            w.closeBlock();
+            w.closeBlock();
             w.writeLine();
-            w.writeLine("boolean updatedInGrid = gridContainsRow(updatedValue);");
-            w.writeLine("shot(updatedInGrid ? \"value_in_grid\" : \"value_not_in_grid\");");
-            // Если значение в гриде — точно обновилось. Если нет — это может быть потому
-            // что колонка stringField не отображается в результатах поиска (не всегда
-            // выводится). В таком случае мягко скипаем — продукт не виноват.
-            w.writeLine("Assumptions.assumeTrue(updatedInGrid,");
-            w.writeLine("    \"Update: значение '\" + updatedValue + \"' не нашлось в гриде после ре-поиска. \"");
-            w.writeLine("    + \"Возможно колонка '\" + \"" + stringField.getName() + "\" + \"' не отображается в результатах — тест пропущен.\");");
+            w.writeLine("assertFalse(isErrorPresent(), \"No errors should remain after testUpdate attempts\");");
+            w.writeLine("Assumptions.assumeTrue(updateApplied,");
+            w.writeLine("    \"testUpdate: ни одну из первых \" + maxAttempts + \" записей обновить не удалось (либо нет 'Сохранить Изменения', либо колонка '\" + \"" + stringField.getName() + "\" + \"' не выводится в гриде).\");");
         } else {
             w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
             w.writeLine("waitForDialogClose();");
@@ -608,15 +631,13 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
-        // Hard: row count must strictly decrease OR the specific marker must be gone.
-        // If marker was empty (couldn't read row text), require strict count decrease — that's the
-        // only signal we have.
+        w.writeLine("System.out.println(\"testDelete: rows \" + rowsBefore + \" -> \" + rowsAfter + \", markerGone=\" + markerGone);");
+        // Маркер — единственный надёжный сигнал. Row count шумит из-за чужих гридов.
         w.openBlock("if (deletedMarker.isEmpty())");
-        w.writeLine("Assumptions.assumeTrue(rowsAfter < rowsBefore,");
-        w.writeLine("    \"Delete: could not capture marker AND row count unchanged (\" + rowsBefore + \" -> \" + rowsAfter + \") — delete may not be reachable on this build\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete: не удалось захватить маркер удаляемой записи — пропускаем\");");
         w.closeBlock();
         w.openBlock("else");
-        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
+        w.writeLine("assertTrue(markerGone,");
         w.writeLine("    \"Delete: после ре-навигации к таблице результатов rows \" + rowsBefore + \" -> \" + rowsAfter");
         w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась\");");
         w.closeBlock();

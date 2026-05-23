@@ -1279,6 +1279,14 @@ public class TestGenerator {
         // событий — но как ПЕРВЫЙ выбор он промахивается мимо result-grid, если рядом
         // есть другие гриды (дерево поисков и пр.).
         w.openBlock("protected boolean selectAndOpenRecord()");
+        w.writeLine("return selectAndOpenRecordAtIndex(0);");
+        w.closeBlock();
+        w.writeLine();
+
+        // Открывает запись по индексу в самой большой видимой группе строк (то есть в
+        // таблице результатов). idx=0 — первая, idx=1 — вторая и т.д. Используется
+        // testUpdate, чтобы при отказе одной записи перейти к следующей.
+        w.openBlock("protected boolean selectAndOpenRecordAtIndex(int idx)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         // Find a visible row in the result grid. На одном экране может быть НЕСКОЛЬКО гридов
@@ -1304,12 +1312,14 @@ public class TestGenerator {
         // Возвращаем ВНУТРЕННЮЮ ЯЧЕЙКУ первой строки, а не саму <tr>. ExtJS 3 ловит
         // rowdblclick через cellmousedown — кликать надо в .x-grid3-cell.
         w.writeLine("    + \"if (!bestKey) return null;\"");
-        w.writeLine("    + \"var row = groups[bestKey][0];\"");
+        w.writeLine("    + \"var idx = arguments[0]|0; if (idx < 0) idx = 0;\"");
+        w.writeLine("    + \"if (groups[bestKey].length <= idx) return null;\"");
+        w.writeLine("    + \"var row = groups[bestKey][idx];\"");
         w.writeLine("    + \"var cells = row.querySelectorAll('.x-grid3-cell, .x-grid-cell, td');\"");
         w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) { var ce = cells[ci]; if (ce.offsetHeight > 0 && ce.offsetWidth > 0) return ce; }\"");
-        w.writeLine("    + \"return row;\");");
+        w.writeLine("    + \"return row;\", idx);");
         w.openBlock("if (firstRow != null)");
-        w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on first row of largest visible grid group\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on row idx=\" + idx + \" of largest visible grid group\");");
         // Step 1: single-click to select the row
         w.openBlock("try");
         w.writeLine("firstRow.click();");
