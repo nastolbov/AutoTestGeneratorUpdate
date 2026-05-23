@@ -293,9 +293,18 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
         w.writeLine("    + \"        var key = nn || dn; var ed = c.customEditors[key];\"");
-        w.writeLine("    + \"        if (!ed) return 'no-editor:' + key;\"");
+        // Если нет под прямым ключом — пробуем по всем ключам найти редактор у которого
+        // dataIndex/name/displayName совпадает с искомым name.
+        w.writeLine("    + \"        if (!ed) {\"");
+        w.writeLine("    + \"          var allKeys = c.customEditors ? Object.keys(c.customEditors) : [];\"");
+        w.writeLine("    + \"          for (var ki = 0; ki < allKeys.length; ki++) {\"");
+        w.writeLine("    + \"            var k = allKeys[ki]; var maybe = c.customEditors[k];\"");
+        w.writeLine("    + \"            if (k === name || k.indexOf(name) === 0 || name.indexOf(k) === 0) { ed = maybe; key = k; break; }\"");
+        w.writeLine("    + \"          }\"");
+        w.writeLine("    + \"        }\"");
+        w.writeLine("    + \"        if (!ed) return 'no-editor:' + key + ' keys=' + (c.customEditors ? Object.keys(c.customEditors).join(',') : 'NONE');\"");
         w.writeLine("    + \"        var cb = ed.field || ed;\"");
-        w.writeLine("    + \"        if (!cb || !cb.getStore) return 'no-combo:' + key;\"");
+        w.writeLine("    + \"        if (!cb || !cb.getStore) return 'no-combo:' + key + ' cls=' + (cb && cb.constructor ? (cb.constructor.name || cb.xtype || 'unknown') : 'null');\"");
         w.writeLine("    + \"        var st = cb.getStore();\"");
         w.writeLine("    + \"        var cnt = st && st.getCount ? st.getCount() : 0;\"");
         // Сохраняем grid+rec+cb в окне для второго JS-вызова (после ожидания загрузки).
@@ -484,11 +493,15 @@ public class PageObjectWriter {
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine("Thread.sleep(200);");
-        // TAB чтобы ExtJS зафиксировал редактирование combo. Иначе следующее FK-поле не
-        // сможет активировать свой editor — ExtJS PropertyGrid считает что предыдущий
-        // edit ещё в процессе.
+        // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
+        // может не зафиксироваться без явного коммита. ENTER заставляет combobox завершить
+        // выбор и закрыть picker, привязывая значение к record'у. Потом TAB сдвигает фокус
+        // PropertyGrid'а на следующую строку, чтобы можно было редактировать другие FK.
         w.openBlock("try");
-        w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("org.openqa.selenium.WebElement focused = driver.switchTo().activeElement();");
+        w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("Thread.sleep(200);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
