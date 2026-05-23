@@ -38,6 +38,7 @@ public class MainController {
 
     @FXML private ComboBox<String> testLevelCombo;
     @FXML private CheckBox smokeAllSubsystemsCheck;
+    @FXML private CheckBox fastModeCheck;
 
     private final ComboBox<String> siteTypeCombo = new ComboBox<>();
     private final TextField subsystemField = new TextField();
@@ -370,8 +371,9 @@ public class MainController {
             @Override
             protected TestRunResult call() throws Exception {
                 TestRunner runner = new TestRunner();
+                boolean fast = fastModeCheck != null && fastModeCheck.isSelected();
                 return runner.run(Path.of(outputPath), getXmlFileName(), urlField.getText(),
-                        null, testFilter);
+                        null, testFilter, fast);
             }
         };
 

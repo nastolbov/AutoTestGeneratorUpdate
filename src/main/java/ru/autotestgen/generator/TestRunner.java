@@ -42,6 +42,16 @@ public class TestRunner {
      */
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
                              Consumer<String> lineConsumer, String testFilter) throws IOException {
+        return run(projectDir, xmlFileName, baseUrl, lineConsumer, testFilter, false);
+    }
+
+    /**
+     * Runs the generated tests. {@code fastMode=true} adds -DforkCount=3 -Dheadless=true,
+     * giving ~3-4x speedup at the cost of running multiple parallel Chrome instances
+     * (each with its own user-data-dir) and no visible browser window.
+     */
+    public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
+                             Consumer<String> lineConsumer, String testFilter, boolean fastMode) throws IOException {
         long startTime = System.currentTimeMillis();
 
         // Verify pom.xml exists
@@ -58,6 +68,10 @@ public class TestRunner {
             cmd.add("-Dtest=" + testFilter);
             // Don't fail the build when a filtered class has no matching methods.
             cmd.add("-DfailIfNoTests=false");
+        }
+        if (fastMode) {
+            cmd.add("-DforkCount=3");
+            cmd.add("-Dheadless=true");
         }
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);

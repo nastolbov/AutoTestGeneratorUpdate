@@ -45,6 +45,7 @@
                         style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
                 <Button fx:id="btnRunSelected" text="Выбрать тесты..." onAction="#onRunSelected"
                         style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
+                <CheckBox fx:id="fastModeCheck" text="Быстрый режим (3×headless)"/>
                 <Button fx:id="btnShowHistory" text="История прогонов" onAction="#onShowHistory"/>
                 <ProgressBar fx:id="progressBar" prefWidth="150"/>
                 <Label fx:id="statusLabel" text="Готово"/>
