@@ -65,17 +65,109 @@ public class PageObjectWriter {
         // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
-        // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки,
-        // ExtJS API НЕ годится: rec.set('value', '1') пройдёт молча, но сервер на Готово отвергнет.
+        // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки.
         w.openBlock("if (value == null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' — FK field, opening dropdown\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("fillFKViaDropdown(fieldName);");
         w.writeLine("return;");
         w.closeBlock();
-        // ПЕРВАЯ ПОПЫТКА: ExtJS API. Прямо ставим record.set('value', value) в стор грида
-        // свойств — не зависит от состояния inline-редактора, не падает InvalidElementState.
+        // ДЛЯ ТЕКСТ/ДАТА ПОЛЕЙ: rec.set + c.source НЕ достаточно — сервер всё равно
+        // считает поле пустым ("Необходимо обязательно указать значения свойств..."). Нужна
+        // активация editor'а ячейки и реальный ввод значения, как это делает оператор —
+        // ExtJS внутри сам прокинет value в form data.
         w.openBlock("try");
+        w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
+        w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
+        w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
+        w.writeLine("    + \"]\";");
+        w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(xp));");
+        w.writeLine("WebElement nameCell = null;");
+        w.openBlock("for (WebElement c : nameCells)");
+        w.openBlock("try");
+        w.openBlock("if (c.isDisplayed())");
+        w.writeLine("nameCell = c; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (nameCell == null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (label cell not in DOM)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("java.util.List<WebElement> rows = nameCell.findElements(By.xpath(\"ancestor::tr\"));");
+        w.openBlock("if (rows.isEmpty())");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no row)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("java.util.List<WebElement> cells = rows.get(0).findElements(By.cssSelector(\"td\"));");
+        w.openBlock("if (cells.size() < 2)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (cells<2)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("WebElement valueCell = cells.get(1);");
+        // Активируем editor через click + pause + click (тот же жест что для FK)
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver)");
+        w.writeLine("    .moveToElement(valueCell)");
+        w.writeLine("    .click()");
+        w.writeLine("    .pause(java.time.Duration.ofMillis(350))");
+        w.writeLine("    .click()");
+        w.writeLine("    .perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("try { valueCell.click(); Thread.sleep(350); valueCell.click(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(400);");
+        // Найти видимый input редактора
+        w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
+        w.writeLine("WebElement editor = null;");
+        w.openBlock("for (WebElement ed : inputs)");
+        w.openBlock("try");
+        w.openBlock("if (ed.isDisplayed())");
+        w.writeLine("editor = ed; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (editor == null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        // Очистка + ввод. JS-путь надёжнее sendKeys для ExtJS — пробрасывает change-event так,
+        // что ExtJS field фиксирует значение в своей модели и далее в form data.
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var inp = arguments[0]; var v = arguments[1];\"");
+        w.writeLine("    + \"inp.focus();\"");
+        w.writeLine("    + \"var setter = Object.getOwnPropertyDescriptor(inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value').set;\"");
+        w.writeLine("    + \"setter.call(inp, v);\"");
+        w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
+        w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL outer (\" + e.getClass().getSimpleName() + \")\");");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // ── СТАРЫЙ ExtJS API + DOM fallback оставляем закомментированным как RESERVED
+        // на случай если стенд не активирует editor — но по факту server читает values из
+        // editor.setValue, и без активации они не доходят.
+        w.openBlock("private void __unusedFillPropertyGridFieldViaApi(String fieldName, String value)");
         w.writeLine("Object res = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
