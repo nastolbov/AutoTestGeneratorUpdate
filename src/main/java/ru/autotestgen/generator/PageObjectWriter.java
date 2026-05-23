@@ -95,7 +95,18 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        // ВАЖНО: rec.set('value') обновляет только UI-record. Сервер при сохранении читает
+        // значения из c.source (источник PropertyGrid), и без записи туда форма ругается
+        // «Необходимо обязательно указать значения свойств: ...». Пишем во ВСЕ места:
+        // (1) source-объект напрямую — самое важное;
+        // (2) setProperty(name, val, true) — публичный API;
+        // (3) rec.set — чтобы UI отрендерил;
+        // (4) propertychange event — для обработчиков, повешенных на грид.
+        w.writeLine("    + \"        var sourceKey = nn || dn;\"");
+        w.writeLine("    + \"        try { if (c.source) { c.source[sourceKey] = value; if (c.source.hasOwnProperty(dn) && dn !== sourceKey) c.source[dn] = value; } } catch (eSrc) {}\"");
+        w.writeLine("    + \"        try { if (c.setProperty) c.setProperty(sourceKey, value, true); } catch (eSP) {}\"");
         w.writeLine("    + \"        try { rec.set('value', value); } catch (e1) { try { rec.set('value', String(value)); } catch (e2) { return 'set-fail:' + e2.message; } }\"");
+        w.writeLine("    + \"        try { if (c.fireEvent) c.fireEvent('propertychange', c.source, sourceKey, value, null); } catch (eEv) {}\"");
         w.writeLine("    + \"        if (c.view && c.view.refresh) try { c.view.refresh(); } catch (er) {}\"");
         w.writeLine("    + \"        return 'set:' + (dn || nn);\"");
         w.writeLine("    + \"      }\"");
