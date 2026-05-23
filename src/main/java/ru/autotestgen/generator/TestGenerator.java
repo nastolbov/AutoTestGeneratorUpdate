@@ -120,6 +120,9 @@ public class TestGenerator {
         w.writeLine("        <maven.compiler.source>17</maven.compiler.source>");
         w.writeLine("        <maven.compiler.target>17</maven.compiler.target>");
         w.writeLine("        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>");
+        // Дефолт forkCount=1 — последовательный прогон. Чтобы запустить параллельно:
+        // mvn test -DforkCount=3  (или сколько Chrome-инстансов потянет стенд + машина).
+        w.writeLine("        <forkCount>1</forkCount>");
         w.writeLine("    </properties>");
         w.writeLine("    <dependencies>");
         w.writeLine("        <dependency>");
@@ -145,7 +148,9 @@ public class TestGenerator {
         w.writeLine("                <artifactId>maven-surefire-plugin</artifactId>");
         w.writeLine("                <version>3.2.2</version>");
         w.writeLine("                <configuration>");
-        w.writeLine("                    <forkCount>1</forkCount>");
+        // forkCount=${forkCount} с дефолтом 1 — через -DforkCount=3 можно запустить параллельно
+        // (каждый форк = свой JVM + своя ChromeDriver-сессия с уникальным user-data-dir).
+        w.writeLine("                    <forkCount>${forkCount}</forkCount>");
         w.writeLine("                    <reuseForks>true</reuseForks>");
         w.writeLine("                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>");
         w.writeLine("                </configuration>");
@@ -282,10 +287,21 @@ public class TestGenerator {
         w.writeLine("WebDriverManager.chromedriver().setup();");
         w.writeLine("ChromeOptions options = new ChromeOptions();");
         w.writeLine("options.addArguments(\"--remote-allow-origins=*\");");
-        w.writeLine("options.addArguments(\"--headless\");");
+        // Headless по флагу -Dheadless=true (быстрее ~20-30%, нет окна для наблюдения).
+        // По умолчанию выключен — пользователь видит браузер. --headless=new = новый
+        // headless-режим Chrome (старый --headless deprecated).
+        w.openBlock("if (Boolean.parseBoolean(System.getProperty(\"headless\", \"false\")))");
+        w.writeLine("options.addArguments(\"--headless=new\");");
+        w.closeBlock();
         w.writeLine("options.addArguments(\"--no-sandbox\");");
         w.writeLine("options.addArguments(\"--disable-dev-shm-usage\");");
         w.writeLine("options.addArguments(\"--window-size=1920,1080\");");
+        // Уникальный user-data-dir на каждый JVM-форк — без этого 2+ параллельных Chrome
+        // дерутся за один профиль и падают «user data directory is already in use».
+        w.writeLine("try {");
+        w.writeLine("    java.nio.file.Path udd = java.nio.file.Files.createTempDirectory(\"chrome-udd-\");");
+        w.writeLine("    options.addArguments(\"--user-data-dir=\" + udd.toAbsolutePath());");
+        w.writeLine("} catch (Exception ignored) {}");
         w.writeLine("driver = new ChromeDriver(options);");
         w.closeBlock();
         w.writeLine("driver.manage().window().maximize();");
