@@ -402,31 +402,37 @@ public class TestClassWriter {
         // После «Готово» стенд может показать модалку-подтверждение ("Запись сохранена",
         // ExtJS message box). Жмём «ОК»/«Да» если она есть.
         w.writeLine("confirmDialogYes();");
-        // Wait for dialog to close (sign of successful save) THEN for grid to refresh.
-        w.writeLine("boolean dialogClosed = waitForDialogClose();");
-        // Если диалог НЕ закрылся — форма отвергла данные (например стенд требует особой
-        // привязки FK, которую ни автотест, ни даже оператор вручную подобрать не могут).
-        // Чтобы не блокировать остальные тесты — закрываем диалог «Отменой» и помечаем
-        // testCreate как SKIPPED с понятной причиной, а не падаем assertion'ом.
-        w.openBlock("if (!dialogClosed && (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")))");
-        w.writeLine("System.out.println(\"testCreate: форма не закрылась после Готово — отвергнут запрос. Отменяем диалог и скипаем.\");");
-        w.writeLine("shot(\"form_rejected\");");
+        w.writeLine("waitForDialogClose();");
+        // Иногда диалог визуально остаётся открытым даже после успешного сохранения.
+        // Не полагаемся на это: на всякий случай давим «Отмена» если диалог ещё висит,
+        // потом РЕ-НАВИГИРУЕМ к таблице результатов и ищем маркер ТАМ — это единственный
+        // надёжный критерий «реально сохранилось».
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("System.out.println(\"testCreate: диалог не закрылся, давим Отмену и проверим грид\");");
         w.openBlock("try");
         w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
         w.writeLine("waitForDialogClose();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Assumptions.assumeTrue(false, \"Форма Сведения отвергла создание записи (вероятно — особая FK-валидация стенда). Тест пропущен.\");");
         w.closeBlock();
-        w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
+        // Re-navigate к таблице результатов и заново выполнить поиск — так получаем
+        // СВЕЖИЙ грид и видим: появилась наша запись с маркером или нет.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
+        w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
-        w.writeLine("assertFalse(page.hasValidationErrors(), \"No validation errors should remain after successful create\");");
         w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
+        w.writeLine("if (markerInGrid) lastCreatedMarker = createdMarker;");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
             // Hard: strict row count increase OR marker visible. Strict increase is the cleaner
