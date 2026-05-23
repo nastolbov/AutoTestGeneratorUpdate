@@ -5,6 +5,8 @@ import ru.autotestgen.model.Property;
 import ru.autotestgen.model.SearchParam;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
@@ -15,7 +17,19 @@ import java.util.Random;
 public class TestDataFactory {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final ZoneId MSK = ZoneId.of("Europe/Moscow");
     private static final Random RND = new Random(42); // fixed seed for reproducibility
+
+    /** Текущее МСК-время минус 10 минут — реалистичное значение для DATETIME-полей,
+     *  не падает в будущее (некоторые валидаторы отвергают «дата позже now»). */
+    private static String nowMskMinus10() {
+        return ZonedDateTime.now(MSK).minusMinutes(10).format(DATE_TIME_FORMAT);
+    }
+
+    private static String todayMsk() {
+        return ZonedDateTime.now(MSK).toLocalDate().format(DATE_FORMAT);
+    }
 
     /**
      * Generates a test value for a Property, respecting mask if present.
@@ -34,8 +48,8 @@ public class TestDataFactory {
 
         return switch (property.getAttrType()) {
             case DECIMAL -> String.valueOf(100 + RND.nextInt(900));
-            case DATE -> LocalDate.now().format(DATE_FORMAT);
-            case DATETIME -> LocalDate.now().format(DATE_FORMAT) + " 12:00";
+            case DATE -> todayMsk();
+            case DATETIME -> nowMskMinus10();
             case STRING -> "Test_" + property.getAttrName();
         };
     }
@@ -54,8 +68,8 @@ public class TestDataFactory {
 
         return switch (type.toLowerCase()) {
             case "integer", "decimal", "number", "numeric" -> String.valueOf(100 + RND.nextInt(900));
-            case "date" -> LocalDate.now().format(DATE_FORMAT);
-            case "datetime" -> LocalDate.now().format(DATE_FORMAT) + " 12:00";
+            case "date" -> todayMsk();
+            case "datetime" -> nowMskMinus10();
             default -> "Test_" + param.getName();
         };
     }
@@ -78,8 +92,8 @@ public class TestDataFactory {
      */
     public static String generateFromMask(String mask) {
         if (mask == null || mask.isEmpty()) return "";
-        if (looksLikeDateMask(mask)) return LocalDate.now().format(DATE_FORMAT);
-        if (looksLikeDateTimeMask(mask)) return LocalDate.now().format(DATE_FORMAT) + " 12:00";
+        if (looksLikeDateMask(mask)) return todayMsk();
+        if (looksLikeDateTimeMask(mask)) return nowMskMinus10();
         StringBuilder sb = new StringBuilder();
         int digitCounter = 1;
         for (int i = 0; i < mask.length(); i++) {
