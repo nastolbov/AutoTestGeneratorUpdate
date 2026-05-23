@@ -399,6 +399,9 @@ public class TestClassWriter {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
         }
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // После «Готово» стенд может показать модалку-подтверждение ("Запись сохранена",
+        // ExtJS message box). Жмём «ОК»/«Да» если она есть.
+        w.writeLine("confirmDialogYes();");
         // Wait for dialog to close (sign of successful save) THEN for grid to refresh.
         w.writeLine("boolean dialogClosed = waitForDialogClose();");
         // Если диалог НЕ закрылся — форма отвергла данные (например стенд требует особой
@@ -460,6 +463,7 @@ public class TestClassWriter {
         w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
         w.writeLine("shot(\"required_filled\");");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
