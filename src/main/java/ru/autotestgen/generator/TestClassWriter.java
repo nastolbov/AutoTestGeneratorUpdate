@@ -432,7 +432,6 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
-        w.writeLine("if (markerInGrid) lastCreatedMarker = createdMarker;");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
             // Hard: strict row count increase OR marker visible. Strict increase is the cleaner
