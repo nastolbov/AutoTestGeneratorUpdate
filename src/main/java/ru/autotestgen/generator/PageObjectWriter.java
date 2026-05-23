@@ -64,7 +64,7 @@ public class PageObjectWriter {
         // какие именно обязательные поля не заполняются (раньше падали в silent skip и в
         // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(80));");
         // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки.
         w.openBlock("if (value == null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' — FK field, opening dropdown\");");
@@ -117,9 +117,9 @@ public class PageObjectWriter {
         w.writeLine("    .perform();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("try { valueCell.click(); Thread.sleep(350); valueCell.click(); } catch (Exception ignored) {}");
+        w.writeLine("try { valueCell.click(); Thread.sleep(200); valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(400);");
+        w.writeLine("Thread.sleep(200);");
         // Найти видимый input редактора
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
         w.writeLine("WebElement editor = null;");
@@ -146,9 +146,9 @@ public class PageObjectWriter {
         w.writeLine("    + \"setter.call(inp, v);\"");
         w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
         w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
-        w.writeLine("Thread.sleep(150);");
+        w.writeLine("Thread.sleep(50);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(80);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");

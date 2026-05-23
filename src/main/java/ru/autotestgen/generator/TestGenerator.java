@@ -1323,7 +1323,7 @@ public class TestGenerator {
         // Step 1: single-click to select the row
         w.openBlock("try");
         w.writeLine("firstRow.click();");
-        w.writeLine("Thread.sleep(400);");
+        w.writeLine("Thread.sleep(200);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  single-click failed: \" + e.getMessage());");
@@ -1331,14 +1331,14 @@ public class TestGenerator {
         // Step 2: dblclick via Actions, with JS dispatchEvent as backup
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
-        w.writeLine("Thread.sleep(500);");
+        w.writeLine("Thread.sleep(250);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window, detail: 2}));\",");
         w.writeLine("    firstRow);");
-        w.writeLine("Thread.sleep(500);");
+        w.writeLine("Thread.sleep(250);");
         w.closeBlock();
         w.openBlock("catch (Exception e2)");
         w.writeLine("System.out.println(\"  dblclick failed: \" + e2.getMessage());");
@@ -1453,7 +1453,8 @@ public class TestGenerator {
         w.openBlock("protected boolean confirmDialogYes()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
+        // confirmDialogYes: ждём popup до 1.5с — на стенде он появляется сразу или вообще нет.
+        w.writeLine("long deadline = System.currentTimeMillis() + 1500;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
         w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
         w.writeLine("    \"//div[contains(@class,'x-window') or contains(@class,'x-message-box')]//button[\"");
@@ -2945,7 +2946,9 @@ public class TestGenerator {
         w.writeLine();
 
         w.openBlock("protected boolean waitForDialogClose()");
-        w.writeLine("return waitUntil(d -> !isDialogOpen(), 4, \"dialog close\");");
+        // 2с достаточно — реальное закрытие диалога ExtJS занимает <500мс. Раньше было 4с
+        // и каждый отказ формы съедал 4с зря на каждый submit (несколько раз за тест).
+        w.writeLine("return waitUntil(d -> !isDialogOpen(), 2, \"dialog close\");");
         w.closeBlock();
         w.writeLine();
 
