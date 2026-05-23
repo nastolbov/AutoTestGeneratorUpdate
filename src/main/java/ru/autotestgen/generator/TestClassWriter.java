@@ -316,6 +316,10 @@ public class TestClassWriter {
         w.writeLine("assertTrue(dialogStillOpen || hasErrors || errorFieldCount > 0,");
         w.writeLine("    \"Empty submit of required-field form must trigger validation: dialog should stay open OR errors shown OR fields highlighted. \"");
         w.writeLine("    + \"None of the three happened — form likely silently accepted invalid data.\");");
+        // ВАЖНО: на этом моменте диалог Сведения остался открытым (это и есть PASS-сигнал
+        // валидации). Если его не закрыть — следующий тест (testCreate, Order 3) не сможет
+        // пронавигироваться: модальный диалог блокирует клик по верхнему меню. Жмём «Отмена».
+        w.writeLine("try { clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\"); waitForDialogClose(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine();
     }
@@ -355,6 +359,8 @@ public class TestClassWriter {
         w.writeLine("boolean hasErrors = page.hasValidationErrors();");
         w.writeLine("assertTrue(dialogStillOpen || hasErrors,");
         w.writeLine("    \"Partial fill must not pass validation: dialog should stay open OR errors should be shown for the remaining required fields\");");
+        // Закрываем оставшийся открытым диалог — иначе следующий тест не пронавигируется.
+        w.writeLine("try { clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\"); waitForDialogClose(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine();
     }
@@ -898,6 +904,9 @@ public class TestClassWriter {
         w.openBlock("if (!maskFailures.isEmpty())");
         w.writeLine("System.out.println(\"testMaskedFieldInput: mask mismatches (likely Selenium-vs-ExtJS-mask-plugin issue, not product bug): \" + String.join(\"; \", maskFailures));");
         w.closeBlock();
+        // Закрываем диалог Сведения — оставлять его открытым нельзя, иначе следующий
+        // тест (Создание / Удаление) не сможет пронавигироваться.
+        w.writeLine("try { clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\"); waitForDialogClose(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine();
     }
