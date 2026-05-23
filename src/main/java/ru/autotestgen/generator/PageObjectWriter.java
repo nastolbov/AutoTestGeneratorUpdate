@@ -849,6 +849,19 @@ public class PageObjectWriter {
 
     private boolean isSystemField(Property prop) {
         String stereo = prop.getStereoType();
-        return "RoleA".equals(stereo) || "ObjectName".equals(stereo);
+        if ("RoleA".equals(stereo) || "ObjectName".equals(stereo)) return true;
+        // Серверные auto-fill поля (Дата изменения, Оператор, Дата создания) — стенд E3Core
+        // заполняет их сам. Если автотест туда пишет, форма отвергает create.
+        if (prop.getDefValueSource() != null && !prop.getDefValueSource().isEmpty()) return true;
+        String n = prop.getName();
+        if (n != null) {
+            String t = n.trim();
+            if ("Дата изменения".equals(t)
+                    || "Дата создания".equals(t)
+                    || "Оператор".equals(t)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

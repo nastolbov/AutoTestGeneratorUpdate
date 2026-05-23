@@ -918,7 +918,22 @@ public class TestClassWriter {
 
     private boolean isSystemField(Property prop) {
         String stereo = prop.getStereoType();
-        return "RoleA".equals(stereo) || "ObjectName".equals(stereo);
+        if ("RoleA".equals(stereo) || "ObjectName".equals(stereo)) return true;
+        // Поля с серверным def-value (E3Core их заполняет сам — «Дата изменения», «Оператор»,
+        // «Дата создания» и т.п.). Если автотест пишет туда своё значение, форма на «Готово»
+        // отвергает запрос, потому что значение не совпадает с тем, что сервер выставляет
+        // автоматически. Пропускаем такие поля.
+        if (prop.getDefValueSource() != null && !prop.getDefValueSource().isEmpty()) return true;
+        String n = prop.getName();
+        if (n != null) {
+            String t = n.trim();
+            if ("Дата изменения".equals(t)
+                    || "Дата создания".equals(t)
+                    || "Оператор".equals(t)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
