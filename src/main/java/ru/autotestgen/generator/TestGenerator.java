@@ -969,7 +969,7 @@ public class TestGenerator {
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
-        w.writeLine("Thread.sleep(500);");
+        w.writeLine("Thread.sleep(250);");
         w.writeLine("WebElement actionBtn = findVisibleActionBtn(actionName);");
         // Fallback на «Открыть» только когда искали «Найти» — это исторический эквивалент.
         // Для «Добавить»/«Удалить» fallback'а нет.
@@ -982,13 +982,13 @@ public class TestGenerator {
         w.writeLine("String actionLabel = actionBtn.getText().trim();");
         w.writeLine("System.out.println(\"descendMenu: trying to click '\" + actionLabel + \"' for entity '\" + entityName + \"'\");");
         w.writeLine("tryClickAllWays(actionBtn);");
-        w.writeLine("Thread.sleep(1500);");
+        w.writeLine("Thread.sleep(700);");
         w.writeLine("captureNavScreenshot(entityName, \"after-action\");");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("System.out.println(\"descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for '\" + entityName + \"'\");");
         w.writeLine("tryClickAllWays(item);");
-        w.writeLine("Thread.sleep(1000);");
+        w.writeLine("Thread.sleep(500);");
         w.writeLine("captureNavScreenshot(entityName, \"after-direct\");");
         w.writeLine("return true;");
         w.closeBlock();
@@ -1345,7 +1345,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         // Если карточка реально открылась — отлично
-        w.openBlock("if (waitForCardLoaded(15))");
+        w.openBlock("if (waitForCardLoaded(6))");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical dblclick did not open a card — trying ExtJS API fallback\");");
@@ -1355,7 +1355,7 @@ public class TestGenerator {
         w.writeLine("boolean opened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: opened via ExtJS API fireEvent('rowdblclick')\");");
-        w.writeLine("waitForCardLoaded(15);");
+        w.writeLine("waitForCardLoaded(6);");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
@@ -1721,7 +1721,7 @@ public class TestGenerator {
         w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
         w.openBlock("if (opened0)");
         w.writeLine("System.out.println(\"openRecordCard: opened via ExtJS API\");");
-        w.writeLine("waitForCardLoaded(15);");
+        w.writeLine("waitForCardLoaded(6);");
         w.writeLine("cachedCardOpenOk = true;");
         w.writeLine("return true;");
         w.closeBlock();
@@ -2215,7 +2215,7 @@ public class TestGenerator {
         w.openBlock("protected boolean clickEditDropdownAction(String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         // ВАЖНО: ждём пока карточка полностью прогрузится, иначе кнопка «Редактирование» ещё не отрисована
-        w.writeLine("waitForCardLoaded(15);");
+        w.writeLine("waitForCardLoaded(6);");
         w.openBlock("try");
         // Find the «Редактирование» button (toolbar button at bottom of card)
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
@@ -2869,7 +2869,7 @@ public class TestGenerator {
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("new Actions(driver).moveToElement(item).perform();");
-        w.writeLine("Thread.sleep(500);");
+        w.writeLine("Thread.sleep(250);");
         w.openBlock("for (String action : actionsToTry)");
         w.writeLine("WebElement actionBtn = findVisibleActionBtn(action);");
         w.openBlock("if (actionBtn != null)");
