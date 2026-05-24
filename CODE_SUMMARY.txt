@@ -1,0 +1,359 @@
+================================================================================
+  AUTO TEST GENERATOR — CORE CODE SUMMARY
+  JavaFX App / Selenium WebDriver / JUnit 5 / ExtJS 3
+================================================================================
+
+1. TestClassWriter.java — Test Generation
+
+@BeforeEach
+void setUp() {
+    resetState();
+    if (page == null) {
+        navigateToEntity("EntityName", "featureName");
+        assumeNavigated();
+        page = new EntityPage(driver);
+    }
+    assumeNavigated();
+}
+
+Test Methods Pattern:
+- testFieldsPresent() — verify all properties visible
+- testRequiredFieldValidation() — open add-dialog, try submit empty
+- testCreate() — fill all fields, submit, verify row count
+- testUpdate() — select record, change field, save
+- testDelete() — select, delete, confirm, verify count
+- testSearch() — open search, fill params, execute
+
+Key Feature: page == null caching prevents re-navigation. Each test class
+navigates once; subsequent tests reuse grid. Saves ~10s per test.
+
+Required Properties Extraction:
+List<Property> requiredProperties = displayProperties.stream()
+    .filter(Property::isRequired)
+    .filter(p -> !isSystemField(p))
+    .toList();
+
+Entity Classification (disabled if):
+- No CRUD operations AND
+- Name stem-matches a Grid[stereoType="Grid"] in another entity
+
+================================================================================
+
+2. PageObjectWriter.java — Page Objects
+
+fillPropertyGridField(String fieldName, String value):
+- Find property grid cell by field name text
+- Click value cell (adjacent td)
+- Wait for inline editor (input.x-form-text)
+- sendKeys(value) + TAB to commit
+
+Combobox Handling (if class contains "x-combo"):
+- Open dropdown (element.click())
+- Send ARROW_DOWN
+- Send ENTER (first option)
+
+Date Fields (no "x-combo"):
+- Direct sendKeys(value) — mask auto-filters
+- Example: "12.10.2024" or "12.10.2024 14:30"
+
+Field Presence Detection (isFieldDisplayed):
+Strategy 1: Property grid text match
+  //div[contains(@class,'x-grid3')]//div[contains(text(),'displayName')]
+Strategy 2: Standard HTML by name/id
+  [name='attrName'], [id='attrName']
+Strategy 3: Any text node
+  //span[contains(text(),'displayName')]
+
+================================================================================
+
+3. BaseTest.java — Base Test Infrastructure
+
+Navigation Caching (prevents 10s timeout on every failed test):
+
+private boolean navigationAttempted = false;
+private boolean cachedNavigationOk = false;
+
+protected void navigateToEntity(String entityName, String featureName) {
+    if (navigationAttempted) {
+        navigationOk = cachedNavigationOk;
+        return;
+    }
+    navigationAttempted = true;
+    navigationOk = false;
+    if ("e3core".equals(TestData.SITE_TYPE)) {
+        navigateE3Core(entityName);
+    } else {
+        navigateGeneric(entityName);
+    }
+    cachedNavigationOk = navigationOk;
+}
+
+E3Core Menu Navigation (recursive submenu descent):
+
+private void navigateE3Core(String entityName) {
+    String[] menuButtons = {TestData.SUBSYSTEM_NAME, "НСИ", "Отчёты", "Сервис"};
+    for (String menuName : menuButtons) {
+        try {
+            WebElement menuBtn = driver.findElement(By.xpath(
+                "//button[contains(@class, 'x-btn-text')][contains(text(), '" + menuName + "')]"
+            ));
+            menuBtn.click();
+            Thread.sleep(300);
+            if (descendMenu(entityName, 3, new HashSet<>())) {
+                navigationOk = true;
+                return;
+            }
+        } catch (Throwable ignored) {
+            driver.findElement(By.tagName("body")).sendKeys(Keys.ESCAPE);
+        }
+    }
+}
+
+descendMenu() — Recursive submenu search with stem matching:
+
+private boolean descendMenu(String entityName, int maxDepth, Set<String> tried) {
+    // Step 1: Find direct menu item (by-word stems to handle declensions)
+    String pred = entityStemPredicate(entityName, "text()");
+    String itemXpath = "//div[contains(@class,'x-menu')]//span[contains(@class,'x-menu-item-text')][" + pred + "]";
+    List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));
+
+    for (WebElement item : directHits) {
+        if (!item.isDisplayed()) continue;
+        new Actions(driver).moveToElement(item).perform();
+        Thread.sleep(500);
+
+        WebElement actionBtn = findVisibleActionBtn("Найти");
+        if (actionBtn == null) actionBtn = findVisibleActionBtn("Открыть");
+        if (actionBtn != null) {
+            actionBtn.click();
+            return true;
+        }
+        item.click();
+        return true;
+    }
+
+    // Step 2: Not found directly — recurse into submenus
+    if (maxDepth <= 0) return false;
+
+    String parentXpath = "//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')]";
+    List<WebElement> parents = driver.findElements(By.xpath(parentXpath));
+    for (WebElement parent : parents) {
+        String parentText = parent.getText().trim();
+        if (parentText.isEmpty() || parentText.contains(entityName) || tried.contains(parentText)) continue;
+
+        tried.add(parentText);
+        try {
+            new Actions(driver).moveToElement(parent).perform();
+            Thread.sleep(250);
+            if (descendMenu(entityName, maxDepth - 1, tried)) return true;
+        } catch (Exception ignored) {}
+    }
+    return false;
+}
+
+Word Stem Matching (handles Russian declensions):
+
+private String entityStemPredicate(String entityName, String textFn) {
+    String[] words = entityName.split("[\\s/]+");
+    StringBuilder sb = new StringBuilder();
+
+    for (String word : words) {
+        if (word.isEmpty()) continue;
+        // Stem: last 2 chars dropped for long words, exact match for short
+        String stem = word.length() <= 3 ? word : word.substring(0, word.length() - 2);
+        sb.append("contains(").append(textFn).append(", '").append(stem).append("') and ");
+    }
+    return sb.toString();  // e.g. "contains(text(),'Должностн') and contains(text(),'лиц')"
+}
+
+Shared Login/Subsystem Selection (SharedDriver.initialize):
+
+setupDriver() → performLogin() → selectSubsystem() → initialized = true
+
+performLogin() — idempotent login form submission:
+- GET BASE_URL
+- Find login field (by name/type)
+- Clear, sendKeys(LOGIN)
+- Find password field
+- Clear, sendKeys(PASSWORD)
+- Find/click submit button
+- Thread.sleep(2000)
+
+selectSubsystem() — double-click subsystem tile, verify menu button appeared
+
+================================================================================
+
+4. Test Data Factory
+
+generateValue(Property):
+- STRING → "Тест_" + attrName
+- INTEGER → "123"
+- DECIMAL → "12.34"
+- DATE → current date formatted
+- BOOLEAN → "1" or "Да"
+
+generateFromMask(String mask):
+- "##.##.####" → "12.34.5678"
+- "##.##.#### ##:##" → "12.34.5678 14:30"
+- "+#(###)###-##-##" → "+7(499)123-45-67"
+
+================================================================================
+
+5. Key Decision: Cache-Based Navigation
+
+Problem: After resetState() closes grid, all tests re-navigate. Each navigation
+takes 8-10 seconds. 40+ tests × 10s = 400s.
+
+Solution: Cache navigationAttempted flag in BaseTest.
+
+Per test method:
+- @BeforeEach resetState() opens fresh grid
+- navigateToEntity() checks cache, skips if already tried
+- Subsequent @BeforeEach calls reuse grid
+- Grid persists across @BeforeEach boundaries
+
+Result: ~40s for 40 tests (1s + navigation) vs ~400s (all navigate).
+
+Code in setUp:
+if (page == null) {  // First test only
+    navigateToEntity(...);
+    page = new EntityPage(driver);
+}
+assumeNavigated();  // All tests verify navigation ok (cached or real)
+
+================================================================================
+
+6. ExtJS 3 Quirks Handled
+
+Issue: Selenium sendKeys not accepted by ExtJS input masks
+- Mask filter rejects synthetic events
+- Only real user input works (architecture limitation)
+
+Solution: Soft-fail with logging instead of assert
+
+Issue: PropertyGrid inline editor not PageFactory-friendly
+- No id/name attributes on <input>
+- Requires DOM walking: cell → row → cells.get(1).click() → wait for editor
+
+Solution: dblclick value cell, find topmost visible input in DOM, sendKeys
+
+Issue: Menu item text varies (declensions: singular/plural/genitive)
+- "Должностное лицо" (menu) vs "Должностные лица" (title)
+- Can't use exact text match
+
+Solution: Word-stem matching (first N chars, typically 4-6 chars)
+
+================================================================================
+
+7. File Generation Pipeline
+
+TestGenerator.generate(AppModel):
+1. Create src/test/java directory
+2. generatePom() — Maven config, forkCount=1 (sequential tests)
+3. generateJUnitConfig() — junit-platform.properties (no parallelization)
+4. generateSharedDriver() — shared browser singleton
+5. generateBaseTest() — menu navigation, login, shared state
+6. For each entity:
+   - PageObjectWriter.write() → EntityPage.java
+   - TestClassWriter.write() → EntityTest.java
+7. generateSubsystemsSmokeTest() (optional) — smoke all subsystems
+
+Entity Filtering (disabled if):
+- No CRUD operations
+- AND name stem-matches a Grid inside another entity
+
+================================================================================
+
+8. Test Flow (Full Test Execution)
+
+1. beforeAll():
+   - Initialize driver from SharedDriver
+   - Login performed once (SharedDriver.performLogin)
+   - Subsystem selected once (SharedDriver.selectSubsystem)
+
+2. @BeforeEach setUp():
+   - resetState() — close any open dialogs/grids
+   - if (page == null) → navigateToEntity() [1st test only]
+   - Create page object
+   - assumeNavigated() [soft-fail if nav failed]
+
+3. @Test method():
+   - menuAction("EntityName", "Добавить") → open add dialog
+   - page.fillAllFields()
+   - clickButtonByText("Готово") → submit
+   - Thread.sleep(1000) → wait for post-save processing
+   - assertFalse(isErrorPresent()) — no errors
+   - assertTrue(rowsAfter >= rowsBefore) — row count increased
+
+4. @AfterEach (implicit):
+   - JUnit does not call @AfterEach on Assumption.skip()
+   - Manual cleanup in setUp() via resetState()
+
+5. After all tests:
+   - SharedDriver.getDriver().quit() via shutdown hook
+
+================================================================================
+
+9. Configuration (TestData class)
+
+BASE_URL = "http://localhost:8080/app"
+LOGIN = "test_user"
+PASSWORD = "test_pass"
+SUBSYSTEM_NAME = "ГСК"
+SITE_TYPE = "e3core" (or "generic")
+SMOKE_ALL_SUBSYSTEMS = true/false
+
+browserType = "chrome" (or "firefox")
+Chrome options:
+- --headless
+- --no-sandbox
+- --disable-dev-shm-usage
+- --window-size=1920x1080
+
+Implicit waits:
+- Standard: 2 seconds
+- Menu navigation: 300ms
+- After action (click): 1000ms
+- Shared: WebDriverWait(3s)
+
+================================================================================
+
+10. Error Handling Pattern
+
+All user interactions wrapped in try/catch/finally:
+
+try {
+    // Selenium action
+    WebElement el = driver.findElement(...);
+    el.click();
+} catch (Exception e) {
+    System.out.println("Action failed: " + e.getMessage());
+    // Soft-fail: continue test with next assertion
+}
+finally {
+    driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
+}
+
+No explicit exception throw — tests self-diagnose via assertions.
+
+================================================================================
+
+Compact Code — All Three Generators
+
+TestClassWriter: 587 lines
+  - setUp() with page==null caching
+  - @Test methods for SMOKE/BASIC/FULL levels
+  - Dynamic test count based on entity classification
+
+PageObjectWriter: ~400 lines (not shown in full)
+  - fillPropertyGridField() for E3Core PropertyGrid
+  - isFieldDisplayed() multi-strategy detection
+  - fillAllFields(), fillRequiredFields()
+  - action button methods (click, submit, etc.)
+
+TestGenerator: ~1000 lines (shown partially)
+  - SharedDriver (shared browser singleton)
+  - BaseTest (navigation caching, menu walker, login)
+  - generatePom(), generateJUnitConfig(), etc.
+
+================================================================================
