@@ -148,22 +148,22 @@ public class TestClassWriter {
 
             // Test 4: Update
             if (hasCrud && hasModifier(crudOperation, ModifyType.UPDATE)) {
-                writeUpdateTest(w, displayProperties);
+                writeUpdateTest(w, displayProperties, modifierTitle(crudOperation, ModifyType.UPDATE));
             }
 
             // Test 5: Delete
             if (hasCrud && hasModifier(crudOperation, ModifyType.DELETE)) {
-                writeDeleteTest(w);
+                writeDeleteTest(w, modifierTitle(crudOperation, ModifyType.DELETE));
             }
 
             // Test 6: Logical Edit
             if (hasCrud && hasModifier(crudOperation, ModifyType.LOGICAL_EDIT)) {
-                writeLogicalEditTest(w);
+                writeLogicalEditTest(w, modifierTitle(crudOperation, ModifyType.LOGICAL_EDIT));
             }
 
             // Test 7: Archive
             if (hasCrud && hasModifier(crudOperation, ModifyType.ARCHIVE)) {
-                writeArchiveTest(w);
+                writeArchiveTest(w, modifierTitle(crudOperation, ModifyType.ARCHIVE));
             }
 
             // Test: Partial validation (fill only first required field)
@@ -324,14 +324,20 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeUpdateTest(JavaFileWriter w, List<Property> properties) {
+    private void writeUpdateTest(JavaFileWriter w, List<Property> properties, String updateTitle) {
         w.writeLine("@Test");
         w.writeLine("@Order(4)");
         w.writeLine("@DisplayName(\"Update existing record\")");
         w.openBlock("void testUpdate()");
-        w.writeLine("// Select first available record");
-        w.writeLine("selectFirstRecord();");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("// Select first available record (waits for the grid to load)");
+        w.writeLine("boolean selected = selectFirstRecord();");
+        w.writeLine("Assumptions.assumeTrue(selected, \"No records available to update — skipping\");");
+        w.writeLine("try { Thread.sleep(300); } catch (InterruptedException ignored) {}");
+        w.writeLine("// Open the edit card via the entity's edit action so the form fields become");
+        w.writeLine("// editable. Without this, entities shown as a multi-row data grid (not an inline");
+        w.writeLine("// PropertyGrid) had nowhere to type, so the update silently did nothing.");
+        w.writeLine("menuAction(ENTITY_NAME, \"" + updateTitle + "\");");
+        w.writeLine("try { Thread.sleep(600); } catch (InterruptedException ignored) {}");
         // Find a string field to modify
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
@@ -370,21 +376,25 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeDeleteTest(JavaFileWriter w) {
+    private void writeDeleteTest(JavaFileWriter w, String deleteTitle) {
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
         w.writeLine("@DisplayName(\"Delete record\")");
         w.openBlock("void testDelete()");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("selectFirstRecord();");
-        w.writeLine("// Delete via cascading menu or direct button");
+        w.writeLine("// Select a record first (waits for the grid); skip if there is nothing to delete");
+        w.writeLine("boolean selected = selectFirstRecord();");
+        w.writeLine("Assumptions.assumeTrue(selected, \"No records available to delete — skipping\");");
+        w.writeLine("// Trigger delete via the entity's own menu label (from XML), with a button fallback");
         w.writeLine("try {");
-        w.writeLine("    menuAction(ENTITY_NAME, \"Удалить\");");
+        w.writeLine("    menuAction(ENTITY_NAME, \"" + deleteTitle + "\");");
         w.writeLine("} catch (Exception e) {");
-        w.writeLine("    driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
+        w.writeLine("    try { driver.findElement(By.xpath(\"//button[contains(text(), '" + deleteTitle + "')] | //button[contains(text(), 'Готово')]\")).click(); } catch (Exception ignored) {}");
         w.writeLine("}");
-        w.writeLine("// Confirm deletion if dialog appears");
-        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("// E3Core asks for confirmation in an ExtJS modal ('Да') — a native alert won't appear,");
+        w.writeLine("// so click the modal's confirm button. This is what makes delete actually commit.");
+        w.writeLine("boolean confirmed = confirmDialogYes();");
+        w.writeLine("System.out.println(\"Delete confirmation dialog handled: \" + confirmed);");
         w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
@@ -396,30 +406,34 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeLogicalEditTest(JavaFileWriter w) {
+    private void writeLogicalEditTest(JavaFileWriter w, String logicalEditTitle) {
         w.writeLine("@Test");
         w.writeLine("@Order(6)");
         w.writeLine("@DisplayName(\"Logical edit of record\")");
         w.openBlock("void testLogicalEdit()");
-        w.writeLine("selectFirstRecord();");
-        w.writeLine("// Logical edit via cascading menu");
-        w.writeLine("menuAction(ENTITY_NAME, \"Лог.изменить\");");
+        w.writeLine("boolean selected = selectFirstRecord();");
+        w.writeLine("Assumptions.assumeTrue(selected, \"No records available for logical edit — skipping\");");
+        w.writeLine("// Logical edit via cascading menu (real XML label)");
+        w.writeLine("menuAction(ENTITY_NAME, \"" + logicalEditTitle + "\");");
+        w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after logical edit\");");
         w.closeBlock();
         w.writeLine();
     }
 
-    private void writeArchiveTest(JavaFileWriter w) {
+    private void writeArchiveTest(JavaFileWriter w, String archiveTitle) {
         w.writeLine("@Test");
         w.writeLine("@Order(7)");
         w.writeLine("@DisplayName(\"Archive record\")");
         w.openBlock("void testArchive()");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("selectFirstRecord();");
-        w.writeLine("// Archive via cascading menu");
-        w.writeLine("menuAction(ENTITY_NAME, \"в Архив\");");
-        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("boolean selected = selectFirstRecord();");
+        w.writeLine("Assumptions.assumeTrue(selected, \"No records available to archive — skipping\");");
+        w.writeLine("// Archive via cascading menu (real XML label)");
+        w.writeLine("menuAction(ENTITY_NAME, \"" + archiveTitle + "\");");
+        w.writeLine("// Archiving also confirms via an ExtJS modal ('Да'), not a native alert");
+        w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after archiving\");");
         w.writeLine();
@@ -563,6 +577,29 @@ public class TestClassWriter {
     private boolean hasModifier(Operation operation, ModifyType type) {
         return operation.getModifiers().stream()
                 .anyMatch(m -> m.getModifyType() == type);
+    }
+
+    /**
+     * Returns the human-readable menu label for a modifier as declared in the XML
+     * (e.g. "Изменить", "Удалить"). Falls back to a sensible default when the title is
+     * missing. Using the real title is what lets menuAction find the correct submenu item
+     * instead of relying on a hard-coded Russian word that may not match the deployment.
+     */
+    private String modifierTitle(Operation operation, ModifyType type) {
+        String title = operation.getModifiers().stream()
+                .filter(m -> m.getModifyType() == type)
+                .map(Modifier::getTitle)
+                .filter(t -> t != null && !t.isBlank())
+                .findFirst()
+                .orElse(null);
+        if (title != null) return title.replace("\\", "\\\\").replace("\"", "\\\"");
+        return switch (type) {
+            case INSERT -> "Добавить";
+            case UPDATE -> "Изменить";
+            case DELETE -> "Удалить";
+            case LOGICAL_EDIT -> "Лог.изменить";
+            case ARCHIVE -> "в Архив";
+        };
     }
 
     private List<Property> getDisplayProperties(EntityObject entity) {

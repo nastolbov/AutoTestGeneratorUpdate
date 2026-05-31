@@ -581,28 +581,26 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: perform action via E3Core menu (e.g., Добавить, Найти)
+        // Helper: perform action via E3Core menu (e.g., Добавить, Удалить, Изменить).
+        // Uses the same per-word stem matching and recursive submenu descent as navigation,
+        // so it locates the entity even when the menu shows a different declension and the
+        // item lives in a nested submenu — this is what makes delete/modify work for ALL
+        // entities, not only those whose menu label equals the XML name.
         w.openBlock("protected void menuAction(String entityName, String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"НСИ\", \"Отчёты\", \"Сервис\"};");
+        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
         w.writeLine("menuBtn.click();");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(\"//span[contains(@class, 'x-menu-item-text')][contains(text(), '\" + entityName + \"')] | //div[contains(@class, 'x-menu')]//*[contains(text(), '\" + entityName + \"')]\"));");
-        w.openBlock("if (!items.isEmpty())");
-        w.writeLine("new Actions(driver).moveToElement(items.get(0)).perform();");
-        w.writeLine("Thread.sleep(300);");
-        w.writeLine("List<WebElement> actionBtns = driver.findElements(By.xpath(\"//span[contains(@class, 'x-menu-item-text')][contains(text(), '\" + actionName + \"')] | //a[contains(@class, 'x-menu-item')][contains(text(), '\" + actionName + \"')]\"));");
-        w.openBlock("if (!actionBtns.isEmpty())");
-        w.writeLine("actionBtns.get(actionBtns.size() - 1).click();");
+        w.openBlock("if (descendMenuAction(entityName, actionName, 3, new java.util.HashSet<>()))");
         w.writeLine("Thread.sleep(1000);");
         w.writeLine("return;");
         w.closeBlock();
-        w.closeBlock();
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(200);");
         w.closeBlock();
         w.openBlock("catch (Throwable ignored)");
         w.openBlock("try");
@@ -616,6 +614,74 @@ public class TestGenerator {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // descendMenuAction: like descendMenu, but after hovering the matched entity item it
+        // clicks the requested action (Добавить / Удалить / Изменить …) in the revealed submenu.
+        w.openBlock("private boolean descendMenuAction(String entityName, String actionName, int maxDepth, java.util.Set<String> tried) throws InterruptedException");
+        w.writeLine("String pred = entityStemPredicate(entityName, \"text()\");");
+        w.writeLine("String predDeep = entityStemPredicate(entityName, \"normalize-space(.)\");");
+        w.writeLine("String itemXpath = \"//div[contains(@class,'x-menu')]\"");
+        w.writeLine("    + \"//span[contains(@class,'x-menu-item-text')][\" + pred + \"]\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-menu')]\"");
+        w.writeLine("    + \"//a[contains(@class,'x-menu-item')][\" + predDeep + \"]\";");
+        w.writeLine("List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));");
+        w.openBlock("for (WebElement item : directHits)");
+        w.openBlock("try");
+        w.openBlock("if (!item.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(item).perform();");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("WebElement actionBtn = findVisibleActionBtn(actionName);");
+        w.openBlock("if (actionBtn != null)");
+        w.writeLine("actionBtn.click();");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (maxDepth <= 0)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("List<WebElement> parents = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')]\"));");
+        w.writeLine("java.util.LinkedHashSet<String> parentTexts = new java.util.LinkedHashSet<>();");
+        w.openBlock("for (WebElement p : parents)");
+        w.openBlock("try");
+        w.openBlock("if (!p.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String t = p.getText().trim();");
+        w.openBlock("if (t.isEmpty() || t.contains(actionName) || tried.contains(t) || t.contains(\"'\"))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("parentTexts.add(t);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("for (String parentText : parentTexts)");
+        w.writeLine("tried.add(parentText);");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-menu')]//a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + parentText + \"')]\"));");
+        w.writeLine("WebElement candidate = candidates.stream().filter(WebElement::isDisplayed).findFirst().orElse(null);");
+        w.openBlock("if (candidate == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(candidate).perform();");
+        w.writeLine("Thread.sleep(250);");
+        w.openBlock("if (descendMenuAction(entityName, actionName, maxDepth - 1, tried))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
         w.closeBlock();
         w.writeLine();
 
@@ -851,14 +917,35 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: select first record
-        w.openBlock("protected void selectFirstRecord()");
+        // Helper: select first record. Waits up to 5s for a grid row to appear before
+        // clicking — without this, update/delete on slower-loading entities ran against an
+        // empty grid (silent catch) and effectively did nothing, which looked like a
+        // per-entity flake. Returns true when a row was actually selected.
+        w.openBlock("protected boolean selectFirstRecord()");
+        w.writeLine("String rowCss = \".x-grid3-row, tr.data-row, tr[data-index], tbody tr\";");
         w.openBlock("try");
-        w.writeLine("WebElement row = driver.findElement(By.cssSelector(\".x-grid3-row, tr.data-row, tr[data-index='0'], tbody tr:first-child\"));");
+        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("WebElement row = driver.findElements(By.cssSelector(rowCss)).stream()");
+        w.writeLine("    .filter(WebElement::isDisplayed).findFirst().orElse(null);");
+        w.openBlock("if (row != null)");
+        w.openBlock("try");
         w.writeLine("row.click();");
         w.closeBlock();
+        w.openBlock("catch (Exception clickEx)");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click();\", row);");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(250);");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"No records found to select after 5s\");");
+        w.writeLine("return false;");
+        w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"No records found to select\");");
+        w.writeLine("System.out.println(\"selectFirstRecord failed: \" + e.getMessage());");
+        w.writeLine("return false;");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
@@ -886,6 +973,49 @@ public class TestGenerator {
         w.writeLine("alert.accept();");
         w.closeBlock();
         w.openBlock("catch (NoAlertPresentException ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // Helper: confirm an E3Core/ExtJS modal dialog. Deletion (and archiving) pops up an
+        // Ext.MessageBox with a 'Да' button — NOT a native browser alert — so switchTo().alert()
+        // never sees it. We wait briefly for the ExtJS button and click it via several strategies.
+        w.openBlock("protected boolean confirmDialogYes()");
+        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
+        w.writeLine("    \"//div[contains(@class,'x-window')]//button[normalize-space(.)='\\u0414\\u0430']\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-window')]//button[normalize-space(.)='Yes']\"");
+        w.writeLine("    + \" | //div[contains(@class,'x-window')]//button[normalize-space(.)='OK']\"");
+        w.writeLine("    + \" | //button[contains(@class,'x-btn-text')][normalize-space(.)='\\u0414\\u0430']\"));");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed())");
+        w.openBlock("try");
+        w.writeLine("b.click();");
+        w.closeBlock();
+        w.openBlock("catch (Exception clickEx)");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click();\", b);");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
