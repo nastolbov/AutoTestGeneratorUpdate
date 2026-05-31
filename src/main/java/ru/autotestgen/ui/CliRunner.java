@@ -13,7 +13,8 @@ import java.nio.file.Path;
 
 /**
  * Консольный режим: парсинг XML, генерация тестов, запуск — без GUI.
- * Аргументы: --xml, --url, --login, --password, --output, --site-type, --subsystem, --test-level
+ * Аргументы: --xml, --url, --login, --password, --output, --site-type, --subsystem,
+ *           --test-level, --smoke-all-subsystems true|false (по умолчанию true), --no-smoke
  */
 public class CliRunner {
 
@@ -24,8 +25,9 @@ public class CliRunner {
         String password = "b394e86609";
         String outputDir = null;
         String siteType = "e3core";
-        String subsystem = "Гаражно-строительные кооперативы";
+        String subsystem = null;
         String testLevel = "basic";
+        boolean smokeAllSubsystems = true;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -37,6 +39,8 @@ public class CliRunner {
                 case "--site-type": siteType = args[++i]; break;
                 case "--subsystem": subsystem = args[++i]; break;
                 case "--test-level": testLevel = args[++i]; break;
+                case "--smoke-all-subsystems": smokeAllSubsystems = Boolean.parseBoolean(args[++i]); break;
+                case "--no-smoke": smokeAllSubsystems = false; break;
                 default: break;
             }
         }
@@ -77,6 +81,13 @@ public class CliRunner {
                 System.out.println(info);
             }
 
+            // Default the subsystem to the XML CategoryName when --subsystem wasn't passed
+            if (subsystem == null) {
+                String xmlSubsystem = model.getSubsystemNameFromCategory();
+                subsystem = !xmlSubsystem.isEmpty() ? xmlSubsystem : "Гаражно-строительные кооперативы";
+                System.out.println("  Подсистема: " + subsystem);
+            }
+
             // 2. Generate tests
             System.out.println();
             System.out.println("[2/3] Генерация тестов...");
@@ -88,6 +99,7 @@ public class CliRunner {
             config.setSiteType(siteType);
             config.setSubsystemName(subsystem);
             config.setTestLevel(testLevel);
+            config.setSmokeAllSubsystems(smokeAllSubsystems);
 
             TestGenerator generator = new TestGenerator(config);
             generator.generate(model);

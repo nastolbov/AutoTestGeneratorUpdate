@@ -1,0 +1,6 @@
+target/
+generated-tests/
+*.class
+.idea/
+*.iml
+.vscode/

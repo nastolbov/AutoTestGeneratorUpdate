@@ -1,0 +1,102 @@
+digraph Constantine {
+    rankdir=TB;
+    bgcolor="white";
+    graph [splines=ortho, nodesep=0.45, ranksep=0.85, fontname="Helvetica"];
+    node  [shape=box, style="filled", fontname="Helvetica", fontsize=11,
+           width=1.5, height=0.5, penwidth=1.3];
+    edge  [color="#555555", penwidth=1.1, arrowsize=0.8];
+
+    /* ---- node roles by colour (Constantine module types) ---- */
+    // entry / boss
+    App          [fillcolor="#bbdefb"];
+    CliMain      [fillcolor="#bbdefb"];
+    // coordinators
+    MainController [fillcolor="#ffe0b2"];
+    CliRunner      [fillcolor="#ffe0b2"];
+    // afferent (input)
+    XmlModelParser [fillcolor="#e1bee7"];
+    // transform centre
+    TestGenerator    [fillcolor="#c8e6c9"];
+    PageObjectWriter [fillcolor="#c8e6c9"];
+    TestClassWriter  [fillcolor="#c8e6c9"];
+    TestDataFactory  [fillcolor="#c8e6c9"];
+    // efferent (output)
+    TestRunner [fillcolor="#fff9c4"];
+    ReportDao  [fillcolor="#fff9c4"];
+    // utilities (leaf, high fan-in)
+    JavaFileWriter [fillcolor="#f8bbd0"];
+    Transliterator [fillcolor="#f8bbd0"];
+    // config / exception couples
+    TestConfig      [fillcolor="#e0e0e0"];
+    ParserException [fillcolor="#e0e0e0"];
+    // data store (model package)
+    node [fillcolor="#dcedc8"];
+    AppModel; EntityObject; Association; PropertyGroup; Operation;
+    Modifier; ModifyType; OperationParam; Property; AttrType;
+    Search; SearchParam; SearchResult; SearchResultProperty;
+    TestRunResult; TestCaseResult;
+
+    /* ================= CONTROL FLOW (calls) ================= */
+    App     -> MainController;
+    App     -> CliRunner;
+    CliMain -> CliRunner;
+
+    MainController -> XmlModelParser;
+    MainController -> TestGenerator;
+    MainController -> TestRunner;
+    MainController -> ReportDao;
+    MainController -> TestConfig;
+    MainController -> ParserException;
+
+    CliRunner -> XmlModelParser;
+    CliRunner -> TestGenerator;
+    CliRunner -> TestRunner;
+    CliRunner -> ReportDao;
+    CliRunner -> TestConfig;
+
+    XmlModelParser -> AppModel;
+    XmlModelParser -> ParserException;
+
+    TestGenerator -> PageObjectWriter;
+    TestGenerator -> TestClassWriter;
+    TestGenerator -> JavaFileWriter;
+    TestGenerator -> TestConfig;
+    TestGenerator -> AppModel;
+
+    PageObjectWriter -> TestDataFactory;
+    PageObjectWriter -> JavaFileWriter;
+    PageObjectWriter -> Transliterator;
+
+    TestClassWriter -> TestDataFactory;
+    TestClassWriter -> JavaFileWriter;
+    TestClassWriter -> Transliterator;
+
+    TestDataFactory -> Property;
+    TestDataFactory -> SearchParam;
+    TestDataFactory -> AttrType;
+
+    TestRunner -> TestRunResult;
+    ReportDao  -> TestRunResult;
+
+    /* ================= DATA-STORE COMPOSITION ================= */
+    AppModel       -> EntityObject;
+    AppModel       -> Search;
+    EntityObject   -> Association;
+    EntityObject   -> PropertyGroup;
+    PropertyGroup  -> Operation;
+    PropertyGroup  -> Property;
+    Operation      -> Modifier;
+    Operation      -> OperationParam;
+    Modifier       -> ModifyType;
+    Property       -> AttrType;
+    Search         -> SearchParam;
+    Search         -> SearchResult;
+    SearchResult   -> SearchResultProperty;
+    TestRunResult  -> TestCaseResult;
+
+    /* ================= rank hints (Constantine layering) ================= */
+    { rank=same; App; CliMain; }
+    { rank=same; MainController; CliRunner; }
+    { rank=same; XmlModelParser; TestGenerator; TestRunner; ReportDao; }
+    { rank=same; PageObjectWriter; TestClassWriter; }
+}

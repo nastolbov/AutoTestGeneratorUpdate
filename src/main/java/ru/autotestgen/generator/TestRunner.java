@@ -144,7 +144,7 @@ public class TestRunner {
                                         } else if ("skipped".equals(childLocal)) {
                                             tcr.setPassed(false);
                                             tcr.setSkipped(true);
-                                            tcr.setFailureMessage("SKIPPED");
+                                            tcr.setFailureMessage(cleanSkipMessage(reader.getAttributeValue(null, "message")));
                                         }
                                     }
                                 }
@@ -183,5 +183,20 @@ public class TestRunner {
         String val = reader.getAttributeValue(null, name);
         if (val == null || val.isEmpty()) return 0;
         try { return Double.parseDouble(val); } catch (NumberFormatException e) { return 0; }
+    }
+
+    /**
+     * Normalises the message attribute on a Surefire {@code <skipped>} element.
+     * JUnit Assumptions usually arrive as
+     * "org.opentest4j.TestAbortedException: Assumption failed: <reason>";
+     * {@code @Disabled("reason")} arrives as just "reason". Strip the boilerplate so the
+     * UI just shows the human-readable cause.
+     */
+    private String cleanSkipMessage(String raw) {
+        if (raw == null || raw.isEmpty()) return "SKIPPED";
+        String msg = raw.trim();
+        msg = msg.replaceFirst("^org\\.opentest4j\\.TestAbortedException:\\s*", "");
+        msg = msg.replaceFirst("^Assumption failed:\\s*", "");
+        return msg.isEmpty() ? "SKIPPED" : msg;
     }
 }

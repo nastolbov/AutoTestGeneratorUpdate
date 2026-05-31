@@ -38,6 +38,7 @@
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <Label text="Уровень тестов:"/>
                 <ComboBox fx:id="testLevelCombo" prefWidth="130"/>
+                <CheckBox fx:id="smokeAllSubsystemsCheck" text="Smoke по всем подсистемам" selected="true"/>
                 <Button fx:id="btnGenerate" text="Сгенерировать тесты" onAction="#onGenerate"
                         style="-fx-background-color: #2196F3; -fx-text-fill: white;"/>
                 <Button fx:id="btnRunTests" text="Запустить тесты" onAction="#onRunTests"
