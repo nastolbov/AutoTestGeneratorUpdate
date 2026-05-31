@@ -1,0 +1,225 @@
+
+╔════════════════════════════════════════════════════════════════════════════════════╗
+║                      MODULE STRUCTURE (Constantine Rules)                          ║
+║                       31 Classes, 5 Hierarchy Levels                               ║
+╚════════════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 0: Entry Points (boss modules)                                             │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                   │
+│        ┌─────────────────────┐         ┌──────────────────────┐                 │
+│        │   App (JavaFX)      │         │   CliMain (CLI)      │                 │
+│        │  application:main   │         │  exec:java point     │                 │
+│        └──────────┬──────────┘         └──────────┬───────────┘                 │
+│                   │                              │                               │
+│                   └──────────────┬───────────────┘                               │
+│                                  │                                               │
+│                   ┌──────────────▼───────────────┐                               │
+│                   │  launch(args) / run(args)   │                               │
+│                   │  (entry decision point)    │                               │
+│                   └──────────────┬───────────────┘                               │
+└───────────────────────────────────┼──────────────────────────────────────────────┘
+                                    │
+╔═══════════════════════════════════╩══════════════════════════════════════════════╗
+║                                                                                    ║
+║ LEVEL 1: Pipeline Coordinators (coordinator modules) ⚠ DUPLICATION ISSUE         ║
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌──────────────────────────┐              ┌──────────────────────────┐       │
+│   │  MainController (GUI)     │              │   CliRunner (CLI)        │       │
+│   │  ┌──────────────────────┐ │              │ ┌──────────────────────┐ │       │
+│   │ │ 1. parse(xmlFile)    │ │              ││ 1. parse(xmlFile)    │ │       │
+│   │ │ 2. generate(model)   │ │  SAME LOGIC ││ 2. generate(model)   │ │       │
+│   │ │ 3. run(project)      │ │  4-STEP     ││ 3. run(project)      │ │       │
+│   │ │ 4. saveRun(result)   │ │  PIPELINE   ││ 4. saveRun(result)   │ │       │
+│   │ └──────────────────────┘ │              │ └──────────────────────┘ │       │
+│   └────────┬──────────────────┘              └──────────┬───────────────┘       │
+│            │                                          │                         │
+│   fan-in: 2 │ (both reference 8 classes)           │ fan-in: 2                 │
+│            │                                          │                         │
+│            │      ┌──────────────┬───────────────────┘                         │
+│            └──────┼──────────────┘                                              │
+│                   │                                                              │
+└───────────────────┼──────────────────────────────────────────────────────────────┘
+                    │
+╔═══════════════════╩═════════════════════════════════════════════════════════════╗
+║                                                                                   ║
+║ LEVEL 2: Subsystem Managers (analyze/transform/output modules)                 ║
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│ ┌────────────────┐  ┌─────────────────┐  ┌───────────────┐  ┌──────────────┐ │
+│ │ XmlModelParser │  │ TestGenerator   │  │ TestRunner    │  │  ReportDao   │ │
+│ │   (afferent)   │  │  (transform)    │  │  (efferent)   │  │ (efferent)   │ │
+│ │                │  │                 │  │               │  │              │ │
+│ │ • parse(file)  │  │ • generate()    │  │ • run(mvn)    │  │• saveRun()   │ │
+│ │ → XmlReader    │  │   → [Level 3]   │  │ • parseXML    │  │• insert BD   │ │
+│ │   StAX         │  │   ← data        │  │ → TestResult  │  │ SQLite       │ │
+│ │                │  │                 │  │               │  │              │ │
+│ │ fan-in: 2      │  │ fan-in: 2       │  │ fan-in: 2     │  │ fan-in: 2    │ │
+│ └────────┬───────┘  └────┬──────┬─────┘  └───────┬───────┘  └──────┬───────┘ │
+│          │               │      │                │                 │           │
+│    [output]              │      │                │                 │           │
+│      ▼                    │      │                │                 │           │
+│  AppModel                 │      │                │                 ▼           │
+│  (DATA STORE)             │      │                │           TestRunResult    │
+│                           │      │                │           (DATA STORE)     │
+│                           │      ▼                │                            │
+│                    ┌──────┴────────┐              │                            │
+│                    │ Level 3 ▼     │              │                            │
+│                    └────────────────┘              ▼                            │
+│                                                SQLite DB                         │
+│                                                (autotestgen.db)                  │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                    ║
+║ LEVEL 3: Test Writers (specific/tactical modules)                               ║
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│    ┌──────────────────┐              ┌──────────────────────┐                  │
+│    │ PageObjectWriter │              │ TestClassWriter      │                  │
+│    │                  │              │                      │                  │
+│    │ for entity:      │              │ for entity:          │                  │
+│    │ • write *Page.java             │ • write *Test.java   │                  │
+│    │ • fill methods   │              │ • @Test methods      │                  │
+│    │ • field finders  │              │ • assertions         │                  │
+│    │                  │              │                      │                  │
+│    │ fan-in: 1        │              │ fan-in: 1            │                  │
+│    └────────┬─────────┘              └────────┬─────────────┘                  │
+│             │                                 │                                │
+│             │    ┌────────────────────────────┘                               │
+│             └────┼────────────────────┐                                       │
+│                  │                    │                                       │
+└──────────────────┼────────────────────┼───────────────────────────────────────┘
+                   │                    │
+        ┌──────────▼─────────────────────▼───────────┐
+        │                                             │
+        │  LEVEL 4: Data Factory                     │
+        │  ┌──────────────────────────────────────┐  │
+        │  │    TestDataFactory                   │  │
+        │  │                                      │  │
+        │  │ • generateValue(Property)            │  │
+        │  │ • generateFromMask(String)           │  │
+        │  │ • generateSearchParamValue()         │  │
+        │  │                                      │  │
+        │  │ fan-in: 2 (L3 writers use)           │  │
+        │  └──────────────────────────────────────┘  │
+        │                                             │
+        └──────────────────┬──────────────────────────┘
+                           │
+        ┌──────────────────▼─────────────────────┐
+        │                                         │
+        │  LEVEL 5: Leaf Utilities                │
+        │  ┌──────────────┐  ┌────────────────┐  │
+        │  │JavaFileWriter│  │Transliterator  │  │
+        │  │              │  │                │  │
+        │  │ • writeLine()│  │• toClassName() │  │
+        │  │ • writeTo()  │  │• toFieldName() │  │
+        │  │ • open/close │  │• toSnakeCase() │  │
+        │  │  Block()     │  │                │  │
+        │  │              │  │                │  │
+        │  │fan-in: 3     │  │ fan-in: 2      │  │
+        │  └──────────────┘  └────────────────┘  │
+        │                                         │
+        └─────────────────────────────────────────┘
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                          DATA STORE (Passive, no logic)                           ║
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                    │
+│  Package ru.autotestgen.model (18 classes - pure data carriers)                 │
+│                                                                                    │
+│  AppModel (fan-in: 5)                       TestRunResult (fan-in: 4)            │
+│  ├─ List<EntityObject>                      └─ List<TestCaseResult>              │
+│  │  ├─ guid, name, featureName                                                   │
+│  │  ├─ List<Association>                  AttrType (enum)                       │
+│  │  └─ List<PropertyGroup>                ModifyType (enum)                     │
+│  │     ├─ Operation                                                              │
+│  │     │  ├─ guid, module, method         SearchParam, SearchResult,            │
+│  │     │  └─ List<Modifier>               SearchResultProperty                  │
+│  │     └─ List<Property>                                                         │
+│  │        ├─ name, attrName, attrType     OperationParam                        │
+│  │        └─ mask, required, flagDisplay                                        │
+│  │                                                                                │
+│  └─ List<Search>                          SQLite DB (autotestgen.db)            │
+│     ├─ guid, name, searchObjectGuid       ├─ test_run                          │
+│     ├─ List<SearchParam>                  │  (id, run_date, xml_file,           │
+│     └─ SearchResult                       │   base_url, totals, duration)        │
+│                                           │                                      │
+│  All access via public getters/setters    └─ test_case                          │
+│  NO BUSINESS LOGIC — pure value objects      (id, run_id, class, method,        │
+│                                              passed, failure_msg, duration)      │
+│                                                                                    │
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+LINKING TYPES & Coupling Quality
+═════════════════════════════════════════════════════════════════════════════════════
+
+ ┌─────────────────────────────────────────────────┐
+ │  Data Coupling (GOOD) ✓                         │
+ │  • Objects (AppModel, TestRunResult) flow      │
+ │  • No procedure parameters switch behavior      │
+ │  • Examples: parser → AppModel → generator     │
+ └─────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────┐
+ │  Stamp Coupling (OK, but watch)                │
+ │  • TestConfig carries flags (testLevel, ...)    │
+ │  • Writers check flags inside → BRANCHES       │
+ │  * Should be strategy instead                   │
+ └─────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────┐
+ │  Control Coupling (BAD) ✗ [2 instances]        │
+ │                                                 │
+ │  1. DUPLICATION: MainController ≈ CliRunner    │
+ │     Both call: Parser → Generator → Runner → Dao
+ │     → Solution: Extract GenerationPipeline     │
+ │                                                 │
+ │  2. LOW COHESION: TestGenerator                │
+ │     • Orchestrates writers (coordination)       │
+ │     • Generates pom.xml / BaseTest (scaffolding)
+ │     • Two different tasks in one module        │
+ │     → Solution: Extract ScaffoldWriter         │
+ └─────────────────────────────────────────────────┘
+
+
+NORMALIZATION Plan (Constantine)
+═════════════════════════════════════════════════════════════════════════════════════
+
+BEFORE (Problems):
+  App, CliMain
+    ▼
+  MainController, CliRunner  ← DUPLICATION (fan-in:2 each, same logic)
+    ▼
+  Parser → Generator → Runner → Dao
+
+AFTER (Normalized):
+  App, CliMain
+    ▼
+  GenerationPipeline  ← New coordinator (single source of truth)
+    ├─ parse()
+    ├─ generate()
+    ├─ run()
+    └─ report()
+    ▼
+  Parser ──┐
+  Generator├─ (interfaces / composition)
+  Runner ──┤
+  Dao ─────┘
+
+  TestGenerator →  {OrchestratorWriter}   (delegates)
+                    {ScaffoldWriter}       (pom/BaseTest/etc)
+                    {PageObjectWriter}     (existing)
+                    {TestClassWriter}      (existing)
+
+RESULT:
+  ✓ Cohesion in each module: single responsibility
+  ✓ Coupling: MainController & CliRunner now thin (just call GenerationPipeline)
+  ✓ Data flow clear: AppModel → TestRunResult (no reverse pointers)
+  ✓ Leaves (L5) unchanged (high fan-in OK for utilities)
+
