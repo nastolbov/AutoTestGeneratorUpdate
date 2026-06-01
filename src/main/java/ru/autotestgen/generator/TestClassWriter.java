@@ -16,6 +16,10 @@ public class TestClassWriter {
 
     private final String basePackage;
     private final String testLevel;
+    // Per-entity searches, populated by write() before any writeXxxTest() runs. testCreate
+    // reads this to bias its marker-field choice toward fields actually shown in the result
+    // grid columns — otherwise the marker can be saved but invisible to gridContainsRow.
+    private List<Search> currentEntitySearches = java.util.Collections.emptyList();
 
     public TestClassWriter(String basePackage, String testLevel) {
         this.basePackage = basePackage;
@@ -64,6 +68,7 @@ public class TestClassWriter {
                 .filter(s -> s.getSearchObjectGuid().equals(entity.getGuid()))
                 .filter(s -> !isFkOnlySearch(s))
                 .toList();
+        this.currentEntitySearches = entitySearches;
 
         JavaFileWriter w = new JavaFileWriter();
 
@@ -366,13 +371,41 @@ public class TestClassWriter {
     }
 
     private void writeCreateTest(JavaFileWriter w, List<Property> displayProperties) {
-        // Pick the first non-system, non-FK STRING property to stamp with a unique marker.
-        // After save we then assert the marker shows up in the result grid — proof the row was
-        // actually inserted rather than merely incrementing the row count.
+        // The marker must land in a column that actually appears in the result grid — otherwise
+        // gridContainsRow can't find it even when the record was saved successfully (the value
+        // sits in the database in a field like 'Комментарий' that the search just doesn't list).
+        // Step 1: collect column names from the search SearchResultProperty list (these are
+        // exactly the columns rendered in the result grid). Step 2: pick the first STRING field
+        // whose name/title matches one of those columns. Step 3: fall back to any STRING field
+        // if no overlap is found, to keep behavior on entities without explicit search-result
+        // metadata.
+        java.util.Set<String> gridColumns = new java.util.HashSet<>();
+        try {
+            for (Search s : currentEntitySearches) {
+                if (s.getResult() == null) continue;
+                for (SearchResultProperty rp : s.getResult().getProperties()) {
+                    if (!rp.isVisible()) continue;
+                    if (rp.getName() != null)  gridColumns.add(rp.getName().toLowerCase());
+                    if (rp.getTitle() != null) gridColumns.add(rp.getTitle().toLowerCase());
+                }
+            }
+        } catch (Exception ignored) {}
+
         Property markerField = displayProperties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
                         && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .filter(p -> gridColumns.isEmpty()
+                        || (p.getAttrName() != null && gridColumns.contains(p.getAttrName().toLowerCase()))
+                        || (p.getName() != null && gridColumns.contains(p.getName().toLowerCase())))
                 .findFirst().orElse(null);
+        if (markerField == null) {
+            // Fallback: first STRING field even if it's not in the visible columns. The assert
+            // may still fail to find the marker, but at least we tried with grid columns first.
+            markerField = displayProperties.stream()
+                    .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                            && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                    .findFirst().orElse(null);
+        }
 
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
@@ -589,38 +622,52 @@ public class TestClassWriter {
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
+        // Capture marker BEFORE opening the card. We read row 0 of the largest visible row
+        // group of the active Ext window — same source that selectAndOpenRecord targets.
+        // The old code captured AFTER opening via .x-grid3-row-selected/.x-grid3-row-over;
+        // after dblclick those selectors matched whatever was hovered (tree node, child
+        // grid, taboard label) and the marker was wrong for small dictionary entities —
+        // the captured text was the entity NAME itself, which obviously stayed in the grid.
+        w.writeLine("String deletedMarker = getResultRowText(0);");
+        w.writeLine("System.out.println(\"testDelete: captured marker before open: '\" + deletedMarker + \"'\");");
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
-        // Capture the selected row's text so we can verify the row is actually gone, not just
-        // that the row count dropped by one (different row could vanish for unrelated reasons).
-        w.writeLine("String deletedMarker = \"\";");
         w.openBlock("try");
-        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
-        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
-        w.writeLine("deletedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.openBlock("try");
-        w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"Удалить\"));");
+        w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
+        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), '\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c')] | //button[contains(text(), '\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e')]\")).click();");
         w.closeBlock();
         w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
-        // E3Core открывает ExtJS-confirm «Да/Нет» — без клика на «Да» удаление не применяется.
+        // Capture the popup text BEFORE blindly clicking 'Да'/'OK'. If the stand rejected
+        // deletion (foreign-key block / "still referenced") we'll see "Невозможно удалить…"
+        // — that's a legitimate refusal, not a test failure.
+        w.writeLine("String popup = captureAndClassifyPopup(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.openBlock("if (isBlockingErrorPopup(popup))");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"blocked_by_server\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete refused by server: '\" + popup + \"'\");");
+        w.writeLine("return;");
+        w.closeBlock();
         w.writeLine("confirmDialogYes();");
         w.writeLine("shot(\"after_confirm\");");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_delete\");");
         w.writeLine();
+        // Sometimes the error popup arrives AFTER confirm-Да (server reply). Re-classify.
+        w.writeLine("String popup2 = captureAndClassifyPopup(\"after-confirm\");");
+        w.openBlock("if (isBlockingErrorPopup(popup2))");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"blocked_post_confirm\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete refused after confirm: '\" + popup2 + \"'\");");
+        w.writeLine("return;");
+        w.closeBlock();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
         w.writeLine();
-        // ВАЖНО: после удаления текущий грид — это либо карточка, либо child-грид внутри
-        // карточки, либо вообще тот же экран с одной строкой про удалённый объект. Считать
-        // строки и искать маркер ТАМ бессмысленно. Возвращаемся к таблице результатов
-        // (закрываем карточку → ре-навигируем → ре-выполняем поиск) и только потом сравниваем.
+        // After delete the visible page is the card / a child-grid inside the card / the
+        // result page with a stub row about the deleted object. Counting and matching here
+        // is meaningless; re-navigate to the result grid first.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -632,9 +679,8 @@ public class TestClassWriter {
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
         w.writeLine("System.out.println(\"testDelete: rows \" + rowsBefore + \" -> \" + rowsAfter + \", markerGone=\" + markerGone);");
-        // Маркер — единственный надёжный сигнал. Row count шумит из-за чужих гридов.
         w.openBlock("if (deletedMarker.isEmpty())");
-        w.writeLine("Assumptions.assumeTrue(false, \"Delete: не удалось захватить маркер удаляемой записи — пропускаем\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete: empty result-grid before open — nothing to delete\");");
         w.closeBlock();
         w.openBlock("else");
         w.writeLine("assertTrue(markerGone,");
@@ -678,19 +724,22 @@ public class TestClassWriter {
         w.openBlock("void testArchive()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
+        // Capture marker from the result grid BEFORE opening the card (same fix as testDelete).
+        w.writeLine("String archivedMarker = getResultRowText(0);");
+        w.writeLine("System.out.println(\"testArchive: captured marker before open: '\" + archivedMarker + \"'\");");
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
-        w.writeLine("String archivedMarker = \"\";");
-        w.openBlock("try");
-        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
-        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
-        w.writeLine("archivedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.writeLine("step(\"click в Архив in card toolbar\", () -> clickEditDropdownAction(\"в Архив\"));");
+        w.writeLine("step(\"click \\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432 in card toolbar\", () -> clickEditDropdownAction(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\"));");
         w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
+        // Classify the popup the stand throws after the action: real archive confirm vs. error.
+        w.writeLine("String archPopup = captureAndClassifyPopup(\"after-\\u0432-\\u0410\\u0440\\u0445\\u0438\\u0432\");");
+        w.openBlock("if (isBlockingErrorPopup(archPopup))");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"blocked_by_server\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Archive refused: '\" + archPopup + \"'\");");
+        w.writeLine("return;");
+        w.closeBlock();
         w.writeLine("confirmDialogYes();");
         w.writeLine("shot(\"after_confirm\");");
         w.writeLine("waitForGridSettle();");

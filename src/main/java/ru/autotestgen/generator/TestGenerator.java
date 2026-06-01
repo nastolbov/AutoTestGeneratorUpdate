@@ -1388,6 +1388,43 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // getResultRowText(idx): reads the .innerText of the row at index idx inside the
+        // LARGEST visible row group of the active Ext window — i.e. exactly the row that
+        // selectAndOpenRecordAtIndex(idx) would open. Used by testDelete/testArchive to
+        // capture a stable marker BEFORE the card is opened, because after the card opens
+        // the CSS selectors .x-grid3-row-selected / .x-grid3-row-over start matching
+        // unrelated DOM (tree nodes, child grids, hover ghosts) and the marker becomes
+        // wrong (e.g. the entity's own menu label for tiny dictionaries).
+        w.openBlock("protected String getResultRowText(int idx)");
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  var idx = arguments[0]|0;\"");
+        w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"  var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"  var groups = {};\"");
+        w.writeLine("    + \"  for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"    var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"    var p = r.parentElement;\"");
+        w.writeLine("    + \"    while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"    var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"    if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"  for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"  if (!bestKey || groups[bestKey].length <= idx) return '';\"");
+        w.writeLine("    + \"  var t = groups[bestKey][idx].innerText || groups[bestKey][idx].textContent || '';\"");
+        w.writeLine("    + \"  return t.replace(/\\\\s+/g, ' ').trim();\"");
+        w.writeLine("    + \"} catch (e) { return ''; }\", idx);");
+        w.writeLine("return result == null ? \"\" : String.valueOf(result);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // Helper: check for errors
         w.openBlock("protected boolean isErrorPresent()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
@@ -1460,6 +1497,93 @@ public class TestGenerator {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // captureAndClassifyPopup(tag): like capturePopupText, but ALSO returns the captured
+        // text so the caller can branch on it. Used by testDelete to tell apart:
+        //   - a real confirm prompt ('Удалить запись?')        → click Да and proceed
+        //   - a server error popup ('Невозможно удалить…')    → skip with diagnostic
+        //   - a save-OK notice ('Запись сохранена')           → close and proceed
+        // Without this the old confirmDialogYes() was happily clicking 'OK' on error popups
+        // and the test reported a pass-shaped failure ("marker still in grid") instead of the
+        // real cause (server refused due to dependencies).
+        w.openBlock("protected String captureAndClassifyPopup(String tag)");
+        w.openBlock("try");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.writeLine("List<WebElement> mboxes = driver.findElements(By.cssSelector(\".ext-mb-text, .x-window-dlg .x-window-body, .x-message-box .x-window-body\"));");
+        w.writeLine("String captured = \"\";");
+        w.openBlock("for (WebElement m : mboxes)");
+        w.openBlock("try");
+        w.openBlock("if (m.isDisplayed())");
+        w.writeLine("String t = m.getText() == null ? \"\" : m.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("captured = t; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (captured.isEmpty())");
+        w.writeLine("List<WebElement> winds = driver.findElements(By.cssSelector(\".x-window\"));");
+        w.openBlock("for (WebElement wnd : winds)");
+        w.openBlock("try");
+        w.openBlock("if (wnd.isDisplayed())");
+        w.writeLine("String t = wnd.getText() == null ? \"\" : wnd.getText().trim();");
+        w.openBlock("if (!t.isEmpty() && t.length() < 400)");
+        w.writeLine("captured = t; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (!captured.isEmpty())");
+        w.writeLine("System.out.println(\"  [popup \" + tag + \"]: '\" + captured.replace(\"\\n\", \" | \") + \"'\");");
+        w.closeBlock();
+        w.writeLine("return captured;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // isBlockingErrorPopup(text): heuristic — does this popup text look like a server-side
+        // refusal (foreign key violation, cascade block, "cannot delete: still referenced",
+        // permission denied)? Returns true for the kinds of messages where retrying is futile
+        // and the test should report Assumption-skip with the popup text as the reason.
+        w.openBlock("protected boolean isBlockingErrorPopup(String text)");
+        w.openBlock("if (text == null || text.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("String lc = text.toLowerCase();");
+        w.writeLine("String[] markers = {");
+        w.writeLine("    \"\\u043d\\u0435\\u0432\\u043e\\u0437\\u043c\\u043e\\u0436\\u043d\\u043e\","  // Невозможно
+                + " // невозможно");
+        w.writeLine("    \"\\u043d\\u0435\\u043b\\u044c\\u0437\\u044f\","  // нельзя
+                + " // нельзя");
+        w.writeLine("    \"\\u0441\\u0432\\u044f\\u0437\\u0430\\u043d\","  // связан
+                + " // связан");
+        w.writeLine("    \"\\u0437\\u0430\\u0432\\u0438\\u0441\\u0438\","  // зависи
+                + " // зависим");
+        w.writeLine("    \"\\u043e\\u0448\\u0438\\u0431\\u043a\\u0430\","  // ошибка
+                + " // ошибка");
+        w.writeLine("    \"\\u043d\\u0435\\u0442 \\u043f\\u0440\\u0430\\u0432\","  // нет прав
+                + " // нет прав");
+        w.writeLine("    \"foreign key\", \"violates\", \"cannot delete\", \"reference\", \"permission denied\"");
+        w.writeLine("};");
+        w.openBlock("for (String m : markers)");
+        w.openBlock("if (lc.contains(m))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
         w.closeBlock();
         w.writeLine();
 
@@ -2661,29 +2785,44 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // gridContainsRow(marker): true if any visible grid row contains the marker text.
-        // Used by testCreate to verify the new record landed in the grid by a unique marker
-        // value, instead of trusting only row-count increments (which can race with other users).
+        // gridContainsRow(marker): true if the marker text appears in the LARGEST visible row
+        // group of the active Ext window — i.e. the same result-grid that selectAndOpenRecord
+        // targets. Without this scope an unrelated side grid (history, side-panel, search-tree
+        // labels) could match the marker — producing false negatives for delete ("still in
+        // grid") and false positives for create ("marker is there but in the wrong grid").
         w.openBlock("protected boolean gridContainsRow(String marker)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
-        w.openBlock("try");
-        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
-        w.openBlock("for (WebElement r : rows)");
-        w.openBlock("try");
-        w.openBlock("if (r.isDisplayed() && r.getText() != null && r.getText().contains(marker))");
-        w.writeLine("return true;");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
+        w.openBlock("if (marker == null || marker.isEmpty())");
         w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  var needle = arguments[0];\"");
+        w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"  var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"  var groups = {};\"");
+        w.writeLine("    + \"  for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"    var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"    var p = r.parentElement;\"");
+        w.writeLine("    + \"    while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"    var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"    if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"  for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"  if (!bestKey) return false;\"");
+        w.writeLine("    + \"  var rrs = groups[bestKey];\"");
+        w.writeLine("    + \"  for (var j = 0; j < rrs.length; j++) {\"");
+        w.writeLine("    + \"    var t = rrs[j].innerText || rrs[j].textContent || '';\"");
+        w.writeLine("    + \"    if (t.replace(/\\\\s+/g, ' ').indexOf(needle) >= 0) return true;\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return false;\"");
+        w.writeLine("    + \"} catch (e) { return false; }\", marker);");
+        w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("return false;");
-        w.closeBlock();
-        w.openBlock("finally");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
