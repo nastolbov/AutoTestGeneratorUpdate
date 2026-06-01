@@ -427,18 +427,25 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // Stamp the marker FIRST into the marker field, THEN fill all OTHER fields. Critical:
-        // fillPropertyGridField has NO skip-if-already-filled guard, so a plain fillAllFields()
-        // would re-open the marker cell and overwrite 'AT…' with the default test value — the
-        // record then saves under e.g. 'Test_GBS_NAME', and the post-save gridContainsRow('AT…')
-        // returns false even though the row exists. The fillAllFields(skip) overload below is
-        // told to leave the marker field alone so the marker survives into the saved record.
+        // Two-shot marker stamping. Some entities (e.g. GSKOGSK) have CONDITIONAL fields:
+        // 'Наименование ГСК/ОГСК' is hidden until 'Тип ГСК/ОГСК' (FK) is selected, so the
+        // first stamp would silently SKIP (label cell not in DOM) and fillAllFields(skip=name)
+        // would leave the field empty — save fails on required validation. Strategy:
+        //   1) Try stamping marker first (works when the field is unconditional, e.g. Soveshchanie).
+        //   2) Fill everything else, EXCLUDING the marker field (skip arg). This selects FKs and
+        //      makes any conditional dependent fields appear.
+        //   3) Drop the active inline editor (blur) and stamp the marker AGAIN. If step 1
+        //      already worked, step 3 just overwrites AT… with AT… (same value, no-op). If
+        //      step 1 SKIPped because the field was hidden, step 3 now sees a visible cell.
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-            w.writeLine("step(\"stamp marker first\", () -> page." + fillMethod + "(createdMarker));");
+            w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(createdMarker));");
+            w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
+            // Blur any open inline editor so the second stamp can re-activate cleanly.
+            w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
+            w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
-            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
             w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
@@ -484,6 +491,25 @@ public class TestClassWriter {
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
+            // Diagnostic dump on FAIL: where did the marker go? Are we even on the right grid?
+            // This used to fail with no signal — print URL, title, and a probe of the body text
+            // so the next attempt can be debugged without a screenshot dive.
+            w.openBlock("if (!markerInGrid)");
+            w.openBlock("try");
+            w.writeLine("System.out.println(\"  [testCreate FAIL diag] URL=\" + driver.getCurrentUrl() + \" Title='\" + driver.getTitle() + \"'\");");
+            w.writeLine("Object probe = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+            w.writeLine("    \"try {\"");
+            w.writeLine("    + \"  var b = document.body ? (document.body.innerText || document.body.textContent || '') : '';\"");
+            w.writeLine("    + \"  var inBody = b.indexOf(arguments[0]) >= 0;\"");
+            w.writeLine("    + \"  var n = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+            w.writeLine("    + \"  var awTitle = n && n.title ? String(n.title) : '(none)';\"");
+            w.writeLine("    + \"  return 'marker-in-body=' + inBody + ' activeWindow=' + awTitle + ' bodyLen=' + b.length;\"");
+            w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", createdMarker);");
+            w.writeLine("System.out.println(\"  [testCreate FAIL diag] \" + probe);");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.closeBlock();
             // Маркер в гриде — единственный надёжный сигнал. Row count считает ВСЕ
             // .x-grid3-row на странице, включая чужие гриды (история, документы и т.п.)
             // и поэтому скачет. Маркер — конкретный уникальный текст этой записи.

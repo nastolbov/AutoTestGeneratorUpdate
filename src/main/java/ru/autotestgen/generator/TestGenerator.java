@@ -2869,6 +2869,12 @@ public class TestGenerator {
         w.writeLine("    + \"      }\"");
         w.writeLine("    + \"    }\"");
         w.writeLine("    + \"  }\"");
+        // Last-resort fallback: full document.body.innerText scan. Marker is 'AT<nanoTime>'
+        // — globally unique on the page, zero false-positive risk. Catches records that
+        // landed in some store/grid we didn't enumerate above (buffered renderers,
+        // sub-windows, deeply nested panels).
+        w.writeLine("    + \"  var bodyText = document.body ? (document.body.innerText || document.body.textContent || '') : '';\"");
+        w.writeLine("    + \"  if (bodyText.indexOf(needle) >= 0) return true;\"");
         w.writeLine("    + \"  return false;\"");
         w.writeLine("    + \"} catch (e) { return false; }\", marker);");
         w.writeLine("return Boolean.TRUE.equals(result);");
@@ -3153,9 +3159,10 @@ public class TestGenerator {
         w.writeLine();
 
         w.openBlock("protected boolean waitForDialogClose()");
-        // 2с достаточно — реальное закрытие диалога ExtJS занимает <500мс. Раньше было 4с
-        // и каждый отказ формы съедал 4с зря на каждый submit (несколько раз за тест).
-        w.writeLine("return waitUntil(d -> !isDialogOpen(), 2, \"dialog close\");");
+        // 5с (было 2с): на GSK-стенде save-round-trip после «Готово» занимает 3-4с —
+        // при 2с-таймауте тест преждевременно решал «диалог не закрылся», давил Отмену
+        // и create молча отменялся. 5с покрывает реальное закрытие, но не зависает теста.
+        w.writeLine("return waitUntil(d -> !isDialogOpen(), 5, \"dialog close\");");
         w.closeBlock();
         w.writeLine();
 
