@@ -2852,7 +2852,24 @@ public class TestGenerator {
         w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
         w.writeLine("    + \"  var awRoot = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : null;\"");
         w.writeLine("    + \"  if (awRoot && searchIn(awRoot)) return true;\"");
-        w.writeLine("    + \"  return searchIn(document);\"");
+        w.writeLine("    + \"  if (searchIn(document)) return true;\"");
+        // Fallback: scan ExtJS grid STORES, not just rendered rows. A buffered/paged grid keeps
+        // all loaded records in its store even when only a viewport of rows is in the DOM, so the
+        // freshly-created record can be present in the store yet invisible to the DOM scan above.
+        w.writeLine("    + \"  if (typeof Ext !== 'undefined') {\"");
+        w.writeLine("    + \"    var all = (Ext.ComponentMgr && Ext.ComponentMgr.all) ? Ext.ComponentMgr.all : ((Ext.ComponentManager && Ext.ComponentManager.all) ? Ext.ComponentManager.all : null);\"");
+        w.writeLine("    + \"    var comps = [];\"");
+        w.writeLine("    + \"    if (all) { if (all.items) comps = all.items; else if (all.each) all.each(function(c){comps.push(c);}); else for (var k in all) comps.push(all[k]); }\"");
+        w.writeLine("    + \"    for (var ci = 0; ci < comps.length; ci++) {\"");
+        w.writeLine("    + \"      var c = comps[ci]; if (!c || !c.getStore || !c.getColumnModel) continue;\"");
+        w.writeLine("    + \"      var s = c.getStore(); if (!s || !s.getCount) continue;\"");
+        w.writeLine("    + \"      for (var ri = 0; ri < s.getCount(); ri++) {\"");
+        w.writeLine("    + \"        var rec = s.getAt(ri); if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"        for (var f in rec.data) { var dv = rec.data[f]; if (dv != null && String(dv).indexOf(needle) >= 0) return true; }\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return false;\"");
         w.writeLine("    + \"} catch (e) { return false; }\", marker);");
         w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();

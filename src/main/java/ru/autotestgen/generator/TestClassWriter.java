@@ -427,22 +427,22 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // Stamp the marker FIRST, then fillAllFields. Reason: PropertyGrid commits a cell with
-        // Tab and closes its inline editor. If we run fillAllFields first and only afterwards
-        // re-open the marker cell, the second click often hits a non-editable state — the value
-        // stays as 'Test_GBS_NAME' from fillAllFields, the marker 'AT…' silently fails to land,
-        // and the post-save grid search for 'AT…' returns false. By stamping first the marker
-        // is the FIRST write into a freshly-opened cell, and fillAllFields then SKIPs the same
-        // field (PropertyGrid sees it as already filled, no second click).
+        // Stamp the marker FIRST into the marker field, THEN fill all OTHER fields. Critical:
+        // fillPropertyGridField has NO skip-if-already-filled guard, so a plain fillAllFields()
+        // would re-open the marker cell and overwrite 'AT…' with the default test value — the
+        // record then saves under e.g. 'Test_GBS_NAME', and the post-save gridContainsRow('AT…')
+        // returns false even though the row exists. The fillAllFields(skip) overload below is
+        // told to leave the marker field alone so the marker survives into the saved record.
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
             w.writeLine("step(\"stamp marker first\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
+            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
+            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         }
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         w.writeLine("shot(\"all_fields_filled\");");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об

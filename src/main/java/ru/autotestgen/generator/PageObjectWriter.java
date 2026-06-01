@@ -683,11 +683,21 @@ public class PageObjectWriter {
     }
 
     private void writeFillAllFieldsMethod(JavaFileWriter w, List<Property> properties) {
+        // Plain entry point: fill every field.
         w.openBlock("public void fillAllFields()");
+        w.writeLine("fillAllFields(java.util.Collections.<String>emptySet());");
+        w.closeBlock();
+        w.writeLine();
+        // Overload that SKIPS the given display names. testCreate stamps a unique marker into
+        // one field first, then calls this with that field's name so fillAllFields does NOT
+        // overwrite the marker with the default test value (which broke the post-save
+        // gridContainsRow check — record saved, but under 'Test_…' instead of the marker).
+        w.openBlock("public void fillAllFields(java.util.Set<String> skipDisplayNames)");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
+            w.openBlock("if (!skipDisplayNames.contains(\"" + prop.getName() + "\"))");
             if (value == null) {
                 // FK / Directory / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
                 w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
@@ -695,6 +705,7 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
+            w.closeBlock();
         }
         w.closeBlock();
         w.writeLine();
