@@ -399,7 +399,7 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(50);");
+        w.writeLine("Thread.sleep(150);");
         // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
         // может не зафиксироваться без явного коммита. ENTER заставляет combobox завершить
         // выбор и закрыть picker, привязывая значение к record'у. Потом TAB сдвигает фокус
@@ -407,9 +407,9 @@ public class PageObjectWriter {
         w.openBlock("try");
         w.writeLine("org.openqa.selenium.WebElement focused = driver.switchTo().activeElement();");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(50);");
+        w.writeLine("Thread.sleep(150);");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("Thread.sleep(50);");
+        w.writeLine("Thread.sleep(150);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
