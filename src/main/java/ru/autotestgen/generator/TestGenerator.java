@@ -320,6 +320,9 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        // Browser restart drops session — invalidate subsystem cache so the next
+        // selectSubsystem() actually clicks the launcher tile again.
+        w.writeLine("currentSubsystem = null;");
         w.writeLine("setupDriver();");
         w.writeLine("performLogin();");
         w.closeBlock();
@@ -385,6 +388,11 @@ public class TestGenerator {
         // ("Subsystem selection failed" → all 24 tests SKIP). Broader locator + longer wait fixes.
         w.writeLine("/** Double-clicks the tile of the given subsystem and verifies the launcher was left. */");
         w.openBlock("private static boolean selectSubsystem(String name)");
+        // JVM-wide cache: skip launcher double-click + 2s wait if the subsystem is already open.
+        w.openBlock("if (name != null && name.equals(currentSubsystem))");
+        w.writeLine("System.out.println(\"Subsystem '\" + name + \"' already selected (cache hit)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
         w.openBlock("try");
         w.writeLine("WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(12));");
         w.writeLine("WebElement tile = longWait.until(ExpectedConditions.elementToBeClickable(");
@@ -400,16 +408,19 @@ public class TestGenerator {
         w.writeLine("List<WebElement> menuBtns = driver.findElements(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + name + \"')]\"));");
         w.openBlock("if (menuBtns.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (menu button)\");");
+        w.writeLine("currentSubsystem = name;");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-strip-active\"));");
         w.openBlock("if (tabs.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (tab strip visible)\");");
+        w.writeLine("currentSubsystem = name;");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("List<WebElement> header = driver.findElements(By.xpath(\"//*[contains(text(), '\\u0414\\u043e\\u0441\\u0442\\u0443\\u043f\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u044b')]\"));");
         w.openBlock("if (header.stream().noneMatch(WebElement::isDisplayed))");
         w.writeLine("System.out.println(\"Subsystem '\" + name + \"' selected (launcher header gone)\");");
+        w.writeLine("currentSubsystem = name;");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("return false;");
@@ -615,6 +626,12 @@ public class TestGenerator {
         // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
         w.writeLine("protected boolean navigationAttempted = false;");
         w.writeLine("protected boolean cachedNavigationOk = false;");
+        // JVM-wide cache of menu paths: entityName → which top menu button held the entity.
+        // First class finds it via full descendMenu sweep; later classes try that button first.
+        w.writeLine("protected static final java.util.Map<String, String> MENU_PATH_CACHE = new java.util.concurrent.ConcurrentHashMap<>();");
+        // JVM-wide cache of the subsystem that is currently selected — if a later test class
+        // wants the same one, skip the launcher double-click and the 2-second wait that follows.
+        w.writeLine("protected static volatile String currentSubsystem = null;");
         // Cache card-open result: after the first openRecordCard attempt fails, subsequent
         // testGrid* tests in the same class instance skip the 5-strategy retry (which costs
         // ~30-50 seconds per attempt). Saves ~2-3 minutes per typical run.
@@ -874,7 +891,16 @@ public class TestGenerator {
         w.openBlock("private void navigateE3Core(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        // MENU_PATH_CACHE: if we've already found this entity once, try its known top-menu
+        // button FIRST. Falls back to the full sweep below if the cached button no longer works.
+        w.writeLine("String cachedTop = MENU_PATH_CACHE.get(entityName);");
+        w.writeLine("String[] menuButtons;");
+        w.openBlock("if (cachedTop != null)");
+        w.writeLine("menuButtons = new String[]{cachedTop, TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("menuButtons = new String[]{TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.closeBlock();
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -882,6 +908,7 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(300);");
         w.openBlock("if (descendMenu(entityName, \"\\u041d\\u0430\\u0439\\u0442\\u0438\", 3, new java.util.HashSet<>()))");
         w.writeLine("navigationOk = true;");
+        w.writeLine("MENU_PATH_CACHE.put(entityName, menuName);");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");

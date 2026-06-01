@@ -117,9 +117,9 @@ public class PageObjectWriter {
         w.writeLine("    .perform();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("try { valueCell.click(); Thread.sleep(200); valueCell.click(); } catch (Exception ignored) {}");
+        w.writeLine("try { valueCell.click(); Thread.sleep(50); valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(50);");
         // Найти видимый input редактора
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
         w.writeLine("WebElement editor = null;");
@@ -226,8 +226,8 @@ public class PageObjectWriter {
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' lookup: \" + loadInfo);");
         w.openBlock("if (loadInfo != null && String.valueOf(loadInfo).startsWith(\"found:\"))");
-        // Полл-ждём пока store догрузится (до 3с). Шаг 200мс.
-        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
+        // Полл-ждём пока store догрузится (до 400мс). Шаг 50мс.
+        w.writeLine("long deadline = System.currentTimeMillis() + 400;");
         w.writeLine("int storeCount = 0;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
         w.writeLine("Object c = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
@@ -236,7 +236,7 @@ public class PageObjectWriter {
         w.openBlock("if (storeCount > 0)");
         w.writeLine("break;");
         w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(50);");
         w.closeBlock();
         w.openBlock("if (storeCount == 0)");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (store stayed empty after load)\");");
@@ -324,8 +324,8 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // ExtJS combo list загружается асинхронно — ждём появления пунктов до 2.5с поллингом.
-        w.writeLine("java.util.List<WebElement> items = pollDropdownItems(2500);");
+        // ExtJS combo list загружается асинхронно — ждём появления пунктов до 320мс поллингом.
+        w.writeLine("java.util.List<WebElement> items = pollDropdownItems(320);");
         w.openBlock("if (items.isEmpty())");
         w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(");
         w.writeLine("    \"img.x-form-trigger, div.x-form-trigger, .x-form-trigger-wrap img, td.x-trigger-cell img\"));");
@@ -333,7 +333,7 @@ public class PageObjectWriter {
         w.openBlock("try");
         w.openBlock("if (t.isDisplayed())");
         w.writeLine("t.click();");
-        w.writeLine("items = pollDropdownItems(2000);");
+        w.writeLine("items = pollDropdownItems(250);");
         w.openBlock("if (!items.isEmpty())");
         w.writeLine("break;");
         w.closeBlock();
@@ -348,7 +348,7 @@ public class PageObjectWriter {
         w.openBlock("if (items.isEmpty())");
         w.openBlock("try");
         w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.F4);");
-        w.writeLine("items = pollDropdownItems(1500);");
+        w.writeLine("items = pollDropdownItems(200);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -399,7 +399,7 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(50);");
         // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
         // может не зафиксироваться без явного коммита. ENTER заставляет combobox завершить
         // выбор и закрыть picker, привязывая значение к record'у. Потом TAB сдвигает фокус
@@ -407,9 +407,9 @@ public class PageObjectWriter {
         w.openBlock("try");
         w.writeLine("org.openqa.selenium.WebElement focused = driver.switchTo().activeElement();");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(50);");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(50);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -442,8 +442,8 @@ public class PageObjectWriter {
         w.writeLine();
 
         // pollDropdownItems: ждёт пока выпадающий список появится (до timeoutMs мс),
-        // опрашивая DOM каждые 200мс. ExtJS combo list иногда подгружается store'ом
-        // асинхронно — фиксированная пауза 500мс была слишком короткой.
+        // опрашивая DOM каждые 25мс. ExtJS combo list иногда подгружается store'ом
+        // асинхронно.
         w.openBlock("private java.util.List<WebElement> pollDropdownItems(int timeoutMs)");
         w.writeLine("long deadline = System.currentTimeMillis() + timeoutMs;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
@@ -452,7 +452,7 @@ public class PageObjectWriter {
         w.writeLine("return items;");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(25);");
         w.closeBlock();
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
