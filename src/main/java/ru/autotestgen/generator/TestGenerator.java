@@ -2785,11 +2785,14 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // gridContainsRow(marker): true if the marker text appears in the LARGEST visible row
-        // group of the active Ext window — i.e. the same result-grid that selectAndOpenRecord
-        // targets. Without this scope an unrelated side grid (history, side-panel, search-tree
-        // labels) could match the marker — producing false negatives for delete ("still in
-        // grid") and false positives for create ("marker is there but in the wrong grid").
+        // gridContainsRow(marker): true if the marker text appears in any result-style grid row
+        // visible on the page. Strategy: try the LARGEST visible row group in the active Ext
+        // window first (scoped — avoids matching a sibling grid like 'History' or a search-tree
+        // label). If that returns nothing — and especially after navigateToEntity, when the
+        // 'active window' may be the freshly-opened "Дерево поисков" instead of the actual
+        // result grid — fall back to scanning ALL .x-grid3-row's on the document. The marker
+        // is a synthetic "AT<nanoTime>" string, so the chance of a false positive against
+        // unrelated DOM is essentially zero.
         w.openBlock("protected boolean gridContainsRow(String marker)");
         w.openBlock("if (marker == null || marker.isEmpty())");
         w.writeLine("return false;");
@@ -2798,26 +2801,30 @@ public class TestGenerator {
         w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  var needle = arguments[0];\"");
+        w.writeLine("    + \"  function searchIn(root) {\"");
+        w.writeLine("    + \"    var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"    var groups = {};\"");
+        w.writeLine("    + \"    for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"      var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"      var p = r.parentElement;\"");
+        w.writeLine("    + \"      while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"      var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"      if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"    var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"    for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"    if (!bestKey) return false;\"");
+        w.writeLine("    + \"    var rrs = groups[bestKey];\"");
+        w.writeLine("    + \"    for (var j = 0; j < rrs.length; j++) {\"");
+        w.writeLine("    + \"      var t = rrs[j].innerText || rrs[j].textContent || '';\"");
+        w.writeLine("    + \"      if (t.replace(/\\\\s+/g, ' ').indexOf(needle) >= 0) return true;\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"    return false;\"");
+        w.writeLine("    + \"  }\"");
         w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
-        w.writeLine("    + \"  var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
-        w.writeLine("    + \"  var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
-        w.writeLine("    + \"  var groups = {};\"");
-        w.writeLine("    + \"  for (var i = 0; i < rows.length; i++) {\"");
-        w.writeLine("    + \"    var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
-        w.writeLine("    + \"    var p = r.parentElement;\"");
-        w.writeLine("    + \"    while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
-        w.writeLine("    + \"    var key = p ? (p.id || p.className) : 'none';\"");
-        w.writeLine("    + \"    if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  var bestKey = null, bestCount = 0;\"");
-        w.writeLine("    + \"  for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
-        w.writeLine("    + \"  if (!bestKey) return false;\"");
-        w.writeLine("    + \"  var rrs = groups[bestKey];\"");
-        w.writeLine("    + \"  for (var j = 0; j < rrs.length; j++) {\"");
-        w.writeLine("    + \"    var t = rrs[j].innerText || rrs[j].textContent || '';\"");
-        w.writeLine("    + \"    if (t.replace(/\\\\s+/g, ' ').indexOf(needle) >= 0) return true;\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return false;\"");
+        w.writeLine("    + \"  var awRoot = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : null;\"");
+        w.writeLine("    + \"  if (awRoot && searchIn(awRoot)) return true;\"");
+        w.writeLine("    + \"  return searchIn(document);\"");
         w.writeLine("    + \"} catch (e) { return false; }\", marker);");
         w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();
