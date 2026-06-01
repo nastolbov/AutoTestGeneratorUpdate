@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Common — исходная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Исходная диаграмма классов пакета «Common»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Common" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_jfw" value="JavaFileWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_tr" value="Transliterator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_pe" value="ParserException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Исходная диаграмма: три утилитарных класса пакета Common." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

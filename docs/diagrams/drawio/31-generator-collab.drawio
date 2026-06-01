@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Generator — collaboration">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма кооперации пакета «Generator»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Generator" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mc" value=":MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tg" value=":TestGenerator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="420" y="300" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcw" value=":TestClassWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pow" value=":PageObjectWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="300" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tdf" value=":TestDataFactory" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="500" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr" value=":TestRunner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="420" y="600" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_rrw" value=":RunReportWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="700" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l0" value="1: generate(model)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_tg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1" value="2: write(entity)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_tg" target="c_pow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="3: generateValue" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_pow" target="c_tdf">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3" value="4: write(entity)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_tg" target="c_tcw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4" value="5: generateValueExpression" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_tcw" target="c_tdf">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l5" value="6: run(…)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_tr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l6" value="7: write/writeCsv" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_tr" target="c_rrw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Кооперация: TestGenerator оркестрирует Writers, TestRunner оркестрирует Maven + RunReportWriter." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

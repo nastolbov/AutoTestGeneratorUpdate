@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Generator — sequence (нормальный ход событий)">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2020" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма последовательности пакета «Generator» — нормальный ход событий" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1940" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_head" value="MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="140" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tg_head" value="TestGenerator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tg_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="120" as="sourcePoint"/>
+            <mxPoint x="420" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcw_head" value="TestClassWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tcw_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="120" as="sourcePoint"/>
+            <mxPoint x="700" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pow_head" value="PageObjectWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="880" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="pow_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="120" as="sourcePoint"/>
+            <mxPoint x="980" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tdf_head" value="TestDataFactory" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1160" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tdf_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1260" y="120" as="sourcePoint"/>
+            <mxPoint x="1260" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr_head" value="TestRunner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1440" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tr_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1540" y="120" as="sourcePoint"/>
+            <mxPoint x="1540" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rrw_head" value="RunReportWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1720" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="rrw_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1820" y="120" as="sourcePoint"/>
+            <mxPoint x="1820" y="1030" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m0" value="generate(model)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="100" as="sourcePoint"/>
+            <mxPoint x="420" y="100" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="150" as="sourcePoint"/>
+            <mxPoint x="500" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="150" as="sourcePoint"/>
+            <mxPoint x="500" y="174" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="174" as="sourcePoint"/>
+            <mxPoint x="420" y="174" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1_lbl" value="generatePom / generateBaseTest / generateSharedDriver" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="430" y="132" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m2" value="write(entity, model, outDir)  для каждой сущности" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="210" as="sourcePoint"/>
+            <mxPoint x="980" y="210" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="generateValue / generateFromMask" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="260" as="sourcePoint"/>
+            <mxPoint x="1260" y="260" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="значение" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1260" y="310" as="sourcePoint"/>
+            <mxPoint x="980" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="write(entity, model, outDir)  для каждой сущности" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="370" as="sourcePoint"/>
+            <mxPoint x="700" y="370" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="generateValueExpression(p)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="420" as="sourcePoint"/>
+            <mxPoint x="1260" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="выражение" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1260" y="470" as="sourcePoint"/>
+            <mxPoint x="700" y="470" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="✓" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="520" as="sourcePoint"/>
+            <mxPoint x="420" y="520" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="run(outDir, xml, baseUrl, filter, fast)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="590" as="sourcePoint"/>
+            <mxPoint x="1540" y="590" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1540" y="640" as="sourcePoint"/>
+            <mxPoint x="1620" y="640" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1620" y="640" as="sourcePoint"/>
+            <mxPoint x="1620" y="664" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1620" y="664" as="sourcePoint"/>
+            <mxPoint x="1540" y="664" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10_lbl" value="exec mvn test → читаем surefire-reports" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="1550" y="622" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m11" value="write(htmlPath, result)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1540" y="700" as="sourcePoint"/>
+            <mxPoint x="1820" y="700" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m12" value="writeCsv(csvPath, result)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1540" y="750" as="sourcePoint"/>
+            <mxPoint x="1820" y="750" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m13" value="TestRunResult" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1540" y="800" as="sourcePoint"/>
+            <mxPoint x="140" y="800" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="Нормальный ход: генерация проекта (TestGenerator → Writers) → запуск Maven (TestRunner) → отчёт HTML/CSV (RunReportWriter)." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="1050" width="1940" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

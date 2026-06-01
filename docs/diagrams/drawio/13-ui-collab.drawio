@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="UI — collaboration">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма кооперации пакета «UI»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» UI" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_act" value=":Пользователь" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mc" value=":MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="460" y="200" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_par" value=":XmlModelParser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="820" y="100" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_gen" value=":TestGenerator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="820" y="300" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr" value=":TestRunner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_dao" value=":ReportDao" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="1140" y="300" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l0" value="1: onParse / onGenerate / onRunTests" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_act" target="c_mc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1" value="2: parse(xml)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_par">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="3: generate(model)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_gen">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3" value="4: run(…)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_tr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4" value="5: saveRun(result)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_dao">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l5" value="6: getAllRuns() — История" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_mc" target="c_dao">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Кооперация: MainController оркестрирует все остальные пакеты, пользователь общается только с ним." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

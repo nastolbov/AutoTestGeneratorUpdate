@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Common — sequence (прерывание системой)">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1020" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма последовательности пакета «Common» — прерывание системой" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="940" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="client_head" value="Клиент" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="client_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="140" y="630" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="jfw_head" value="JavaFileWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="jfw_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="120" as="sourcePoint"/>
+            <mxPoint x="480" y="630" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fs_head" value="Files (NIO)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="fs_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="120" as="sourcePoint"/>
+            <mxPoint x="820" y="630" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m0" value="writeToFile(dir, name)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="100" as="sourcePoint"/>
+            <mxPoint x="480" y="100" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" value="Files.createDirectories(dir)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="160" as="sourcePoint"/>
+            <mxPoint x="820" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="Files.writeString(path, sb, UTF_8)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="220" as="sourcePoint"/>
+            <mxPoint x="820" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="IOException (нет места / нет прав)" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="280" as="sourcePoint"/>
+            <mxPoint x="480" y="280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="throws IOException" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="340" as="sourcePoint"/>
+            <mxPoint x="140" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="400" as="sourcePoint"/>
+            <mxPoint x="220" y="400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="220" y="400" as="sourcePoint"/>
+            <mxPoint x="220" y="424" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="220" y="424" as="sourcePoint"/>
+            <mxPoint x="140" y="424" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_lbl" value="catch + log + showAlert" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="150" y="382" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Прерывание системой: IOException при записи файла пробрасывается клиенту." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="650" width="940" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

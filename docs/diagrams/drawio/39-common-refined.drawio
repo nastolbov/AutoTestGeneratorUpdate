@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Common — уточнённая диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Уточнённая диаграмма классов пакета «Common»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Common" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1620" height="800" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_jfw" value="JavaFileWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="500" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_jfw_a" value="- sb: StringBuilder\n- indentLevel: int  - INDENT: String\n+ writeLine/openBlock/closeBlock/writeToFile" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="co_jfw">
+          <mxGeometry y="30" width="500" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_tr" value="Transliterator" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="620" y="130" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_tr_a" value="- MAPPING: Map&lt;Character,String&gt;\n+ toClassName/toMethodName/toFieldName" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="co_tr">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_pe" value="ParserException extends Exception" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1160" y="130" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="co_pe_a" value="+ ParserException(message)\n+ ParserException(message, cause)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="co_pe">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Уточнённая диаграмма: три класса не зависят друг от друга, используются всеми остальными пакетами." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="890" width="1620" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

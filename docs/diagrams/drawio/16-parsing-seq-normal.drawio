@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Parsing — sequence (нормальный ход событий)">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="830" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма последовательности пакета «Parsing» — нормальный ход событий" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_head" value="MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="140" y="760" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="par_head" value="XmlModelParser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="par_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="120" as="sourcePoint"/>
+            <mxPoint x="440" y="760" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rd_head" value="XMLStreamReader" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="rd_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="740" y="120" as="sourcePoint"/>
+            <mxPoint x="740" y="760" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_head" value="AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="model_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1040" y="120" as="sourcePoint"/>
+            <mxPoint x="1040" y="760" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m0" value="parse(file)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="100" as="sourcePoint"/>
+            <mxPoint x="440" y="100" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" value="createXMLStreamReader" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="150" as="sourcePoint"/>
+            <mxPoint x="740" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="new AppModel()" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="200" as="sourcePoint"/>
+            <mxPoint x="1040" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="next()  цикл START_ELEMENT" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="250" as="sourcePoint"/>
+            <mxPoint x="740" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="300" as="sourcePoint"/>
+            <mxPoint x="520" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="300" as="sourcePoint"/>
+            <mxPoint x="520" y="324" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="324" as="sourcePoint"/>
+            <mxPoint x="440" y="324" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4_lbl" value="parseObject(reader, model)" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="450" y="282" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m5_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="360" as="sourcePoint"/>
+            <mxPoint x="520" y="360" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="360" as="sourcePoint"/>
+            <mxPoint x="520" y="384" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="384" as="sourcePoint"/>
+            <mxPoint x="440" y="384" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_lbl" value="parsePropertyGroup, parseProperty…" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="450" y="342" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m6_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="420" as="sourcePoint"/>
+            <mxPoint x="520" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="420" as="sourcePoint"/>
+            <mxPoint x="520" y="444" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="444" as="sourcePoint"/>
+            <mxPoint x="440" y="444" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6_lbl" value="parseSearches(reader, model)" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="450" y="402" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m7" value="close()" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="480" as="sourcePoint"/>
+            <mxPoint x="740" y="480" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="AppModel" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="530" as="sourcePoint"/>
+            <mxPoint x="140" y="530" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="Нормальный ход: XML читается потоково; для каждого &lt;Object&gt;, &lt;Properties&gt;, &lt;Property&gt;, &lt;Searches&gt; вызывается свой parse-метод." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="1160" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

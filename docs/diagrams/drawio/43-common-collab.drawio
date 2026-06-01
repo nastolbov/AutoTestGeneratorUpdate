@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Common — collaboration">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма кооперации пакета «Common»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Common" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_client" value=":Клиент (Writer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_jfw" value=":JavaFileWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="440" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr" value=":Transliterator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="440" y="480" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_fs" value=":Files (NIO)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="820" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pe" value=":ParserException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="820" y="480" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l0" value="1: toClassName" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_client" target="c_tr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1" value="2: openBlock/writeLine" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_client" target="c_jfw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="3: writeToFile" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_client" target="c_jfw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3" value="4: createDirectories/writeString" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_jfw" target="c_fs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4" value="5*: throw при ошибке (XmlModelParser)" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_client" target="c_pe">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Кооперация: Transliterator — pure-функция, JavaFileWriter — stateful буфер, ParserException — выбрасывается из других классов." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

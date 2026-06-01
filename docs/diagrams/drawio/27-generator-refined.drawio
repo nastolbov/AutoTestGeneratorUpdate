@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Generator — уточнённая диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Уточнённая диаграмма классов пакета «Generator»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Generator" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1620" height="800" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_cfg" value="TestConfig" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="500" height="128" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_cfg_a" value="- baseUrl, login, password: String\n- outputDir: Path\n- testLevel, siteType: String\n- smokeAllSubsystems: boolean ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_cfg">
+          <mxGeometry y="30" width="500" height="94" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tg" value="TestGenerator" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="620" y="130" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tg_a" value="- config: TestConfig\n+ generate(model: AppModel)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_tg">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tcw" value="TestClassWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1160" y="130" width="500" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tcw_a" value="- basePackage, testLevel\n- currentEntitySearches: List&lt;Search&gt; ⟵ новое\n+ write(entity, model, outDir)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_tcw">
+          <mxGeometry y="30" width="500" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_pow" value="PageObjectWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="330" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_pow_a" value="- basePackage\n+ write(entity, model, outDir)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_pow">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tdf" value="TestDataFactory" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="620" y="330" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tdf_a" value="- DATE_FORMAT, DATE_TIME_FORMAT ⟵ новое\n+ generateValue/FromMask/SearchParamValue" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_tdf">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tr" value="TestRunner" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1160" y="330" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tr_a" value="- lastMavenOutput: String\n+ run(outDir, xml, baseUrl, …, filter, fast)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_tr">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_rrw" value="RunReportWriter ⟵ новое" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="530" width="500" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_rrw_a" value="+ write(htmlPath, result)\n+ writeCsv(csvPath, result)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="g_rrw">
+          <mxGeometry y="30" width="500" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="config" style="endArrow=open;html=1;dashed=0;" edge="1" parent="1" source="g_tg" target="g_cfg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="uses" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="g_tg" target="g_tcw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="uses" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="g_tg" target="g_pow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="uses" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="g_tcw" target="g_tdf">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="writes report" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="g_tr" target="g_rrw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Уточнённая диаграмма: связи внутри пакета. ReportService удалён, отчёт о прогоне пишет новый RunReportWriter." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="890" width="1620" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

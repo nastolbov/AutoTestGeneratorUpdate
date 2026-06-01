@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Model — исходная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Исходная диаграмма классов пакета «Model»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Model" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_app" value="AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_eo" value="EntityObject" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_pg" value="PropertyGroup" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_p" value="Property" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1040" y="130" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_op" value="Operation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_mod" value="Modifier" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="240" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_opp" value="OperationParam" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_assoc" value="Association" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1040" y="240" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_s" value="Search" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="350" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_sp" value="SearchParam" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="350" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_sr" value="SearchResult" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="350" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_srp" value="SearchResultProperty" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1040" y="350" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_at" value="«enum» AttrType" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_mt" value="«enum» ModifyType" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="460" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_ec" value="EntityClassifier ⟵ новое" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="460" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_ek" value="«enum» EntityKind ⟵ новое" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1040" y="460" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_trr" value="TestRunResult" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="570" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_tcr" value="TestCaseResult" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="570" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Исходная диаграмма: все классы пакета Model. EntityClassifier и EntityKind добавлены относительно курсовой." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

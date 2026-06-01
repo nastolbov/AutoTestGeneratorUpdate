@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Model — collaboration">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма кооперации пакета «Model»" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkg" value="«package» Model" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1320" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_client" value=":Клиент" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_app" value=":AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="440" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_eo" value=":EntityObject" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pg" value=":PropertyGroup" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_p" value=":Property" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="760" y="480" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_s" value=":Search" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="1100" y="280" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_srp" value=":SearchResultProperty" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontStyle=4" vertex="1" parent="1">
+          <mxGeometry x="1100" y="480" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l0" value="1: getEntities/getSearches" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_client" target="c_app">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1" value="1.1: содержит *" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_app" target="c_eo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="1.2: содержит *" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_eo" target="c_pg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3" value="1.3: содержит *" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_pg" target="c_p">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4" value="2: содержит *" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_app" target="c_s">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l5" value="2.1: result.properties" style="endArrow=classic;html=1;fontSize=11" edge="1" parent="1" source="c_s" target="c_srp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Кооперация: модель пассивная; клиент обращается к корню (AppModel) и навигирует по композициям." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="Parsing — sequence (прерывание системой)">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1020" pageHeight="610" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Диаграмма последовательности пакета «Parsing» — прерывание системой" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="940" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_head" value="MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="mc_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="140" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="par_head" value="XmlModelParser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="par_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="120" as="sourcePoint"/>
+            <mxPoint x="480" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rd_head" value="XMLStreamReader" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="rd_life" style="endArrow=none;dashed=1;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="120" as="sourcePoint"/>
+            <mxPoint x="820" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m0" value="parse(file)" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="100" as="sourcePoint"/>
+            <mxPoint x="480" y="100" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" value="next()" style="endArrow=classic;html=1;dashed=0;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="150" as="sourcePoint"/>
+            <mxPoint x="820" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="XMLStreamException / IOException" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="200" as="sourcePoint"/>
+            <mxPoint x="480" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3_1" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="250" as="sourcePoint"/>
+            <mxPoint x="560" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3_2" style="endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="250" as="sourcePoint"/>
+            <mxPoint x="560" y="274" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3_3" style="endArrow=classic;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="274" as="sourcePoint"/>
+            <mxPoint x="480" y="274" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3_lbl" value="catch + wrap" style="text;html=1;fontSize=11;align=left" vertex="1" parent="1">
+          <mxGeometry x="490" y="232" width="220" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="throw ParserException(msg, cause)" style="endArrow=open;html=1;dashed=1;fontSize=11;align=center" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="310" as="sourcePoint"/>
+            <mxPoint x="140" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="Прерывание системой: исключения парсера (XMLStreamException, IOException) оборачиваются в ParserException." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="940" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
