@@ -1,0 +1,76 @@
+@startuml package-overview
+' Обновлённая диаграмма пакетов (Рис. 12). Главные изменения:
+'   - стрелка MainController → ReportService больше не существует
+'   - MainController обращается к Data.ReportDao напрямую
+'   - в Generator добавлен RunReportWriter
+'   - в Model появились EntityClassifier/EntityKind
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F8F9FA
+hide circle
+
+package "ui" as UI {
+  class App
+  class CliMain
+  class CliRunner
+  class MainController
+}
+
+package "parser" as Parsing {
+  class XmlModelParser
+}
+
+package "model" as Model {
+  class AppModel
+  class EntityObject
+  class Property
+  class Operation
+  class Search
+  class EntityClassifier <<новое>>
+  enum EntityKind <<новое>>
+  class TestRunResult
+  class TestCaseResult
+}
+
+package "generator" as Generator {
+  class TestConfig
+  class TestGenerator
+  class TestClassWriter
+  class PageObjectWriter
+  class TestDataFactory
+  class TestRunner
+  class RunReportWriter <<новое>>
+}
+
+package "data" as Data {
+  class ReportDao
+}
+
+package "common" as Common {
+  class JavaFileWriter
+  class Transliterator
+  class ParserException
+}
+
+UI ..> Parsing : XML→AppModel
+UI ..> Generator : запуск генерации/тестов
+UI ..> Data : чтение/запись истории
+UI ..> Model : навигация по AppModel
+
+Parsing ..> Model : строит AppModel
+Parsing ..> Common : использует ParserException
+
+Generator ..> Model : читает AppModel
+Generator ..> Common : использует JavaFileWriter, Transliterator
+Generator ..> Data : (нет — отчёт пишет в файлы и UI)
+TestRunner ..> RunReportWriter
+
+Data ..> Model : DTO TestRunResult/TestCaseResult
+
+note bottom of Generator
+  В курсовой здесь был ReportService;
+  он удалён, persistence идёт напрямую
+  из UI через ReportDao.
+end note
+
+@enduml

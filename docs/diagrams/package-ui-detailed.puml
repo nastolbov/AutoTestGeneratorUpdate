@@ -1,0 +1,88 @@
+@startuml package-ui-detailed
+' Детальная диаграмма классов пакета «UI» — приведена в соответствие
+' с текущим кодом (ветка claude/wonderful-dijkstra-Kdp5i, июнь 2026).
+' Изменения относительно курсовой:
+'   - reportService:ReportService удалён, MainController обращается к ReportDao напрямую
+'   - siteTypeCombo и subsystemField перестали быть @FXML-инжектируемыми
+'   - добавлены testLevelCombo, smokeAllSubsystemsCheck, fastModeCheck, btnRunSelected
+'   - добавлены onRunSelected/buildTestFilter/launchRun/getXmlFileName
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+hide circle
+
+package "ui" {
+
+  class App {
+    + start(stage: Stage): void
+    + {static} main(args: String[]): void
+  }
+
+  class CliMain {
+    + {static} main(args: String[]): void
+  }
+
+  class CliRunner {
+    + run(args: String[]): int
+    - truncate(s: String, max: int): String
+  }
+
+  class MainController {
+    - xmlFileField: TextField
+    - outputDirField: TextField
+    - urlField: TextField
+    - loginField: TextField
+    - passwordField: PasswordField
+    - logArea: TextArea
+    - resultsTable: TableView<TestCaseRow>
+    - siteTypeCombo: ComboBox<String>
+    - subsystemField: TextField
+    - testLevelCombo: ComboBox<String>
+    - smokeAllSubsystemsCheck: CheckBox
+    - fastModeCheck: CheckBox
+    - btnRunSelected: Button
+    - {static} TEST_CATEGORIES: String[][]
+    - currentModel: AppModel
+    - reportDao: ReportDao
+    --
+    + initialize(): void
+    - onSelectXml(): void
+    - onSelectOutputDir(): void
+    - onParse(): void
+    - onGenerate(): void
+    - onRunTests(): void
+    - onRunSelected(): void
+    - {static} buildTestFilter(entityChecks, typeChecks): String
+    - launchRun(testFilter: String): void
+    - onShowHistory(): void
+    - displayResults(result: TestRunResult): void
+    - getXmlFileName(): String
+    - log(message: String): void
+    - showAlert(title: String, content: String): void
+  }
+
+  class TestCaseRow <<inner class>> {
+    + className: SimpleStringProperty
+    + methodName: SimpleStringProperty
+    + status: SimpleStringProperty
+    + durationMs: SimpleLongProperty
+    + failureMessage: SimpleStringProperty
+  }
+
+  MainController +-- TestCaseRow
+}
+
+MainController --> "1" "data.ReportDao" : reportDao
+MainController --> "0..1" "model.AppModel" : currentModel
+MainController ..> "model.TestRunResult" : <<reads>>
+App ..> MainController : <<загружает FXML>>
+
+note right of MainController
+  Поля siteTypeCombo и subsystemField
+  больше не @FXML-инжектируются:
+  они создаются в коде (final new ...).
+  Поле reportService:ReportService удалено —
+  MainController вызывает ReportDao напрямую.
+end note
+
+@enduml

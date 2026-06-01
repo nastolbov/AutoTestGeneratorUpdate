@@ -1,0 +1,76 @@
+@startuml package-data-detailed
+' Детальная диаграмма классов пакета «Data» — приведена в соответствие
+' с текущим кодом (июнь 2026).
+' Изменения относительно курсовой:
+'   - физически в пакете data/ остался только ReportDao
+'   - TestRunResult и TestCaseResult расположены под model/ (DAO работает
+'     с ними как с DTO; класс зависимости показан через границу пакета)
+'   - на TestCaseResult добавлены поля stdOut, searchParams, screenshots, steps
+'     и вложенный класс StepTiming
+
+skinparam classAttributeIconSize 0
+hide circle
+
+package "data" {
+  class ReportDao {
+    - {static} DB_URL: String
+    - {static} DT_FORMAT: DateTimeFormatter
+    --
+    + ReportDao()
+    + saveRun(result: TestRunResult): long
+    + getAllRuns(): List<TestRunResult>
+    + initDatabase(): void
+    - getCaseResults(conn: Connection, runId: long): List<TestCaseResult>
+    - getConnection(): Connection
+  }
+}
+
+package "model (физическое размещение DTO)" {
+
+  class TestRunResult {
+    - id: long
+    - totalTests: int
+    - passed: int
+    - failed: int
+    - skipped: int
+    - runTimestamp: LocalDateTime
+    - durationMs: long
+    - xmlFileName: String
+    - baseUrl: String
+    - results: List<TestCaseResult>
+    - mavenOutput: String
+  }
+
+  class TestCaseResult {
+    - className: String
+    - methodName: String
+    - passed: boolean
+    - skipped: boolean
+    - failureMessage: String
+    - durationMs: long
+    - stdOut: String <<новое>>
+    - searchParams: Map<String,String> <<новое>>
+    - screenshots: List<String> <<новое>>
+    - steps: List<StepTiming> <<новое>>
+  }
+
+  class StepTiming <<inner class>> {
+    + label: String
+    + durationMs: long
+  }
+
+  TestRunResult "1" *-- "*" TestCaseResult
+  TestCaseResult +-- StepTiming
+}
+
+ReportDao ..> TestRunResult : <<saveRun / getAllRuns>>
+ReportDao ..> TestCaseResult : <<getCaseResults>>
+
+note right of ReportDao
+  Курсовая помещала TestRunResult и
+  TestCaseResult в пакет Data; в текущем
+  коде они оставлены в model/ как DTO,
+  а ReportDao читает/пишет их напрямую.
+end note
+
+@enduml

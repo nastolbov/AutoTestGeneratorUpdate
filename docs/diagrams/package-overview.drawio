@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="overview" name="Диаграмма пакетов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- UI -->
+        <mxCell id="pkg_ui" value="«package»&#xa;ui" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="280" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_app" value="App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="100" y="130" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_cli_main" value="CliMain" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="100" y="170" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_cli_runner" value="CliRunner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="100" y="210" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_main_ctrl" value="MainController" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="240" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- parser (был Parsing) -->
+        <mxCell id="pkg_parser" value="«package»&#xa;parser   (был «Parsing» в курсовой)" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="parser_xmp" value="XmlModelParser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="100" y="390" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- model -->
+        <mxCell id="pkg_model" value="«package»&#xa;model" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="440" y="80" width="320" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_appmodel" value="AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="460" y="130" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_entityobj" value="EntityObject" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="610" y="130" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_prop" value="Property" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="460" y="170" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_op" value="Operation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="610" y="170" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_search" value="Search" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="460" y="210" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_attrtype" value="«enum»&#xa;AttrType" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="610" y="210" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_classifier" value="EntityClassifier&#xa;(новое)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#bf6f00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="260" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_kind" value="«enum»&#xa;EntityKind  (новое)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#bf6f00" vertex="1" parent="1">
+          <mxGeometry x="610" y="260" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_runres" value="TestRunResult&#xa;(DTO для Data)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="460" y="320" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_caseres" value="TestCaseResult&#xa;(DTO для Data)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="610" y="320" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_note" value="TestRunResult и TestCaseResult&#xa;в курсовой указаны в Data,&#xa;в коде они лежат под model/" style="text;html=1;align=left;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="460" y="375" width="280" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- generator -->
+        <mxCell id="pkg_gen" value="«package»&#xa;generator" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="840" y="80" width="320" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_cfg" value="TestConfig" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="860" y="130" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_gen" value="TestGenerator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1010" y="130" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tcw" value="TestClassWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="860" y="170" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_pow" value="PageObjectWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="1010" y="170" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tdf" value="TestDataFactory" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="860" y="210" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_tr" value="TestRunner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="1010" y="210" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_rrw" value="RunReportWriter&#xa;(новое)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#bf6f00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="280" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_rs_removed" value="ReportService  (удалён из кода — был в курсовой)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4;dashed=1;fontColor=#888888" vertex="1" parent="1">
+          <mxGeometry x="860" y="320" width="280" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="g_note" value="generateTestData() из курсовой нет:&#xa;данные печатаются inline через&#xa;PageObjectWriter / TestClassWriter" style="text;html=1;align=left;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="860" y="375" width="290" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- data -->
+        <mxCell id="pkg_data" value="«package»&#xa;data" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="440" y="480" width="320" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="d_dao" value="ReportDao" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="530" width="280" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- common -->
+        <mxCell id="pkg_common" value="«package»&#xa;common" style="shape=folder;fontStyle=1;tabWidth=60;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="840" y="480" width="320" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_jfw" value="JavaFileWriter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="860" y="510" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr" value="Transliterator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="1010" y="510" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pe" value="ParserException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="860" y="550" width="280" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Зависимости между пакетами -->
+        <mxCell id="e1" style="endArrow=open;dashed=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ui_main_ctrl" target="m_appmodel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=open;dashed=1;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ui_main_ctrl" target="parser_xmp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=open;dashed=1;html=1;exitX=1;exitY=1;entryX=0;entryY=0;" edge="1" parent="1" source="ui_main_ctrl" target="g_gen">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="endArrow=open;dashed=1;html=1;exitX=1;exitY=1;entryX=0;entryY=0.5;" edge="1" parent="1" source="ui_main_ctrl" target="d_dao">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e5" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="parser_xmp" target="m_appmodel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e6" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="g_gen" target="m_appmodel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="g_gen" target="c_jfw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="g_tr" target="g_rrw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e9" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="d_dao" target="m_runres">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="d_dao" target="m_caseres">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Заголовок диаграммы -->
+        <mxCell id="title" value="Диаграмма пакетов (актуализирована по коду на 01.06.2026, ветка claude/wonderful-dijkstra-Kdp5i)" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="80" y="20" width="1080" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend" value="Желтым отмечены классы, добавленные с момента написания курсовой. Пунктиром помечен ReportService — он удалён из кода." style="text;html=1;fontSize=11;align=left;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="80" y="640" width="1080" height="30" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,230 @@
+@startuml package-model-detailed
+' Детальная диаграмма классов пакета «Model» — приведена в соответствие
+' с текущим кодом (июнь 2026).
+' Изменения относительно курсовой:
+'   - добавлены EntityClassifier и EntityKind (классификация PRIMARY / CHILD / REFERENCE_DICTIONARY)
+'   - на Property добавлены поля defValueSource, comment
+'   - на Association добавлено addFromTree
+'   - на AppModel добавлен getSubsystemNameFromCategory()
+'   - TestRunResult и TestCaseResult фактически расположены в model/ (доку
+'     было в Data); ниже показаны на стыке между пакетами
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide circle
+
+package "model" {
+
+  class AppModel {
+    - subsystemName: String
+    - objects: List<EntityObject>
+    - searches: List<Search>
+    --
+    + getObjects(): List<EntityObject>
+    + getSearches(): List<Search>
+    + getSubsystemName(): String
+    + getSubsystemNameFromCategory(): String
+    + setSubsystemName(s: String): void
+  }
+
+  class EntityObject {
+    - guid: String
+    - name: String
+    - keyName: String
+    - featureName: String
+    - nameValueMethod: String
+    - associations: List<Association>
+    - propertyGroups: List<PropertyGroup>
+    --
+    + hasCrudOperations(): boolean
+    + getFormView(): PropertyGroup
+  }
+
+  class PropertyGroup {
+    - guid: String
+    - stereoType: String
+    - name: String
+    - dmodule: String
+    - flagDisplay: int
+    - orderNumber: int
+    - typeLink: String
+    - properties: List<Property>
+    - operations: List<Operation>
+  }
+
+  class Property {
+    - guid: String
+    - name: String
+    - stereoType: String
+    - dmodule: String
+    - attrName: String
+    - tableName: String
+    - attrType: AttrType
+    - required: boolean
+    - mask: String
+    - orderNumber: int
+    - flagDisplay: boolean
+    - defValueSource: String <<новое>>
+    - comment: String <<новое>>
+  }
+
+  class Operation {
+    - guid: String
+    - operationMethod: String
+    - operationModule: String
+    - modifiers: List<Modifier>
+    - params: List<OperationParam>
+  }
+
+  class Modifier {
+    - title: String
+    - modifyType: ModifyType
+  }
+
+  class OperationParam {
+    - name: String
+    - title: String
+    - valueType: String
+    - source: String
+  }
+
+  class Association {
+    - guid: String
+    - addType: String
+    - addFromMaster: String
+    - assocObjGUID: String
+    - addFromTree: boolean <<новое>>
+  }
+
+  class Search {
+    - guid: String
+    - name: String
+    - searchObjectGuid: String
+    - minParamCount: int
+    - params: List<SearchParam>
+    - result: SearchResult
+  }
+
+  class SearchParam {
+    - name: String
+    - title: String
+    - valueType: String
+    - required: boolean
+    - orderNumber: int
+    - searchGuid: String
+  }
+
+  class SearchResult {
+    - idObjectName: String
+    - properties: List<SearchResultProperty>
+  }
+
+  class SearchResultProperty {
+    - name: String
+    - title: String
+    - valueType: String
+    - visible: boolean
+    - orderNumber: int
+  }
+
+  enum AttrType {
+    STRING
+    DECIMAL
+    DATE
+    DATETIME
+    --
+    + {static} fromXml(value: String): AttrType
+  }
+
+  enum ModifyType {
+    INSERT
+    UPDATE
+    DELETE
+    LOGICAL_EDIT
+    ARCHIVE
+    --
+    - code: String
+    + getCode(): String
+    + {static} fromCode(code: String): ModifyType
+  }
+
+  class EntityClassifier <<новое>> {
+    + {static} classify(entity, model): Classification
+    - {static} findParentGridReason(entity, model): String
+    - {static} isFkTargetOnly(entity, model): String
+    - {static} isChildOf(child, parent): boolean
+    - {static} isReferenceDictionary(entity, model): String
+    - {static} isTrivialResult(s: Search): boolean
+    - {static} nameStemsMatch(a, b): boolean
+  }
+
+  class Classification <<inner class>> {
+    + kind: EntityKind
+    + reason: String
+  }
+
+  enum EntityKind <<новое>> {
+    PRIMARY
+    CHILD
+    REFERENCE_DICTIONARY
+  }
+
+  ' --- расположение TestRunResult / TestCaseResult ---
+  class TestRunResult {
+    - totalTests: int
+    - passed: int
+    - failed: int
+    - skipped: int
+    - runTimestamp: LocalDateTime
+    - durationMs: long
+    - xmlFileName: String
+    - baseUrl: String
+    - results: List<TestCaseResult>
+    - mavenOutput: String
+  }
+
+  class TestCaseResult {
+    - className: String
+    - methodName: String
+    - passed: boolean
+    - skipped: boolean
+    - failureMessage: String
+    - durationMs: long
+    - stdOut: String <<новое>>
+    - searchParams: Map<String,String> <<новое>>
+    - screenshots: List<String> <<новое>>
+    - steps: List<StepTiming> <<новое>>
+  }
+
+  class StepTiming <<inner class>> {
+    + label: String
+    + durationMs: long
+  }
+
+  AppModel "1" *-- "*" EntityObject
+  AppModel "1" *-- "*" Search
+  EntityObject "1" *-- "*" PropertyGroup
+  EntityObject "1" *-- "*" Association
+  PropertyGroup "1" *-- "*" Property
+  PropertyGroup "1" *-- "*" Operation
+  Operation "1" *-- "*" Modifier
+  Operation "1" *-- "*" OperationParam
+  Property --> AttrType
+  Modifier --> ModifyType
+  Search "1" *-- "*" SearchParam
+  Search "1" *-- "0..1" SearchResult
+  SearchResult "1" *-- "*" SearchResultProperty
+  EntityClassifier +-- Classification
+  Classification --> EntityKind
+  TestRunResult "1" *-- "*" TestCaseResult
+  TestCaseResult "1" *-- "*" StepTiming
+}
+
+note bottom of TestRunResult
+  В курсовой эти два класса значатся
+  в пакете Data; в коде они физически
+  лежат под model/ (DAO работает с ними
+  как с DTO).
+end note
+
+@enduml

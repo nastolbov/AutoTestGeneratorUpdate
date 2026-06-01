@@ -1,0 +1,150 @@
+@startuml package-generator-detailed
+' Детальная диаграмма классов пакета «Generator» — приведена в соответствие
+' с текущим кодом (июнь 2026).
+' Изменения относительно курсовой:
+'   - ReportService удалён (MainController пишет в БД через ReportDao напрямую)
+'   - добавлен RunReportWriter (HTML/CSV-отчёт о прогоне)
+'   - в TestClassWriter добавлены writePartialValidationTest, writeCreateWithOnlyRequiredTest,
+'     writeLogicalEditTest, writeArchiveTest, writeSearchEmptyResultTest
+'   - в TestDataFactory добавлены DATE_TIME_FORMAT, MSK, todayMsk(), nowMskMinus10(),
+'     looksLikeDateMask(), looksLikeDateTimeMask()
+'   - в TestRunner — несколько overload'ов run() и helpers parseSurefire/linkScreenshots/...
+'   - в TestConfig добавлено поле smokeAllSubsystems
+'   - generateTestData() из курсовой отсутствует: данные генерируются inline через
+'     генератор тестовых классов; в коде её нет
+
+skinparam classAttributeIconSize 0
+hide circle
+
+package "generator" {
+
+  class TestConfig {
+    - baseUrl: String
+    - login: String
+    - password: String
+    - outputDir: Path
+    - browserType: String
+    - basePackage: String
+    - siteType: String
+    - subsystemName: String
+    - testLevel: String
+    - smokeAllSubsystems: boolean <<новое>>
+  }
+
+  class TestGenerator {
+    - config: TestConfig
+    --
+    + generate(model: AppModel): void
+    - generatePom(): void
+    - generateJUnitConfig(): void
+    - generateSharedDriver(): void
+    - generateBaseTest(model: AppModel): void
+    - csvEscape(s: String): String
+  }
+  note right of TestGenerator
+    Метода generateTestData() в коде нет:
+    тестовые данные печатаются inline
+    через TestClassWriter/PageObjectWriter.
+  end note
+
+  class TestClassWriter {
+    - basePackage: String
+    - testLevel: String
+    - currentEntitySearches: List<Search> <<новое>>
+    --
+    + write(entity, model, outputDir): void
+    + write(entity, model, outputDir, disabledReason: String): void
+    - writeFieldsPresentTest(...): void
+    - writeRequiredFieldValidationTest(...): void
+    - writePartialValidationTest(...) <<новое>>
+    - writeCreateTest(...): void
+    - writeCreateWithOnlyRequiredTest(...) <<новое>>
+    - writeUpdateTest(...): void
+    - writeDeleteTest(...): void
+    - writeLogicalEditTest(...) <<новое>>
+    - writeArchiveTest(...) <<новое>>
+    - writeSearchTest(...): void
+    - writeSearchEmptyResultTest(...) <<новое>>
+    - writeGridTest(...): void
+    - writeMaskedFieldTest(...): void
+    - isBasicOrFull(), isFull()
+    - hasModifier(), getDisplayProperties()
+    - isSystemField(), isFkOnlySearch(), isSystemFieldByName()
+  }
+
+  class PageObjectWriter {
+    - basePackage: String
+    --
+    + write(entity, model, outputDir): void
+    - writeInputMethod(w, prop): void
+    - writeModifierMethod(w, modifier): void
+    - writeCheckFieldsPresentMethod(...): void
+    - writeFilAllRequiredMethod(...) <<новое>>
+    - writeFillAllFieldsMethod(...) <<новое>>
+    - getDisplayProperties(...): List<Property>
+    - isSystemField(prop): boolean
+  }
+
+  class TestDataFactory {
+    - {static} DATE_FORMAT: DateTimeFormatter
+    - {static} DATE_TIME_FORMAT: DateTimeFormatter <<новое>>
+    - {static} MSK: ZoneId <<новое>>
+    - {static} RND: Random
+    --
+    + {static} generateValue(p: Property): String
+    + {static} generateSearchParamValue(p: SearchParam): String
+    + {static} generateFromMask(mask: String): String
+    + {static} generateValueExpression(p: Property): String
+    - {static} todayMsk(): String <<новое>>
+    - {static} nowMskMinus10(): String <<новое>>
+    - {static} looksLikeDateMask(): boolean <<новое>>
+    - {static} looksLikeDateTimeMask(): boolean <<новое>>
+  }
+
+  class TestRunner {
+    - lastMavenOutput: String
+    --
+    + run(projectDir, xmlFileName, baseUrl): TestRunResult
+    + run(... , Consumer<String> lineConsumer): TestRunResult
+    + run(... , testFilter, Consumer<String>): TestRunResult
+    + run(... , testFilter, parallelism, Consumer<String>): TestRunResult
+    + getLastMavenOutput(): String
+    - parseSurefireReports(reportsDir, runResult): void
+    - parseIntAttr(reader, name): int
+    - parseDoubleAttr(reader, name): double
+    - linkScreenshots(shotDir, result) <<новое>>
+    - cleanSkipMessage(raw) <<новое>>
+    - extractSearchParams(stdout) <<новое>>
+    - extractStepTimings(stdout, tcr) <<новое>>
+  }
+
+  class RunReportWriter <<новое>> {
+    - {static} TS: DateTimeFormatter
+    --
+    + write(htmlPath, result): void
+    + writeCsv(csvPath, result): void
+    - {static} csv(v: String): String
+    - {static} esc(s: String): String
+    - {static} shortName(cls: String): String
+    - {static} extractStepLabel(filename): String
+    - {static} formatDuration(ms: long): String
+  }
+}
+
+TestGenerator --> TestConfig
+TestGenerator ..> "model.AppModel"
+TestGenerator ..> TestClassWriter : <<использует>>
+TestGenerator ..> PageObjectWriter : <<использует>>
+TestClassWriter ..> TestDataFactory : <<использует>>
+PageObjectWriter ..> TestDataFactory : <<использует>>
+TestRunner ..> "model.TestRunResult" : <<создаёт>>
+TestRunner ..> RunReportWriter : <<вызывает write/writeCsv>>
+
+note bottom of TestClassWriter
+  Поле currentEntitySearches заполняется в write()
+  перед writeCreateTest() — testCreate выбирает
+  markerField так, чтобы он попал в одну из
+  видимых колонок SearchResultProperty.
+end note
+
+@enduml
