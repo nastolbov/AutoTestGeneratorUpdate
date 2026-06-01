@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="parsing_detailed" name="Parsing — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «Parsing» (в коде — parser/). Соответствует курсовой." style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1100" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pkg" value="«package» parser   (в курсовой Parsing)" style="shape=folder;fontStyle=1;tabWidth=140;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1100" height="600" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c_parser" value="XmlModelParser" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="540" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_parser_attrs" value="- {static} NS_E:  String = &quot;uuid:EDDBACC6-A83C-4937-9748-B7333C7C9272&quot;&#xa;- {static} NS_E3: String = &quot;uuid:EF6807BA-EBA2-42E5-9234-A24542B8791C&quot;&#xa;- {static} NS_MD: String = &quot;urn:ruitsol-ru:E3&quot;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_parser">
+          <mxGeometry y="30" width="540" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_parser_line" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_parser">
+          <mxGeometry y="110" width="540" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_parser_methods" value="+ parse(file: File): AppModel&#xa;- parseObject(reader: XMLStreamReader, model: AppModel): EntityObject&#xa;- parseAssociation(reader): Association&#xa;- parsePropertyGroup(reader, entity): PropertyGroup&#xa;- parseProperty(reader, group): Property&#xa;- parseOperation(reader, group): Operation&#xa;- parseSearches(reader, model): void&#xa;- parseSingleSearch(reader, model): Search&#xa;- skipToEnd(reader, elementName: String): void&#xa;- attr(reader, name: String): String&#xa;- parseInt(s: String, def: int): int" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="c_parser">
+          <mxGeometry y="120" width="540" height="380" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c_model_appmodel" value="model::AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="760" y="220" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_common_pe" value="common::ParserException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="760" y="290" width="240" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_builds" value="строит" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="c_parser" target="c_model_appmodel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_throws" value="throws" style="endArrow=open;html=1;dashed=1;" edge="1" parent="1" source="c_parser" target="c_common_pe">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="note" value="Без изменений по сравнению с Рис. 26 курсовой. Все 3 поля и 11 методов на месте.&#xa;Расхождение только в имени самого пакета: курсовая «Parsing» → код ru.autotestgen.parser." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="1100" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

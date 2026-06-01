@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="model_detailed" name="Model — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «Model» (актуализирована по коду 01.06.2026)" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1900" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pkg" value="«package» model" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1900" height="1240" as="geometry"/>
+        </mxCell>
+
+        <!-- AppModel -->
+        <mxCell id="c_appmodel" value="AppModel" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="300" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_appmodel_a" value="- subsystemName: String&#xa;- objects: List&lt;EntityObject&gt;&#xa;- searches: List&lt;Search&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_appmodel">
+          <mxGeometry y="30" width="300" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_appmodel_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_appmodel">
+          <mxGeometry y="110" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_appmodel_m" value="+ getObjects(): List&lt;EntityObject&gt;&#xa;+ getSearches(): List&lt;Search&gt;&#xa;+ getSubsystemName(): String&#xa;+ getSubsystemNameFromCategory(): String   ⟵ новое&#xa;+ setSubsystemName(s: String): void" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_appmodel">
+          <mxGeometry y="120" width="300" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- EntityObject -->
+        <mxCell id="c_eo" value="EntityObject" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="300" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_eo_a" value="- guid: String&#xa;- name: String&#xa;- keyName: String&#xa;- featureName: String&#xa;- nameValueMethod: String&#xa;- associations: List&lt;Association&gt;&#xa;- propertyGroups: List&lt;PropertyGroup&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_eo">
+          <mxGeometry y="30" width="300" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_eo_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_eo">
+          <mxGeometry y="170" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_eo_m" value="+ hasCrudOperations(): boolean&#xa;+ getFormView(): PropertyGroup" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_eo">
+          <mxGeometry y="180" width="300" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- PropertyGroup -->
+        <mxCell id="c_pg" value="PropertyGroup" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="300" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pg_a" value="- guid: String&#xa;- stereoType: String&#xa;- name: String&#xa;- dmodule: String&#xa;- flagDisplay: int&#xa;- orderNumber: int&#xa;- typeLink: String&#xa;- properties: List&lt;Property&gt;&#xa;- operations: List&lt;Operation&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_pg">
+          <mxGeometry y="30" width="300" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Property -->
+        <mxCell id="c_prop" value="Property" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1100" y="120" width="300" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_prop_a" value="- guid: String&#xa;- name: String&#xa;- stereoType: String&#xa;- dmodule: String&#xa;- attrName: String&#xa;- tableName: String&#xa;- attrType: AttrType&#xa;- required: boolean&#xa;- mask: String&#xa;- orderNumber: int&#xa;- flagDisplay: boolean&#xa;- defValueSource: String   ⟵ новое&#xa;- comment: String          ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_prop">
+          <mxGeometry y="30" width="300" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- Operation -->
+        <mxCell id="c_op" value="Operation" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1440" y="120" width="300" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_op_a" value="- guid: String&#xa;- operationMethod: String&#xa;- operationModule: String&#xa;- modifiers: List&lt;Modifier&gt;&#xa;- params: List&lt;OperationParam&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_op">
+          <mxGeometry y="30" width="300" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Modifier -->
+        <mxCell id="c_mod" value="Modifier" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1440" y="290" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mod_a" value="- title: String&#xa;- modifyType: ModifyType" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_mod">
+          <mxGeometry y="30" width="300" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- OperationParam -->
+        <mxCell id="c_oparam" value="OperationParam" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1100" y="420" width="300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_oparam_a" value="- name: String&#xa;- title: String&#xa;- valueType: String&#xa;- source: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_oparam">
+          <mxGeometry y="30" width="300" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Association -->
+        <mxCell id="c_assoc" value="Association" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="300" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_assoc_a" value="- guid: String&#xa;- addType: String&#xa;- addFromMaster: String&#xa;- assocObjGUID: String&#xa;- addFromTree: boolean   ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_assoc">
+          <mxGeometry y="30" width="300" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Search -->
+        <mxCell id="c_search" value="Search" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="300" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_search_a" value="- guid: String&#xa;- name: String&#xa;- searchObjectGuid: String&#xa;- minParamCount: int&#xa;- params: List&lt;SearchParam&gt;&#xa;- result: SearchResult" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_search">
+          <mxGeometry y="30" width="300" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- SearchParam -->
+        <mxCell id="c_sp" value="SearchParam" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="420" y="560" width="300" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_sp_a" value="- name: String&#xa;- title: String&#xa;- valueType: String&#xa;- required: boolean&#xa;- orderNumber: int&#xa;- searchGuid: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_sp">
+          <mxGeometry y="30" width="300" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- SearchResult -->
+        <mxCell id="c_sr" value="SearchResult" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="760" y="560" width="300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_sr_a" value="- idObjectName: String&#xa;- properties: List&lt;SearchResultProperty&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_sr">
+          <mxGeometry y="30" width="300" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- SearchResultProperty -->
+        <mxCell id="c_srp" value="SearchResultProperty" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1100" y="560" width="300" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_srp_a" value="- name: String&#xa;- title: String&#xa;- valueType: String&#xa;- visible: boolean&#xa;- orderNumber: int" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_srp">
+          <mxGeometry y="30" width="300" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- AttrType -->
+        <mxCell id="c_attr" value="«enum» AttrType" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#f5f5f5;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1440" y="420" width="300" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_attr_a" value="STRING&#xa;DECIMAL&#xa;DATE&#xa;DATETIME" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_attr">
+          <mxGeometry y="30" width="300" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_attr_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_attr">
+          <mxGeometry y="120" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_attr_m" value="+ {static} fromXml(value: String): AttrType" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_attr">
+          <mxGeometry y="130" width="300" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ModifyType -->
+        <mxCell id="c_mt" value="«enum» ModifyType" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#f5f5f5;strokeColor=#d6b656;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1440" y="620" width="300" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mt_a" value="INSERT&#xa;UPDATE&#xa;DELETE&#xa;LOGICAL_EDIT&#xa;ARCHIVE&#xa;--&#xa;- code: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_mt">
+          <mxGeometry y="30" width="300" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mt_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_mt">
+          <mxGeometry y="160" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_mt_m" value="+ getCode(): String&#xa;+ {static} fromCode(code: String): ModifyType" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_mt">
+          <mxGeometry y="170" width="300" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- EntityClassifier — новое -->
+        <mxCell id="c_class" value="EntityClassifier   ⟵ новое" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#fff2cc;strokeColor=#bf6f00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="780" width="320" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_class_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_class">
+          <mxGeometry y="30" width="320" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_class_m" value="+ {static} classify(entity, model): Classification&#xa;- {static} findParentGridReason(entity, model): String&#xa;- {static} isFkTargetOnly(entity, model): String&#xa;- {static} isChildOf(child, parent): boolean&#xa;- {static} isReferenceDictionary(entity, model): String&#xa;- {static} isTrivialResult(s: Search): boolean&#xa;- {static} nameStemsMatch(a, b): boolean" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_class">
+          <mxGeometry y="40" width="320" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Classification nested -->
+        <mxCell id="c_cl" value="Classification   (nested static)" style="swimlane;fontStyle=2;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#bf6f00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="440" y="780" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_cl_a" value="+ kind: EntityKind&#xa;+ reason: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_cl">
+          <mxGeometry y="30" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- EntityKind -->
+        <mxCell id="c_kind" value="«enum» EntityKind   ⟵ новое" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#fff2cc;strokeColor=#bf6f00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="760" y="780" width="280" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_kind_a" value="PRIMARY&#xa;CHILD&#xa;REFERENCE_DICTIONARY" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_kind">
+          <mxGeometry y="30" width="280" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- TestRunResult и TestCaseResult -->
+        <mxCell id="c_trr" value="TestRunResult   (фактически здесь; в курсовой Data)" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="1040" width="380" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_trr_a" value="- totalTests: int&#xa;- passed: int&#xa;- failed: int&#xa;- skipped: int&#xa;- runTimestamp: LocalDateTime&#xa;- durationMs: long&#xa;- xmlFileName: String&#xa;- baseUrl: String&#xa;- results: List&lt;TestCaseResult&gt;&#xa;- mavenOutput: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_trr">
+          <mxGeometry y="30" width="380" height="190" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c_tcr" value="TestCaseResult   (фактически здесь; в курсовой Data)" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="500" y="1040" width="400" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcr_a" value="- className: String&#xa;- methodName: String&#xa;- passed: boolean&#xa;- skipped: boolean&#xa;- failureMessage: String&#xa;- durationMs: long&#xa;- stdOut: String                            ⟵ новое&#xa;- searchParams: Map&lt;String,String&gt;     ⟵ новое&#xa;- screenshots: List&lt;String&gt;             ⟵ новое&#xa;- steps: List&lt;StepTiming&gt;               ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tcr">
+          <mxGeometry y="30" width="400" height="210" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c_step" value="StepTiming   (nested static)" style="swimlane;fontStyle=2;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="940" y="1040" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_step_a" value="+ label: String&#xa;+ durationMs: long" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_step">
+          <mxGeometry y="30" width="300" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ассоциации -->
+        <mxCell id="e1" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_appmodel" target="c_eo"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_appmodel" target="c_search"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_eo" target="c_pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_eo" target="c_assoc"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_pg" target="c_prop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_pg" target="c_op"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_op" target="c_mod"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_op" target="c_oparam"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="endArrow=open;html=1;" edge="1" parent="1" source="c_prop" target="c_attr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" style="endArrow=open;html=1;" edge="1" parent="1" source="c_mod" target="c_mt"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_search" target="c_sp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_search" target="c_sr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_sr" target="c_srp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e14" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_class" target="c_cl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" style="endArrow=open;html=1;" edge="1" parent="1" source="c_cl" target="c_kind"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_trr" target="c_tcr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_tcr" target="c_step"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="note" value="Жёлтым отмечены классы и поля, добавленные с момента написания курсовой.&#xa;TestRunResult и TestCaseResult в курсовой указаны в Data, но физически лежат в model/." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="1320" width="1900" height="50" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

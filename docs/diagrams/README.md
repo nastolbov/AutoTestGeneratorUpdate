@@ -19,16 +19,31 @@
 
 ## Файлы
 
-- `package-overview.{puml,png,drawio}` — обновлённая Рис. 12 (диаграмма пакетов).
-  Сводный вид со всеми изменениями. drawio-версия открывается на
-  app.diagrams.net (или в VS Code расширением Draw.io Integration).
+PNG-рендеринг и PlantUML-источник:
+
+- `package-overview.{puml,png}` — обновлённая Рис. 12 (диаграмма пакетов).
 - `package-ui-detailed.{puml,png}` — детальная диаграмма классов «UI».
 - `package-model-detailed.{puml,png}` — детальная диаграмма классов «Model».
 - `package-generator-detailed.{puml,png}` — детальная диаграмма классов «Generator».
 - `package-data-detailed.{puml,png}` — детальная диаграмма классов «Data».
+
+Редактируемые drawio-схемы (отдельный файл на каждую диаграмму) —
+в подпапке [`drawio/`](./drawio/):
+
+- `drawio/01-package-overview.drawio`
+- `drawio/02-ui-detailed.drawio`
+- `drawio/03-parsing-detailed.drawio`
+- `drawio/04-model-detailed.drawio`
+- `drawio/05-generator-detailed.drawio`
+- `drawio/06-data-detailed.drawio`
+- `drawio/07-common-detailed.drawio`
+
+Замечания по пакетам без drift'а:
+
 - `package-parsing-NOT-CHANGED.md`, `package-common-NOT-CHANGED.md` —
-  на эти два пакета диаграммы из курсовой остаются актуальными,
-  перерисовка не требовалась.
+  на эти два пакета диаграммы из курсовой остаются актуальными.
+  drawio-файлы для них всё равно сделаны (для единообразия — `03-` и `07-`),
+  PlantUML PNG не делался, так как изменений нет.
 
 ## Что именно изменилось
 

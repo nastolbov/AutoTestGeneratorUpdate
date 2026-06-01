@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="generator_detailed" name="Generator — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «Generator» (актуализирована по коду 01.06.2026 — MAJOR DRIFT)" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1900" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pkg" value="«package» generator" style="shape=folder;fontStyle=1;tabWidth=120;tabHeight=18;tabPosition=left;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1900" height="1340" as="geometry"/>
+        </mxCell>
+
+        <!-- TestConfig -->
+        <mxCell id="c_cfg" value="TestConfig" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="380" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_cfg_a" value="- baseUrl: String&#xa;- login: String&#xa;- password: String&#xa;- outputDir: Path&#xa;- browserType: String = &quot;chrome&quot;&#xa;- basePackage: String = &quot;generated&quot;&#xa;- siteType: String = &quot;e3core&quot;&#xa;- subsystemName: String&#xa;- testLevel: String = &quot;basic&quot;&#xa;- smokeAllSubsystems: boolean = true   ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_cfg">
+          <mxGeometry y="30" width="380" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- TestGenerator -->
+        <mxCell id="c_gen" value="TestGenerator" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="500" y="120" width="420" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_gen_a" value="- config: TestConfig" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_gen">
+          <mxGeometry y="30" width="420" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_gen_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_gen">
+          <mxGeometry y="60" width="420" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_gen_m" value="+ generate(model: AppModel): void&#xa;- generatePom(): void&#xa;- generateJUnitConfig(): void&#xa;- generateSharedDriver(): void&#xa;- generateBaseTest(model: AppModel): void&#xa;- csvEscape(s: String): String&#xa;&#xa;ПРИМЕЧАНИЕ: метод generateTestData() из курсовой&#xa;в коде ОТСУТСТВУЕТ — тестовые данные генерируются&#xa;inline через PageObjectWriter / TestClassWriter." style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_gen">
+          <mxGeometry y="70" width="420" height="190" as="geometry"/>
+        </mxCell>
+
+        <!-- TestClassWriter -->
+        <mxCell id="c_tcw" value="TestClassWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="460" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcw_a" value="- basePackage: String&#xa;- testLevel: String&#xa;- currentEntitySearches: List&lt;Search&gt;   ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tcw">
+          <mxGeometry y="30" width="460" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcw_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_tcw">
+          <mxGeometry y="100" width="460" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcw_m" value="+ write(entity, model, outputDir): void&#xa;+ write(entity, model, outputDir, disabledReason: String): void   ⟵ overload&#xa;- writeFieldsPresentTest(...)&#xa;- writeRequiredFieldValidationTest(...)&#xa;- writePartialValidationTest(...)             ⟵ новое&#xa;- writeCreateTest(...)&#xa;- writeCreateWithOnlyRequiredTest(...)        ⟵ новое&#xa;- writeUpdateTest(...)&#xa;- writeDeleteTest(...)&#xa;- writeLogicalEditTest(...)                   ⟵ новое&#xa;- writeArchiveTest(...)                       ⟵ новое&#xa;- writeSearchTest(...)&#xa;- writeSearchEmptyResultTest(...)             ⟵ новое&#xa;- writeGridTest(...)&#xa;- writeMaskedFieldTest(...)&#xa;- isBasicOrFull(), isFull()&#xa;- hasModifier(), getDisplayProperties()&#xa;- isSystemField(), isFkOnlySearch(), isSystemFieldByName()" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tcw">
+          <mxGeometry y="110" width="460" height="390" as="geometry"/>
+        </mxCell>
+
+        <!-- PageObjectWriter -->
+        <mxCell id="c_pow" value="PageObjectWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1460" y="120" width="440" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pow_a" value="- basePackage: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_pow">
+          <mxGeometry y="30" width="440" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pow_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_pow">
+          <mxGeometry y="60" width="440" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pow_m" value="+ write(entity, model, outputDir): void&#xa;- writeInputMethod(w, prop)&#xa;- writeModifierMethod(w, modifier)&#xa;- writeCheckFieldsPresentMethod(...)&#xa;- writeFilAllRequiredMethod(...)    ⟵ новое&#xa;- writeFillAllFieldsMethod(...)     ⟵ новое&#xa;- getDisplayProperties(...): List&lt;Property&gt;&#xa;- isSystemField(prop): boolean" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_pow">
+          <mxGeometry y="70" width="440" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- TestDataFactory -->
+        <mxCell id="c_tdf" value="TestDataFactory" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="700" width="440" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tdf_a" value="- {static} DATE_FORMAT: DateTimeFormatter&#xa;- {static} DATE_TIME_FORMAT: DateTimeFormatter   ⟵ новое&#xa;- {static} MSK: ZoneId                            ⟵ новое&#xa;- {static} RND: Random" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tdf">
+          <mxGeometry y="30" width="440" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tdf_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_tdf">
+          <mxGeometry y="130" width="440" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tdf_m" value="+ {static} generateValue(p: Property): String&#xa;+ {static} generateSearchParamValue(p: SearchParam): String&#xa;+ {static} generateFromMask(mask: String): String&#xa;+ {static} generateValueExpression(p: Property): String&#xa;- {static} todayMsk(): String              ⟵ новое&#xa;- {static} nowMskMinus10(): String         ⟵ новое&#xa;- {static} looksLikeDateMask(mask): boolean       ⟵ новое&#xa;- {static} looksLikeDateTimeMask(mask): boolean   ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tdf">
+          <mxGeometry y="140" width="440" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- TestRunner -->
+        <mxCell id="c_tr" value="TestRunner" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#b85450;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="560" y="700" width="540" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_a" value="- lastMavenOutput: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tr">
+          <mxGeometry y="30" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_tr">
+          <mxGeometry y="60" width="540" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_m" value="+ run(projectDir, xmlFileName, baseUrl): TestRunResult&#xa;+ run(... , Consumer&lt;String&gt; lineConsumer): TestRunResult&#xa;+ run(... , testFilter, Consumer&lt;String&gt;): TestRunResult&#xa;+ run(... , testFilter, parallelism, Consumer&lt;String&gt;): TestRunResult&#xa;+ getLastMavenOutput(): String&#xa;- parseSurefireReports(reportsDir, runResult): void&#xa;- parseIntAttr(reader, name): int&#xa;- parseDoubleAttr(reader, name): double&#xa;- linkScreenshots(shotDir, result): void          ⟵ новое&#xa;- cleanSkipMessage(raw): String                   ⟵ новое&#xa;- extractSearchParams(stdout): Map&lt;String,String&gt; ⟵ новое&#xa;- extractStepTimings(stdout, tcr): void           ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tr">
+          <mxGeometry y="70" width="540" height="290" as="geometry"/>
+        </mxCell>
+
+        <!-- RunReportWriter — новый класс -->
+        <mxCell id="c_rrw" value="RunReportWriter   ⟵ новое (не в курсовой)" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#fff2cc;strokeColor=#bf6f00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1140" y="700" width="500" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_rrw_a" value="- {static} TS: DateTimeFormatter" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_rrw">
+          <mxGeometry y="30" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_rrw_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_rrw">
+          <mxGeometry y="60" width="500" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_rrw_m" value="+ write(htmlPath: Path, result: TestRunResult): void&#xa;+ writeCsv(csvPath: Path, result: TestRunResult): void&#xa;- {static} csv(v: String): String&#xa;- {static} esc(s: String): String&#xa;- {static} shortName(cls: String): String&#xa;- {static} extractStepLabel(filename): String&#xa;- {static} formatDuration(ms: long): String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_rrw">
+          <mxGeometry y="70" width="500" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- ReportService — удалён -->
+        <mxCell id="c_rs" value="ReportService   (был в курсовой — удалён из кода)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontStyle=4;dashed=1;fontColor=#888888" vertex="1" parent="1">
+          <mxGeometry x="1140" y="1040" width="500" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- стрелки -->
+        <mxCell id="e1" style="endArrow=open;html=1;" edge="1" parent="1" source="c_gen" target="c_cfg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_gen" target="c_tcw"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_gen" target="c_pow"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_tcw" target="c_tdf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_pow" target="c_tdf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_tr" target="c_rrw" value="write / writeCsv"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="note" value="Жёлтым отмечены новые сущности (RunReportWriter), не описанные в курсовой.&#xa;Пунктиром — ReportService: упомянут в курсовой (таблицы 78-79), но в коде отсутствует.&#xa;Метод generateTestData() из курсовой удалён — данные генерируются inline через PageObjectWriter / TestClassWriter." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="1140" width="1900" height="60" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

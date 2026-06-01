@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="data_detailed" name="Data — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «Data» (актуализирована по коду 01.06.2026)" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- data package -->
+        <mxCell id="pkg_data" value="«package» data" style="shape=folder;fontStyle=1;tabWidth=100;tabHeight=18;tabPosition=left;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="700" height="640" as="geometry"/>
+        </mxCell>
+
+        <!-- ReportDao -->
+        <mxCell id="c_dao" value="ReportDao" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#9673a6;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="620" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_dao_a" value="- {static} DB_URL: String = &quot;jdbc:sqlite:autotestgen.db&quot;&#xa;- {static} DT_FORMAT: DateTimeFormatter" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_dao">
+          <mxGeometry y="30" width="620" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_dao_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_dao">
+          <mxGeometry y="90" width="620" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_dao_m" value="+ ReportDao()                                       (ctor; вызывает initDatabase)&#xa;+ saveRun(result: TestRunResult): long&#xa;+ getAllRuns(): List&lt;TestRunResult&gt;&#xa;+ initDatabase(): void&#xa;- getCaseResults(conn: Connection, runId: long): List&lt;TestCaseResult&gt;&#xa;- getConnection(): Connection" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_dao">
+          <mxGeometry y="100" width="620" height="400" as="geometry"/>
+        </mxCell>
+
+        <!-- model package (показан как соседний для DTO) -->
+        <mxCell id="pkg_model" value="«package» model   (DTO физически здесь, не в data/)" style="shape=folder;fontStyle=1;tabWidth=140;tabHeight=18;tabPosition=left;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="780" y="70" width="780" height="640" as="geometry"/>
+        </mxCell>
+
+        <!-- TestRunResult -->
+        <mxCell id="c_trr" value="TestRunResult" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="820" y="120" width="340" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_trr_a" value="- id: long&#xa;- totalTests: int&#xa;- passed: int&#xa;- failed: int&#xa;- skipped: int&#xa;- runTimestamp: LocalDateTime&#xa;- durationMs: long&#xa;- xmlFileName: String&#xa;- baseUrl: String&#xa;- results: List&lt;TestCaseResult&gt;&#xa;- mavenOutput: String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_trr">
+          <mxGeometry y="30" width="340" height="290" as="geometry"/>
+        </mxCell>
+
+        <!-- TestCaseResult -->
+        <mxCell id="c_tcr" value="TestCaseResult" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1180" y="120" width="360" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tcr_a" value="- className: String&#xa;- methodName: String&#xa;- passed: boolean&#xa;- skipped: boolean&#xa;- failureMessage: String&#xa;- durationMs: long&#xa;- stdOut: String                          ⟵ новое&#xa;- searchParams: Map&lt;String,String&gt;   ⟵ новое&#xa;- screenshots: List&lt;String&gt;            ⟵ новое&#xa;- steps: List&lt;StepTiming&gt;              ⟵ новое" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tcr">
+          <mxGeometry y="30" width="360" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- StepTiming -->
+        <mxCell id="c_step" value="StepTiming   (nested static)" style="swimlane;fontStyle=2;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#d79b00;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1180" y="540" width="360" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_step_a" value="+ label: String&#xa;+ durationMs: long" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_step">
+          <mxGeometry y="30" width="360" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- стрелки -->
+        <mxCell id="e1" value="saveRun / getAllRuns" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_dao" target="c_trr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="getCaseResults" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_dao" target="c_tcr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_trr" target="c_tcr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_tcr" target="c_step"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="note" value="Курсовая помещала TestRunResult и TestCaseResult в пакет Data; в коде они оставлены в model/ как DTO,&#xa;а ReportDao читает/пишет их напрямую. На TestCaseResult появились новые поля для подробного отчёта о прогоне." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="1520" height="60" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

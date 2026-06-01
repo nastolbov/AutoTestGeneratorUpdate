@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="common_detailed" name="Common — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «Common». Соответствует курсовой, обновления не требовались." style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1500" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pkg" value="«package» common" style="shape=folder;fontStyle=1;tabWidth=120;tabHeight=18;tabPosition=left;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1520" height="740" as="geometry"/>
+        </mxCell>
+
+        <!-- JavaFileWriter -->
+        <mxCell id="c_jfw" value="JavaFileWriter" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="500" height="520" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_jfw_a" value="- sb: StringBuilder&#xa;- indentLevel: int&#xa;- {static} INDENT: String = &quot;    &quot;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_jfw">
+          <mxGeometry y="30" width="500" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_jfw_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_jfw">
+          <mxGeometry y="110" width="500" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_jfw_m" value="+ writeLine(line: String): JavaFileWriter&#xa;+ writeLine(): JavaFileWriter&#xa;+ openBlock(header: String): JavaFileWriter&#xa;+ closeBlock(): JavaFileWriter&#xa;+ indent(): JavaFileWriter&#xa;+ unindent(): JavaFileWriter&#xa;+ writeToFile(dir: Path, fileName: String): void&#xa;+ toString(): String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_jfw">
+          <mxGeometry y="120" width="500" height="390" as="geometry"/>
+        </mxCell>
+
+        <!-- Transliterator -->
+        <mxCell id="c_tr" value="Transliterator" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="620" y="120" width="500" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_a" value="- {static} MAPPING: Map&lt;Character, String&gt;" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tr">
+          <mxGeometry y="30" width="500" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_tr">
+          <mxGeometry y="80" width="500" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_tr_m" value="+ {static} toClassName(russianName: String): String&#xa;+ {static} toMethodName(russianName: String): String&#xa;+ {static} toFieldName(attrName: String): String&#xa;- {static} transliterate(word: String): String&#xa;- {static} snakeToCamel(snake: String): String" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_tr">
+          <mxGeometry y="90" width="500" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- ParserException -->
+        <mxCell id="c_pe" value="ParserException" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#82b366;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1160" y="120" width="380" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pe_a" value="(extends Exception)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top;fontStyle=2" vertex="1" parent="c_pe">
+          <mxGeometry y="30" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pe_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_pe">
+          <mxGeometry y="70" width="380" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_pe_m" value="+ ParserException(message: String)&#xa;+ ParserException(message: String, cause: Throwable)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_pe">
+          <mxGeometry y="80" width="380" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="note" value="Без изменений по сравнению с Рис. 54 курсовой. Сверка: поля sb/indentLevel/INDENT,&#xa;все методы JavaFileWriter (fluent API возвращает this), все методы Transliterator,&#xa;оба конструктора ParserException — на месте, имена и сигнатуры совпадают." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="830" width="1520" height="50" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

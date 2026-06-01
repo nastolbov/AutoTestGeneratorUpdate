@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="ui_detailed" name="UI — детальная диаграмма классов">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Детальная диаграмма классов пакета «UI» (актуализирована по коду 01.06.2026)" style="text;html=1;fontSize=14;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pkg" value="«package» ui" style="shape=folder;fontStyle=1;tabWidth=80;tabHeight=18;tabPosition=left;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1400" height="820" as="geometry"/>
+        </mxCell>
+
+        <!-- App -->
+        <mxCell id="c_app" value="App" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="240" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_app_l1" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_app">
+          <mxGeometry y="30" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_app_m" value="+ start(stage: Stage): void&#xa;+ {static} main(args: String[]): void" style="text;align=left;html=1;spacingLeft=8" vertex="1" parent="c_app">
+          <mxGeometry y="40" width="240" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- CliMain -->
+        <mxCell id="c_climain" value="CliMain" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="360" y="110" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_climain_l1" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_climain">
+          <mxGeometry y="30" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_climain_m" value="+ {static} main(args: String[]): void" style="text;align=left;html=1;spacingLeft=8" vertex="1" parent="c_climain">
+          <mxGeometry y="40" width="240" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- CliRunner -->
+        <mxCell id="c_clirunner" value="CliRunner" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="640" y="110" width="240" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_clirunner_l1" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_clirunner">
+          <mxGeometry y="30" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_clirunner_m" value="+ run(args: String[]): int&#xa;- truncate(s: String, max: int): String" style="text;align=left;html=1;spacingLeft=8" vertex="1" parent="c_clirunner">
+          <mxGeometry y="40" width="240" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- MainController -->
+        <mxCell id="c_main" value="MainController" style="swimlane;fontStyle=1;align=center;startSize=26;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="800" height="620" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_main_attrs" value="- xmlFileField: TextField&#xa;- outputDirField: TextField&#xa;- urlField: TextField&#xa;- loginField: TextField&#xa;- passwordField: PasswordField&#xa;- logArea: TextArea&#xa;- resultsTable: TableView&lt;TestCaseRow&gt;&#xa;- siteTypeCombo: ComboBox&lt;String&gt;   (больше НЕ @FXML)&#xa;- subsystemField: TextField           (больше НЕ @FXML)&#xa;- testLevelCombo: ComboBox&lt;String&gt;   ⟵ новое&#xa;- smokeAllSubsystemsCheck: CheckBox   ⟵ новое&#xa;- fastModeCheck: CheckBox             ⟵ новое&#xa;- btnRunSelected: Button              ⟵ новое&#xa;- {static} TEST_CATEGORIES: String[][]   ⟵ новое&#xa;- currentModel: AppModel&#xa;- reportDao: ReportDao   (раньше было reportService: ReportService)" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_main">
+          <mxGeometry y="30" width="800" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_main_l" value="" style="line;strokeWidth=1;direction=east;html=1;" vertex="1" parent="c_main">
+          <mxGeometry y="310" width="800" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_main_methods" value="+ initialize(): void&#xa;- onSelectXml(): void&#xa;- onSelectOutputDir(): void&#xa;- onParse(): void&#xa;- onGenerate(): void&#xa;- onRunTests(): void&#xa;- onRunSelected(): void                                   ⟵ новое&#xa;- {static} buildTestFilter(entityChecks, typeChecks): String   ⟵ новое&#xa;- launchRun(testFilter: String): void                     ⟵ новое&#xa;- onShowHistory(): void&#xa;- displayResults(result: TestRunResult): void&#xa;- getXmlFileName(): String                                ⟵ новое&#xa;- log(message: String): void&#xa;- showAlert(title: String, content: String): void" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_main">
+          <mxGeometry y="320" width="800" height="300" as="geometry"/>
+        </mxCell>
+
+        <!-- TestCaseRow nested -->
+        <mxCell id="c_row" value="TestCaseRow   (nested static class)" style="swimlane;fontStyle=2;align=center;startSize=26;html=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="920" y="240" width="500" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_row_attrs" value="+ className: SimpleStringProperty&#xa;+ methodName: SimpleStringProperty&#xa;+ status: SimpleStringProperty&#xa;+ durationMs: SimpleLongProperty&#xa;+ failureMessage: SimpleStringProperty" style="text;align=left;html=1;spacingLeft=8;verticalAlign=top" vertex="1" parent="c_row">
+          <mxGeometry y="30" width="500" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- внешние ссылки -->
+        <mxCell id="c_ext_dao" value="data::ReportDao" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="920" y="460" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_ext_app" value="model::AppModel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="1180" y="460" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_ext_run" value="model::TestRunResult" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="920" y="520" width="240" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- стрелки -->
+        <mxCell id="e_main_dao" value="reportDao 1" style="endArrow=open;html=1;dashed=0;" edge="1" parent="1" source="c_main" target="c_ext_dao">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_main_app" value="currentModel 0..1" style="endArrow=open;html=1;dashed=0;" edge="1" parent="1" source="c_main" target="c_ext_app">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_main_run" value="reads" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_main" target="c_ext_run">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_main_row" value="inner" style="endArrow=diamondThin;endFill=1;endSize=14;html=1;" edge="1" parent="1" source="c_main" target="c_row">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_app_main" value="loads FXML" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="c_app" target="c_main">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="note" value="Жёлтым/«⟵ новое» помечены атрибуты и методы, добавленные после написания курсовой.&#xa;Поле reportService: ReportService удалено — MainController обращается к ReportDao напрямую." style="text;html=1;fontSize=11;align=left;fontStyle=2;fillColor=#ffffcc;strokeColor=#999999" vertex="1" parent="1">
+          <mxGeometry x="40" y="900" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
