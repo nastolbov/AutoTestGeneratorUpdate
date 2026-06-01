@@ -211,6 +211,13 @@ public class TestGenerator {
         w.writeLine("private static WebDriverWait wait;");
         w.writeLine("private static boolean initialized = false;");
         w.writeLine("private static final List<SmokeResult> smokeResults = new ArrayList<>();");
+        // JVM-wide cache of the subsystem that is currently selected: lets a later test class
+        // skip the launcher double-click + 2s settle wait when the subsystem is already open.
+        w.writeLine("public static volatile String currentSubsystem = null;");
+        // JVM-wide cache of top-menu paths: entityName -> top menu button (TestData.SUBSYSTEM_NAME,
+        // НСИ, Отчёты, Сервис) the entity was found under last time. navigateE3Core in BaseTest
+        // tries the cached button first instead of sweeping all four.
+        w.writeLine("public static final java.util.Map<String, String> MENU_PATH_CACHE = new java.util.concurrent.ConcurrentHashMap<>();");
         w.writeLine();
 
         // SmokeResult inner class
@@ -626,12 +633,6 @@ public class TestGenerator {
         // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
         w.writeLine("protected boolean navigationAttempted = false;");
         w.writeLine("protected boolean cachedNavigationOk = false;");
-        // JVM-wide cache of menu paths: entityName → which top menu button held the entity.
-        // First class finds it via full descendMenu sweep; later classes try that button first.
-        w.writeLine("protected static final java.util.Map<String, String> MENU_PATH_CACHE = new java.util.concurrent.ConcurrentHashMap<>();");
-        // JVM-wide cache of the subsystem that is currently selected — if a later test class
-        // wants the same one, skip the launcher double-click and the 2-second wait that follows.
-        w.writeLine("protected static volatile String currentSubsystem = null;");
         // Cache card-open result: after the first openRecordCard attempt fails, subsequent
         // testGrid* tests in the same class instance skip the 5-strategy retry (which costs
         // ~30-50 seconds per attempt). Saves ~2-3 minutes per typical run.
@@ -893,7 +894,7 @@ public class TestGenerator {
         w.openBlock("try");
         // MENU_PATH_CACHE: if we've already found this entity once, try its known top-menu
         // button FIRST. Falls back to the full sweep below if the cached button no longer works.
-        w.writeLine("String cachedTop = MENU_PATH_CACHE.get(entityName);");
+        w.writeLine("String cachedTop = SharedDriver.MENU_PATH_CACHE.get(entityName);");
         w.writeLine("String[] menuButtons;");
         w.openBlock("if (cachedTop != null)");
         w.writeLine("menuButtons = new String[]{cachedTop, TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
@@ -908,7 +909,7 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(300);");
         w.openBlock("if (descendMenu(entityName, \"\\u041d\\u0430\\u0439\\u0442\\u0438\", 3, new java.util.HashSet<>()))");
         w.writeLine("navigationOk = true;");
-        w.writeLine("MENU_PATH_CACHE.put(entityName, menuName);");
+        w.writeLine("SharedDriver.MENU_PATH_CACHE.put(entityName, menuName);");
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
