@@ -1561,7 +1561,10 @@ public class TestGenerator {
         w.writeLine("    + \"  var queue = [aw];\"");
         w.writeLine("    + \"  while (queue.length) {\"");
         w.writeLine("    + \"    var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
-        w.writeLine("    + \"    if (c.getStore && c.customEditors) grids.push(c);\"");
+        // Earlier we filtered by c.customEditors — too narrow, regular PropertyGrid instances
+        // on this stand don't always expose customEditors. Match anything with a store AND a
+        // view that exposes getRow (i.e. a row-rendered grid we can DOM-walk).
+        w.writeLine("    + \"    if (c.getStore && c.view && c.view.getRow) grids.push(c);\"");
         w.writeLine("    + \"    if (c.items && c.items.items) { for (var i = 0; i < c.items.items.length; i++) queue.push(c.items.items[i]); }\"");
         w.writeLine("    + \"    else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
         w.writeLine("    + \"  }\"");

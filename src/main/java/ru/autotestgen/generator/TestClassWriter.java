@@ -823,7 +823,31 @@ public class TestClassWriter {
         w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
         w.writeLine("assertTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не открылась из грида\");");
         w.writeLine("shot(\"row_selected\");");
-        // 4) Delete it. Two paths: (a) Edit-dropdown 'Удалить' inside the open card; (b) toolbar
+        // 4a) Diagnostic: dump every visible button text on the open card BEFORE attempting
+        // delete. Earlier rounds couldn't tell whether 'Удалить' even existed in the toolbar.
+        w.openBlock("try");
+        w.writeLine("java.util.List<org.openqa.selenium.WebElement> _btns = driver.findElements(By.cssSelector(\"button, .x-btn\"));");
+        w.writeLine("int _shown = 0;");
+        w.writeLine("System.out.println(\"  [testDelete diag] card toolbar buttons BEFORE Удалить:\");");
+        w.openBlock("for (org.openqa.selenium.WebElement _b : _btns)");
+        w.openBlock("try");
+        w.openBlock("if (!_b.isDisplayed() || _shown >= 20)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String _t = _b.getText() == null ? \"\" : _b.getText().trim();");
+        w.openBlock("if (_t.isEmpty() || _t.length() > 60)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"    button: '\" + _t + \"'\");");
+        w.writeLine("_shown++;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // 4b) Delete it. Two paths: (a) Edit-dropdown 'Удалить' inside the open card; (b) toolbar
         // button 'Удалить' directly visible on the card window. If neither leads to a confirm
         // dialog within 3s, dump what's actually visible so we can see why.
         w.openBlock("try");
