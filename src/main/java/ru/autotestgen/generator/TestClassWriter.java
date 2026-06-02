@@ -294,6 +294,10 @@ public class TestClassWriter {
         w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"after_add\");");
@@ -348,6 +352,10 @@ public class TestClassWriter {
         w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
@@ -435,6 +443,10 @@ public class TestClassWriter {
         w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"Не удалось найти 'Добавить' в главном меню для сущности '\" + ENTITY_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
@@ -555,6 +567,10 @@ public class TestClassWriter {
         w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
@@ -778,6 +794,10 @@ public class TestClassWriter {
         w.writeLine("return \"\";");
         w.closeBlock();
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.openBlock("if (!addFormOpen)");
         w.writeLine("dumpCardDiagnostics();");
         w.writeLine("return \"\";");
@@ -1208,6 +1228,10 @@ public class TestClassWriter {
         w.writeLine("if (!addClicked) dumpCardDiagnostics();");
         w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
+        // Wait for ExtJS 'Загрузка данных…' mask to clear BEFORE filling. Without this, our DOM
+        // writes land in inputs that the masked PropertyGrid never commits to its record store —
+        // server then sees empty required fields and rejects save. See dialog-dump for proof.
+        w.writeLine("if (addFormOpen) waitForFormReady();");
         w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");

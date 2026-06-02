@@ -1570,6 +1570,53 @@ public class TestGenerator {
         //   'Необходимо обязательно указать значения свойств: Наименование ГСК/ОГСК, НДЗ.'
         // even though every fill logged 'OK via editor input'. Calling this before Готово
         // synchronizes UI text -> record values so the save sends a fully-populated record.
+        // waitForFormReady: blocks until the open create/edit dialog has FINISHED loading data.
+        // HTML dump of a failing testCreate proved that addFormOpen=true fires the moment the
+        // <x-window> becomes visible — BUT inside the window the PropertyGrid still has a
+        // 'Загрузка данных…' mask (.ext-el-mask-msg.x-mask-loading), every value cell renders
+        // '&nbsp;', and the component does NOT route DOM input events to its record store.
+        // Our fillPropertyGridField then writes to inputs that the masked grid ignores, so
+        // 'click Готово' submits an empty record and the server replies 'Необходимо…'.
+        // Solution: after addFormOpen=true, poll up to 10s for the loading mask to disappear
+        // before we start fill operations. Returns true when ready, false on timeout.
+        w.openBlock("protected boolean waitForFormReady()");
+        w.writeLine("long deadline = System.currentTimeMillis() + 10000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.openBlock("try");
+        w.writeLine("Object loading = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        // visible loading mask anywhere on the page
+        w.writeLine("    + \"  var masks = document.querySelectorAll('.ext-el-mask-msg.x-mask-loading, .x-mask-loading');\"");
+        w.writeLine("    + \"  for (var i = 0; i < masks.length; i++) { var m = masks[i]; if (m.offsetWidth > 0 && m.offsetHeight > 0) return true; }\"");
+        // x-masked class on the active window's content
+        w.writeLine("    + \"  if (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) {\"");
+        w.writeLine("    + \"    var aw = Ext.WindowMgr.getActive();\"");
+        w.writeLine("    + \"    if (aw && aw.getEl) {\"");
+        w.writeLine("    + \"      var dom = aw.getEl().dom || aw.getEl();\"");
+        w.writeLine("    + \"      var masked = dom.querySelectorAll('.x-masked');\"");
+        w.writeLine("    + \"      for (var j = 0; j < masked.length; j++) { var mm = masked[j]; if (mm.offsetWidth > 0 && mm.offsetHeight > 0) return true; }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return false;\"");
+        w.writeLine("    + \"} catch (e) { return false; }\");");
+        w.openBlock("if (!Boolean.TRUE.equals(loading))");
+        w.writeLine("System.out.println(\"  [waitForFormReady] form ready (no loading mask)\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [waitForFormReady] TIMEOUT after 10s — proceeding anyway\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine();
+
         // One-shot HTML dump of the open dialog. Used to inspect the real DOM/component layout
         // when fillPropertyGridField succeeds visually but the server still sees fields empty.
         // First call writes target/dialog-dump-<tag>.html; subsequent calls do nothing.
