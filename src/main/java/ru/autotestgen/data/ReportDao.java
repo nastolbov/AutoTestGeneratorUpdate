@@ -38,15 +38,33 @@ public class ReportDao {
             """);
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS test_case (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id      INTEGER NOT NULL REFERENCES test_run(id),
-                    class_name  TEXT NOT NULL,
-                    method_name TEXT NOT NULL,
-                    passed      INTEGER NOT NULL DEFAULT 1,
-                    failure_msg TEXT,
-                    duration_ms INTEGER NOT NULL DEFAULT 0
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    run_id        INTEGER NOT NULL REFERENCES test_run(id),
+                    class_name    TEXT NOT NULL,
+                    method_name   TEXT NOT NULL,
+                    passed        INTEGER NOT NULL DEFAULT 1,
+                    skipped       INTEGER NOT NULL DEFAULT 0,
+                    failure_msg   TEXT,
+                    duration_ms   INTEGER NOT NULL DEFAULT 0,
+                    stdout        TEXT,
+                    search_params TEXT,
+                    screenshots   TEXT,
+                    steps         TEXT
                 )
             """);
+            // Online migration: legacy DBs created before the v5 enrichment have fewer columns.
+            // SQLite doesn't support IF NOT EXISTS on ALTER TABLE ADD COLUMN, so we add and
+            // swallow the "duplicate column" error per column. Cheap, idempotent, no app restart.
+            String[] addCols = {
+                    "ALTER TABLE test_case ADD COLUMN skipped INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE test_case ADD COLUMN stdout TEXT",
+                    "ALTER TABLE test_case ADD COLUMN search_params TEXT",
+                    "ALTER TABLE test_case ADD COLUMN screenshots TEXT",
+                    "ALTER TABLE test_case ADD COLUMN steps TEXT"
+            };
+            for (String alter : addCols) {
+                try { stmt.execute(alter); } catch (SQLException ignored) {}
+            }
         } catch (SQLException e) {
             System.err.println("Failed to initialize database: " + e.getMessage());
         }
@@ -54,7 +72,7 @@ public class ReportDao {
 
     public void saveRun(TestRunResult result) {
         String sql = "INSERT INTO test_run (run_date, xml_file, base_url, total, passed, failed, skipped, duration_ms) VALUES (?,?,?,?,?,?,?,?)";
-        String sqlCase = "INSERT INTO test_case (run_id, class_name, method_name, passed, failure_msg, duration_ms) VALUES (?,?,?,?,?,?)";
+        String sqlCase = "INSERT INTO test_case (run_id, class_name, method_name, passed, skipped, failure_msg, duration_ms, stdout, search_params, screenshots, steps) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -83,8 +101,13 @@ public class ReportDao {
                     ps.setString(2, tcr.getClassName() != null ? tcr.getClassName() : "");
                     ps.setString(3, tcr.getMethodName() != null ? tcr.getMethodName() : "");
                     ps.setInt(4, tcr.isPassed() ? 1 : 0);
-                    ps.setString(5, tcr.getFailureMessage());
-                    ps.setLong(6, tcr.getDurationMs());
+                    ps.setInt(5, tcr.isSkipped() ? 1 : 0);
+                    ps.setString(6, tcr.getFailureMessage());
+                    ps.setLong(7, tcr.getDurationMs());
+                    ps.setString(8, tcr.getStdOut());
+                    ps.setString(9, encodeSearchParams(tcr.getSearchParams()));
+                    ps.setString(10, String.join("\n", tcr.getScreenshots()));
+                    ps.setString(11, encodeSteps(tcr.getSteps()));
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -93,7 +116,44 @@ public class ReportDao {
             conn.commit();
         } catch (SQLException e) {
             System.err.println("Failed to save test run: " + e.getMessage());
+            // Best-effort rollback if commit didn't happen — keeps test_run rows from being orphaned.
+            try (Connection c2 = getConnection()) {
+                c2.prepareStatement("DELETE FROM test_run WHERE id NOT IN (SELECT run_id FROM test_case)").executeUpdate();
+            } catch (SQLException ignored) {}
         }
+    }
+
+    private static String encodeSearchParams(java.util.Map<String, String> m) {
+        if (m == null || m.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (java.util.Map.Entry<String, String> e : m.entrySet()) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(e.getKey() == null ? "" : e.getKey().replace('\n', ' '));
+            sb.append('=');
+            sb.append(e.getValue() == null ? "" : e.getValue().replace('\n', ' '));
+        }
+        return sb.toString();
+    }
+
+    private static String encodeSteps(java.util.List<TestCaseResult.StepTiming> steps) {
+        if (steps == null || steps.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (TestCaseResult.StepTiming s : steps) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(s.name == null ? "" : s.name.replace('\n', ' ')).append('\t').append(s.ms);
+        }
+        return sb.toString();
+    }
+
+    private static java.util.Map<String, String> decodeSearchParams(String s) {
+        java.util.LinkedHashMap<String, String> m = new java.util.LinkedHashMap<>();
+        if (s == null || s.isEmpty()) return m;
+        for (String line : s.split("\n")) {
+            int eq = line.indexOf('=');
+            if (eq < 0) continue;
+            m.put(line.substring(0, eq), line.substring(eq + 1));
+        }
+        return m;
     }
 
     public List<TestRunResult> getAllRuns() {
@@ -136,8 +196,29 @@ public class ReportDao {
                     tcr.setClassName(rs.getString("class_name"));
                     tcr.setMethodName(rs.getString("method_name"));
                     tcr.setPassed(rs.getInt("passed") == 1);
+                    // skipped column may be missing on a very old DB before the v5 migration —
+                    // treat the absence as 'not skipped'.
+                    try { tcr.setSkipped(rs.getInt("skipped") == 1); } catch (SQLException ignored) {}
                     tcr.setFailureMessage(rs.getString("failure_msg"));
                     tcr.setDurationMs(rs.getLong("duration_ms"));
+                    try {
+                        tcr.setStdOut(rs.getString("stdout"));
+                        tcr.setSearchParams(decodeSearchParams(rs.getString("search_params")));
+                        String screens = rs.getString("screenshots");
+                        if (screens != null && !screens.isEmpty()) {
+                            for (String s : screens.split("\n")) tcr.addScreenshot(s);
+                        }
+                        String stepsStr = rs.getString("steps");
+                        if (stepsStr != null && !stepsStr.isEmpty()) {
+                            for (String line : stepsStr.split("\n")) {
+                                int tab = line.indexOf('\t');
+                                if (tab < 0) continue;
+                                try {
+                                    tcr.addStep(line.substring(0, tab), Long.parseLong(line.substring(tab + 1)));
+                                } catch (NumberFormatException ignored) {}
+                            }
+                        }
+                    } catch (SQLException ignored) {}
                     results.add(tcr);
                 }
             }

@@ -451,7 +451,7 @@ public class TestClassWriter {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
             w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(createdMarker));");
-            w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
+            w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
             // Blur any open inline editor so the second stamp can re-activate cleanly.
             w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
             w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(createdMarker));");
@@ -775,7 +775,7 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("String marker = \"AT\" + System.nanoTime();");
         w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(marker));");
-        w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
+        w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
         w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
         w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
         // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always

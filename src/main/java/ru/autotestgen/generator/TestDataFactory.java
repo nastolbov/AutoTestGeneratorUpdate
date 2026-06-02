@@ -163,13 +163,19 @@ public class TestDataFactory {
         if (mask != null && !mask.isEmpty()) {
             if (looksLikeDateMask(mask))     return "\"" + todayMsk() + "\"";
             if (looksLikeDateTimeMask(mask)) return "\"" + nowMskMinus10() + "\"";
-            return "uniqDigits(\"" + mask + "\")";
+            return "uniqDigits(\"" + escapeJavaString(mask) + "\")";
         }
         return switch (property.getAttrType()) {
             case DECIMAL  -> "uniqDigits(\"999999\")";
             case DATE     -> "\"" + todayMsk() + "\"";
             case DATETIME -> "\"" + nowMskMinus10() + "\"";
-            case STRING   -> "\"Test_" + property.getAttrName() + "_\" + uniqSuffix()";
+            case STRING   -> "\"Test_" + escapeJavaString(property.getAttrName()) + "_\" + uniqSuffix()";
         };
+    }
+
+    /** Escapes a value so it can be safely embedded inside a Java string literal in generated code. */
+    static String escapeJavaString(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

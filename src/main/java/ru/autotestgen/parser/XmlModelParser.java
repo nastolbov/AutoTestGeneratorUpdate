@@ -29,26 +29,28 @@ public class XmlModelParser {
 
         try (FileInputStream fis = new FileInputStream(xmlFile)) {
             XMLStreamReader reader = factory.createXMLStreamReader(fis, "UTF-8");
-            AppModel model = new AppModel();
+            try {
+                AppModel model = new AppModel();
+                while (reader.hasNext()) {
+                    int event = reader.next();
+                    if (event == XMLStreamConstants.START_ELEMENT) {
+                        String ns = reader.getNamespaceURI();
+                        String local = reader.getLocalName();
 
-            while (reader.hasNext()) {
-                int event = reader.next();
-                if (event == XMLStreamConstants.START_ELEMENT) {
-                    String ns = reader.getNamespaceURI();
-                    String local = reader.getLocalName();
-
-                    if ("Category".equals(local) && NS_E3.equals(ns)) {
-                        model.setCategoryName(attr(reader, "CategoryName"));
-                        model.setGuid(attr(reader, "GUID"));
-                    } else if ("Object".equals(local) && NS_E.equals(ns)) {
-                        model.getEntities().add(parseObject(reader));
-                    } else if ("Searches".equals(local) && NS_E3.equals(ns)) {
-                        model.setSearches(parseSearches(reader));
+                        if ("Category".equals(local) && NS_E3.equals(ns)) {
+                            model.setCategoryName(attr(reader, "CategoryName"));
+                            model.setGuid(attr(reader, "GUID"));
+                        } else if ("Object".equals(local) && NS_E.equals(ns)) {
+                            model.getEntities().add(parseObject(reader));
+                        } else if ("Searches".equals(local) && NS_E3.equals(ns)) {
+                            model.setSearches(parseSearches(reader));
+                        }
                     }
                 }
+                return model;
+            } finally {
+                try { reader.close(); } catch (XMLStreamException ignored) {}
             }
-            reader.close();
-            return model;
         } catch (IOException | XMLStreamException e) {
             throw new ParserException("Failed to parse XML model: " + e.getMessage(), e);
         }

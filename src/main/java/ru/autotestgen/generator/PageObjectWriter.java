@@ -77,9 +77,10 @@ public class PageObjectWriter {
         // активация editor'а ячейки и реальный ввод значения, как это делает оператор —
         // ExtJS внутри сам прокинет value в form data.
         w.openBlock("try");
+        w.writeLine("String xpStr = xpathLiteral(fieldName);");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
-        w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
-        w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
+        w.writeLine("    + \"normalize-space(.) = \" + xpStr");
+        w.writeLine("    + \" or contains(normalize-space(.), \" + xpStr + \")\"");
         w.writeLine("    + \"]\";");
         w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(xp));");
         w.writeLine("WebElement nameCell = null;");
@@ -270,9 +271,10 @@ public class PageObjectWriter {
 
         // === СТРАТЕГИЯ B: DOM клики (fallback) ===
         w.openBlock("try");
+        w.writeLine("String xpStr = xpathLiteral(fieldName);");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
-        w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
-        w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
+        w.writeLine("    + \"normalize-space(.) = \" + xpStr");
+        w.writeLine("    + \" or contains(normalize-space(.), \" + xpStr + \")\"");
         w.writeLine("    + \"]\";");
         w.writeLine("java.util.List<WebElement> nameCells = driver.findElements(By.xpath(xp));");
         w.writeLine("WebElement nameCell = null;");
@@ -666,6 +668,25 @@ public class PageObjectWriter {
     // runs and the server rejects the insert on unique-constrained fields — that was the real
     // cause of "запись не сохранилась". See TestDataFactory.generateValueCode.
     private void writeUniqueValueHelpers(JavaFileWriter w) {
+        // XPath 1.0 has no way to escape quote characters inside string literals. If a field
+        // name contains a ' (apostrophe) we MUST emit it as concat('part', "'", 'rest') instead
+        // of '...field name with '...'. Without this, a single quote in a Russian field name
+        // (e.g. «Тип'объекта») produces invalid XPath and the element is never found.
+        w.writeLine("private static String xpathLiteral(String s)");
+        w.writeLine("{");
+        w.writeLine("    if (s == null) return \"''\";");
+        w.writeLine("    if (s.indexOf('\\'') < 0) return \"'\" + s + \"'\";");
+        w.writeLine("    if (s.indexOf('\"') < 0)  return \"\\\"\" + s + \"\\\"\";");
+        w.writeLine("    StringBuilder sb = new StringBuilder(\"concat(\");");
+        w.writeLine("    String[] parts = s.split(\"'\", -1);");
+        w.writeLine("    for (int i = 0; i < parts.length; i++) {");
+        w.writeLine("        if (i > 0) sb.append(\", \\\"'\\\", \");");
+        w.writeLine("        sb.append(\"'\").append(parts[i]).append(\"'\");");
+        w.writeLine("    }");
+        w.writeLine("    sb.append(\")\");");
+        w.writeLine("    return sb.toString();");
+        w.writeLine("}");
+        w.writeLine();
         w.writeLine("// --- unique-value helpers (per-run anti-collision) ---");
         w.writeLine("private static final java.util.concurrent.atomic.AtomicLong UNIQ_SEQ =");
         w.writeLine("    new java.util.concurrent.atomic.AtomicLong(System.nanoTime());");

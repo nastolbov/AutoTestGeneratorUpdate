@@ -409,8 +409,11 @@ public class MainController {
             btnRunTests.setDisable(false);
             btnRunSelected.setDisable(false);
             statusLabel.setText("Ошибка запуска тестов");
-            log("Ошибка: " + task.getException().getMessage());
-            showAlert("Ошибка", task.getException().getMessage());
+            Throwable ex = task.getException();
+            String msg = ex == null ? "Неизвестная ошибка"
+                    : (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+            log("Ошибка: " + msg);
+            showAlert("Ошибка", msg);
         });
 
         new Thread(task).start();

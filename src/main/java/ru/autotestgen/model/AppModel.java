@@ -22,8 +22,9 @@ public class AppModel {
     public void setSearches(List<Search> searches) { this.searches = searches; }
 
     public EntityObject findEntityByGuid(String guid) {
+        if (guid == null) return null;
         return entities.stream()
-                .filter(e -> e.getGuid().equals(guid))
+                .filter(e -> guid.equals(e.getGuid()))
                 .findFirst()
                 .orElse(null);
     }
