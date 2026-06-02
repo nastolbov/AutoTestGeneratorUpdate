@@ -2977,7 +2977,25 @@ public class TestGenerator {
         w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
         w.writeLine("    + \"  var awRoot = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : null;\"");
         w.writeLine("    + \"  if (awRoot && searchIn(awRoot)) return true;\"");
-        w.writeLine("    + \"  return searchIn(document);\"");
+        w.writeLine("    + \"  if (searchIn(document)) return true;\"");
+        // Fallback: scan the STORE of grids that live INSIDE the active Ext window only.
+        // A paginated/buffered grid keeps loaded records in its store while only a viewport
+        // is in the DOM — so a freshly-created marker can sit in the store past the visible
+        // window. Scoping to the active window keeps the scan precise: closed/stale windows
+        // (e.g. a previous record card) are NOT scanned, which avoids the false positives
+        // that broke testDelete on the previous attempt.
+        w.writeLine("    + \"  if (aw && typeof Ext !== 'undefined') {\"");
+        w.writeLine("    + \"    var queue = [aw]; var seen = {};\"");
+        w.writeLine("    + \"    while (queue.length) {\"");
+        w.writeLine("    + \"      var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
+        w.writeLine("    + \"      if (c.getStore && c.getColumnModel) {\"");
+        w.writeLine("    + \"        try { var s = c.getStore(); if (s && s.getCount) { for (var ri = 0; ri < s.getCount(); ri++) { var rec = s.getAt(ri); if (!rec || !rec.data) continue; for (var f in rec.data) { var dv = rec.data[f]; if (dv != null && String(dv).indexOf(needle) >= 0) return true; } } } } catch (eS) {}\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"      if (c.items && c.items.items) { for (var ii = 0; ii < c.items.items.length; ii++) queue.push(c.items.items[ii]); }\"");
+        w.writeLine("    + \"      else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return false;\"");
         w.writeLine("    + \"} catch (e) { return false; }\", marker);");
         w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();

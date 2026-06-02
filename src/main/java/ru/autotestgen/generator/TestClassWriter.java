@@ -467,23 +467,35 @@ public class TestClassWriter {
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
         if (markerField != null) {
-            // Проверяем создание ПОИСКОМ по маркеру: вписываем маркер в параметр поиска
-            // (по имени поля), грид фильтруется до нашей записи — без пагинации и сотен строк,
-            // и без ложных совпадений в чужих гридах/сторах.
-            w.writeLine("boolean filtered = searchByMarker(ENTITY_NAME, FEATURE_NAME, \"" + markerField.getName() + "\", createdMarker);");
-            w.writeLine("System.out.println(\"testCreate: searchByMarker filtered=\" + filtered);");
-            w.writeLine("shot(\"after_marker_search\");");
+            // Verify the record landed by re-navigating to a fresh result grid and looking the
+            // marker up in the active window — gridContainsRow scans rendered rows AND the active
+            // window's store(s), so pagination doesn't hide a row that was actually saved.
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false;");
+            w.writeLine("cardOpenAttempted = false;");
+            w.writeLine("addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_renavigate\");");
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
-            w.writeLine("boolean markerInGrid = gridContainsRow(createdMarker);");
+            w.writeLine("boolean markerInGrid = false;");
+            // Retry a few times — ExtJS sometimes commits the store reload a moment after navigation.
+            w.openBlock("for (int attempt = 0; attempt < 3; attempt++)");
+            w.writeLine("markerInGrid = gridContainsRow(createdMarker);");
+            w.openBlock("if (markerInGrid)");
+            w.writeLine("break;");
+            w.closeBlock();
+            w.writeLine("System.out.println(\"testCreate: marker not yet in grid, retry \" + (attempt + 1) + \"/3\");");
+            w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+            w.closeBlock();
             w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
-            // Diagnostic dump on FAIL: was the record saved at all (marker anywhere in body)?
+            // Diagnostic dump on FAIL: was the record saved at all? Probe full body text.
             w.openBlock("if (!markerInGrid)");
             w.openBlock("try");
-            w.writeLine("System.out.println(\"  [testCreate FAIL diag] URL=\" + driver.getCurrentUrl() + \" filtered=\" + filtered);");
             w.writeLine("Object probe = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
             w.writeLine("    \"try {\"");
             w.writeLine("    + \"  var b = document.body ? (document.body.innerText || document.body.textContent || '') : '';\"");
-            w.writeLine("    + \"  return 'marker-in-body=' + (b.indexOf(arguments[0]) >= 0) + ' bodyLen=' + b.length;\"");
+            w.writeLine("    + \"  return 'marker-in-body=' + (b.indexOf(arguments[0]) >= 0) + ' url=' + location.href + ' bodyLen=' + b.length;\"");
             w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", createdMarker);");
             w.writeLine("System.out.println(\"  [testCreate FAIL diag] \" + probe);");
             w.closeBlock();
@@ -491,7 +503,7 @@ public class TestClassWriter {
             w.closeBlock();
             w.closeBlock();
             w.writeLine("assertTrue(markerInGrid,");
-            w.writeLine("    \"Create: запись с маркером '\" + createdMarker + \"' не найдена поиском после сохранения — запись не сохранилась.\");");
+            w.writeLine("    \"Create: маркер '\" + createdMarker + \"' не найден в гриде после сохранения — запись не сохранилась.\");");
         } else {
             // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("resetState();");
@@ -759,16 +771,27 @@ public class TestClassWriter {
         w.writeLine("String marker = createMarkedRecord();");
         w.writeLine("Assumptions.assumeTrue(!marker.isEmpty(), \"Delete: не удалось создать запись для удаления\");");
         w.writeLine("shot(\"created_for_delete\");");
-        // 2) Filter the result grid down to our marked record via search-by-marker, then open it.
-        w.writeLine("boolean filtered = searchByMarker(ENTITY_NAME, FEATURE_NAME, \"" + markerField.getName() + "\", marker);");
-        w.writeLine("System.out.println(\"testDelete: searchByMarker filtered=\" + filtered);");
-        w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
-        // If the marker row can't be opened, the record may not have saved — fail with a clear msg
-        // (not a skip): the user wants real signal, not silent skips.
-        w.openBlock("if (!opened)");
-        w.writeLine("System.out.println(\"testDelete: marked row not found to open — record likely not saved\");");
+        // 2) Re-navigate to a fresh result grid. Sanity check: the just-created record MUST be
+        // visible there, otherwise save failed and delete has nothing to operate on — fail clearly.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("boolean savedOk = false;");
+        w.openBlock("for (int attempt = 0; attempt < 3; attempt++)");
+        w.writeLine("savedOk = gridContainsRow(marker);");
+        w.openBlock("if (savedOk)");
+        w.writeLine("break;");
         w.closeBlock();
-        w.writeLine("Assumptions.assumeTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не найдена в гриде для открытия\");");
+        w.writeLine("System.out.println(\"testDelete: marker not yet in grid before delete, retry \" + (attempt + 1) + \"/3\");");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.closeBlock();
+        w.writeLine("assertTrue(savedOk, \"Delete: запись с маркером '\" + marker + \"' не появилась в гриде после create — нечего удалять\");");
+        // 3) Open exactly our marked row.
+        w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
+        w.writeLine("assertTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не открылась из грида\");");
         w.writeLine("shot(\"row_selected\");");
         // 4) Delete it.
         w.openBlock("try");
@@ -797,18 +820,24 @@ public class TestClassWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
-        // 5) Verify the marker is gone. Search-by-marker filters the grid; if the marker is still
-        // present, retry: ExtJS sometimes commits the delete on the server only after the next
-        // store reload. Up to 3 retries with a 2s wait — total ≤ 6s extra, no hidden skips.
+        // 5) Re-navigate to a fresh result grid and verify the marker is gone. resetState +
+        // navigateToEntity tears down the post-delete card and opens a FRESH grid window —
+        // a stale closed-card store from the deletion can't be seen by gridContainsRow
+        // (it scopes to the active window). Retry to absorb the async store reload.
         w.writeLine("boolean markerGone = false;");
         w.openBlock("for (int attempt = 0; attempt < 3; attempt++)");
-        w.writeLine("searchByMarker(ENTITY_NAME, FEATURE_NAME, \"" + markerField.getName() + "\", marker);");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
         w.writeLine("markerGone = !gridContainsRow(marker);");
         w.openBlock("if (markerGone)");
         w.writeLine("break;");
         w.closeBlock();
         w.writeLine("System.out.println(\"testDelete: marker still present, retry \" + (attempt + 1) + \"/3\");");
-        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
         w.closeBlock();
         w.writeLine("shot(\"after_renavigate\");");
         w.writeLine("System.out.println(\"testDelete: markerGone=\" + markerGone + \" marker=\" + marker);");
