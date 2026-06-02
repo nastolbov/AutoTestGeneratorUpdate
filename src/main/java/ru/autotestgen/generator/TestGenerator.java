@@ -1439,6 +1439,79 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // searchByMarker: re-navigates to the entity's search, types the unique marker into the
+        // search parameter whose label matches markerFieldName, and runs the search. The result
+        // grid is then filtered down to (ideally) just the matching record — so the subsequent
+        // gridContainsRow / open is reliable regardless of how many records exist or how the grid
+        // paginates. Returns true when the parameter input was actually filled (a real filtered
+        // search ran); false means it fell back to an unfiltered search (param not found).
+        w.openBlock("protected boolean searchByMarker(String entityName, String featureName, String markerFieldName, String marker)");
+        w.openBlock("try");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigationOk = false;");
+        w.openBlock("if (\"e3core\".equals(TestData.SITE_TYPE))");
+        w.writeLine("navigateE3Core(entityName);");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("navigateGeneric(entityName);");
+        w.closeBlock();
+        w.openBlock("if (!navigationOk)");
+        w.writeLine("System.out.println(\"searchByMarker: navigation to '\" + entityName + \"' failed\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("openParamSearchInTree();");
+        // Fill the param input whose label matches the marker field name, then search.
+        w.writeLine("String fillRes = \"no-match\";");
+        w.openBlock("try");
+        w.writeLine("Object o = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  function norm(s){return (s||'').toLowerCase().replace(/\\\\s+/g,' ').replace(/[:*]/g,'').trim();}\"");
+        w.writeLine("    + \"  var want = norm(arguments[0]); var value = arguments[1];\"");
+        w.writeLine("    + \"  var inputs = document.querySelectorAll(\\\"input.x-form-text, input.x-form-field, input[type='text'], textarea\\\");\"");
+        w.writeLine("    + \"  for (var i = 0; i < inputs.length; i++) {\"");
+        w.writeLine("    + \"    var inp = inputs[i];\"");
+        w.writeLine("    + \"    if (inp.type === 'hidden') continue;\"");
+        w.writeLine("    + \"    if (inp.offsetWidth === 0 || inp.offsetHeight === 0) continue;\"");
+        w.writeLine("    + \"    var lbl = '';\"");
+        w.writeLine("    + \"    var node = inp;\"");
+        w.writeLine("    + \"    for (var up = 0; up < 6 && node; up++) {\"");
+        w.writeLine("    + \"      node = node.parentElement; if (!node) break;\"");
+        w.writeLine("    + \"      var le = node.querySelector ? node.querySelector('.x-form-item-label, label.x-form-item-label, .x-form-item-label-inner') : null;\"");
+        w.writeLine("    + \"      if (le && (le.innerText || le.textContent)) { lbl = le.innerText || le.textContent; break; }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"    if (!lbl) { var prev = inp.previousElementSibling; while (prev && !lbl) { if (prev.innerText || prev.textContent) lbl = prev.innerText || prev.textContent; prev = prev.previousElementSibling; } }\"");
+        w.writeLine("    + \"    var nlbl = norm(lbl);\"");
+        w.writeLine("    + \"    if (nlbl && (nlbl.indexOf(want) >= 0 || want.indexOf(nlbl) >= 0)) {\"");
+        w.writeLine("    + \"      var proto = inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;\"");
+        w.writeLine("    + \"      var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;\"");
+        w.writeLine("    + \"      inp.focus(); setter.call(inp, value);\"");
+        w.writeLine("    + \"      inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
+        w.writeLine("    + \"      inp.dispatchEvent(new Event('change', {bubbles: true}));\"");
+        w.writeLine("    + \"      return 'OK:' + nlbl;\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", markerFieldName, marker);");
+        w.writeLine("fillRes = String.valueOf(o);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("fillRes = \"err:\" + e.getMessage();");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"searchByMarker: fillParam('\" + markerFieldName + \"')=\" + fillRes);");
+        w.writeLine("executeSearchIfPresent();");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("return fillRes.startsWith(\"OK\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"searchByMarker error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // getResultRowText(idx): reads the .innerText of the row at index idx inside the
         // LARGEST visible row group of the active Ext window — i.e. exactly the row that
         // selectAndOpenRecordAtIndex(idx) would open. Used by testDelete/testArchive to
@@ -2875,30 +2948,7 @@ public class TestGenerator {
         w.writeLine("    + \"  var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
         w.writeLine("    + \"  var awRoot = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : null;\"");
         w.writeLine("    + \"  if (awRoot && searchIn(awRoot)) return true;\"");
-        w.writeLine("    + \"  if (searchIn(document)) return true;\"");
-        // Fallback: scan ExtJS grid STORES, not just rendered rows. A buffered/paged grid keeps
-        // all loaded records in its store even when only a viewport of rows is in the DOM, so the
-        // freshly-created record can be present in the store yet invisible to the DOM scan above.
-        w.writeLine("    + \"  if (typeof Ext !== 'undefined') {\"");
-        w.writeLine("    + \"    var all = (Ext.ComponentMgr && Ext.ComponentMgr.all) ? Ext.ComponentMgr.all : ((Ext.ComponentManager && Ext.ComponentManager.all) ? Ext.ComponentManager.all : null);\"");
-        w.writeLine("    + \"    var comps = [];\"");
-        w.writeLine("    + \"    if (all) { if (all.items) comps = all.items; else if (all.each) all.each(function(c){comps.push(c);}); else for (var k in all) comps.push(all[k]); }\"");
-        w.writeLine("    + \"    for (var ci = 0; ci < comps.length; ci++) {\"");
-        w.writeLine("    + \"      var c = comps[ci]; if (!c || !c.getStore || !c.getColumnModel) continue;\"");
-        w.writeLine("    + \"      var s = c.getStore(); if (!s || !s.getCount) continue;\"");
-        w.writeLine("    + \"      for (var ri = 0; ri < s.getCount(); ri++) {\"");
-        w.writeLine("    + \"        var rec = s.getAt(ri); if (!rec || !rec.data) continue;\"");
-        w.writeLine("    + \"        for (var f in rec.data) { var dv = rec.data[f]; if (dv != null && String(dv).indexOf(needle) >= 0) return true; }\"");
-        w.writeLine("    + \"      }\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"  }\"");
-        // Last-resort fallback: full document.body.innerText scan. Marker is 'AT<nanoTime>'
-        // — globally unique on the page, zero false-positive risk. Catches records that
-        // landed in some store/grid we didn't enumerate above (buffered renderers,
-        // sub-windows, deeply nested panels).
-        w.writeLine("    + \"  var bodyText = document.body ? (document.body.innerText || document.body.textContent || '') : '';\"");
-        w.writeLine("    + \"  if (bodyText.indexOf(needle) >= 0) return true;\"");
-        w.writeLine("    + \"  return false;\"");
+        w.writeLine("    + \"  return searchIn(document);\"");
         w.writeLine("    + \"} catch (e) { return false; }\", marker);");
         w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();
