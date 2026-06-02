@@ -1570,6 +1570,27 @@ public class TestGenerator {
         //   'Необходимо обязательно указать значения свойств: Наименование ГСК/ОГСК, НДЗ.'
         // even though every fill logged 'OK via editor input'. Calling this before Готово
         // synchronizes UI text -> record values so the save sends a fully-populated record.
+        // One-shot HTML dump of the open dialog. Used to inspect the real DOM/component layout
+        // when fillPropertyGridField succeeds visually but the server still sees fields empty.
+        // First call writes target/dialog-dump-<tag>.html; subsequent calls do nothing.
+        w.writeLine("private static final java.util.Set<String> _DUMP_DONE = new java.util.concurrent.ConcurrentSkipListSet<>();");
+        w.openBlock("protected void dumpDialogHtmlOnce(String tag)");
+        w.openBlock("if (!_DUMP_DONE.add(tag))");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("String html = driver.getPageSource();");
+        w.writeLine("java.nio.file.Path out = java.nio.file.Paths.get(\"target\", \"dialog-dump-\" + tag + \".html\");");
+        w.writeLine("java.nio.file.Files.createDirectories(out.getParent());");
+        w.writeLine("java.nio.file.Files.writeString(out, html, java.nio.charset.StandardCharsets.UTF_8);");
+        w.writeLine("System.out.println(\"  [dump] saved \" + out + \" (\" + html.length() + \" bytes)\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [dump] failed for \" + tag + \": \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         w.openBlock("protected int commitPropertyGridChanges()");
         w.openBlock("try");
         w.writeLine("Object res = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");

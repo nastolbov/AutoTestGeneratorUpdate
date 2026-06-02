@@ -439,19 +439,27 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // SINGLE-STAMP strategy. The previous two-shot version (stamp first → fillAllFields →
-        // stamp second) re-opened the same PropertyGrid cell; on this stand re-activating the
-        // editor breaks the prior commit and the server saw the field empty
-        // ('Необходимо обязательно указать значения свойств: Наименование ГСК/ОГСК, НДЗ.').
-        // testCreateOnlyRequired (which fills each field exactly once) passes consistently,
-        // so we mirror that flow: fill every OTHER required field first (so any conditional
-        // dependents become visible), then stamp the marker ONCE into a freshly-activated cell.
+        // ONE-SHOT diagnostic: dump full HTML of the open create dialog the first time we get
+        // here this JVM. Lets us inspect the real form layout (PropertyGrid vs FormPanel vs
+        // multi-step wizard, label DOM, buttons available) when [fill]=OK lies and save fails.
+        w.writeLine("dumpDialogHtmlOnce(\"create-\" + ENTITY_NAME.replaceAll(\"[^A-Za-z0-9]+\", \"_\"));");
+        // Two-shot marker stamping. Some entities (e.g. GSKOGSK) have CONDITIONAL fields:
+        // 'Наименование ГСК/ОГСК' is hidden until 'Тип ГСК/ОГСК' (FK) is selected, so the
+        // first stamp would silently SKIP (label cell not in DOM) and fillAllFields(skip=name)
+        // would leave the field empty — save fails on required validation. Strategy:
+        //   1) Try stamping marker first (works when the field is unconditional, e.g. Soveshchanie).
+        //   2) Fill everything else, EXCLUDING the marker field (skip arg). This selects FKs and
+        //      makes any conditional dependent fields appear.
+        //   3) Drop the active inline editor (blur) and stamp the marker AGAIN.
+        // Restored from the version that made Soveshchanie testCreate PASS — single-stamp
+        // regressed it without giving GSK a corresponding win.
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+            w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
             w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-            w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
+            w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
@@ -775,11 +783,11 @@ public class TestClassWriter {
         w.writeLine("return \"\";");
         w.closeBlock();
         w.writeLine("String marker = \"AT\" + System.nanoTime();");
-        // Single-stamp: same reason as testCreate above — re-opening the PropertyGrid cell
-        // breaks the prior commit on this stand. Fill other fields first, marker last.
+        // Two-shot — same restoration reason as testCreate above.
+        w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(marker));");
         w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
         w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-        w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
         // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
         // trigger ExtJS's commit, so without this the server would see empty required fields
         // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
@@ -825,6 +833,9 @@ public class TestClassWriter {
         w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
         w.writeLine("assertTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не открылась из грида\");");
         w.writeLine("shot(\"row_selected\");");
+        // ONE-SHOT diagnostic: dump full HTML of the opened edit card. Lets us see what the
+        // toolbar / 'Редактировать' dropdown / 'Удалить' button actually look like.
+        w.writeLine("dumpDialogHtmlOnce(\"card-\" + ENTITY_NAME.replaceAll(\"[^A-Za-z0-9]+\", \"_\"));");
         // 4a) Diagnostic: dump every visible button text on the open card BEFORE attempting
         // delete. Earlier rounds couldn't tell whether 'Удалить' even existed in the toolbar.
         w.openBlock("try");
