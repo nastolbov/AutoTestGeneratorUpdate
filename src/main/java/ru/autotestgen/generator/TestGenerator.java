@@ -1557,18 +1557,18 @@ public class TestGenerator {
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
         w.writeLine("    + \"  var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
         w.writeLine("    + \"  if (!aw) return 'no-window';\"");
-        w.writeLine("    + \"  var grids = []; var seen = {};\"");
+        w.writeLine("    + \"  var grids = []; var seen = {}; var compTypes = {};\"");
         w.writeLine("    + \"  var queue = [aw];\"");
         w.writeLine("    + \"  while (queue.length) {\"");
         w.writeLine("    + \"    var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
-        // Earlier we filtered by c.customEditors — too narrow, regular PropertyGrid instances
-        // on this stand don't always expose customEditors. Match anything with a store AND a
-        // view that exposes getRow (i.e. a row-rendered grid we can DOM-walk).
-        w.writeLine("    + \"    if (c.getStore && c.view && c.view.getRow) grids.push(c);\"");
+        // Broadest filter: any component with a store. Earlier filters (customEditors,
+        // view.getRow) returned no grids on this stand. We'll scan the store directly for
+        // property-grid-like records (those with a 'name' or 'displayName' attribute).
+        w.writeLine("    + \"    if (c.getStore && c.getXType) { var xt = ''; try { xt = c.getXType ? c.getXType() : (c.xtype || ''); } catch (eX) {} if (xt) compTypes[xt] = (compTypes[xt] || 0) + 1; if (c.getStore()) grids.push(c); }\"");
         w.writeLine("    + \"    if (c.items && c.items.items) { for (var i = 0; i < c.items.items.length; i++) queue.push(c.items.items[i]); }\"");
         w.writeLine("    + \"    else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  if (!grids.length) return 'no-propgrid';\"");
+        w.writeLine("    + \"  if (!grids.length) return 'no-grids xtypes=' + JSON.stringify(compTypes);\"");
         w.writeLine("    + \"  var commits = 0; var dbg = [];\"");
         w.writeLine("    + \"  for (var gi = 0; gi < grids.length; gi++) {\"");
         w.writeLine("    + \"    var grid = grids[gi]; var st = grid.getStore(); if (!st || !st.getCount) continue;\"");

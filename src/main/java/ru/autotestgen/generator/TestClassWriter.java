@@ -437,24 +437,19 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // Two-shot marker stamping. Some entities (e.g. GSKOGSK) have CONDITIONAL fields:
-        // 'Наименование ГСК/ОГСК' is hidden until 'Тип ГСК/ОГСК' (FK) is selected, so the
-        // first stamp would silently SKIP (label cell not in DOM) and fillAllFields(skip=name)
-        // would leave the field empty — save fails on required validation. Strategy:
-        //   1) Try stamping marker first (works when the field is unconditional, e.g. Soveshchanie).
-        //   2) Fill everything else, EXCLUDING the marker field (skip arg). This selects FKs and
-        //      makes any conditional dependent fields appear.
-        //   3) Drop the active inline editor (blur) and stamp the marker AGAIN. If step 1
-        //      already worked, step 3 just overwrites AT… with AT… (same value, no-op). If
-        //      step 1 SKIPped because the field was hidden, step 3 now sees a visible cell.
+        // SINGLE-STAMP strategy. The previous two-shot version (stamp first → fillAllFields →
+        // stamp second) re-opened the same PropertyGrid cell; on this stand re-activating the
+        // editor breaks the prior commit and the server saw the field empty
+        // ('Необходимо обязательно указать значения свойств: Наименование ГСК/ОГСК, НДЗ.').
+        // testCreateOnlyRequired (which fills each field exactly once) passes consistently,
+        // so we mirror that flow: fill every OTHER required field first (so any conditional
+        // dependents become visible), then stamp the marker ONCE into a freshly-activated cell.
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-            w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
-            // Blur any open inline editor so the second stamp can re-activate cleanly.
             w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-            w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(createdMarker));");
+            w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
@@ -774,10 +769,11 @@ public class TestClassWriter {
         w.writeLine("return \"\";");
         w.closeBlock();
         w.writeLine("String marker = \"AT\" + System.nanoTime();");
-        w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(marker));");
+        // Single-stamp: same reason as testCreate above — re-opening the PropertyGrid cell
+        // breaks the prior commit on this stand. Fill other fields first, marker last.
         w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
         w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-        w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(marker));");
         // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
         // trigger ExtJS's commit, so without this the server would see empty required fields
         // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
