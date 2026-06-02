@@ -179,7 +179,7 @@ public class TestClassWriter {
 
             // Test 5: Delete
             if (hasCrud && hasModifier(crudOperation, ModifyType.DELETE)) {
-                writeDeleteTest(w);
+                writeDeleteTest(w, displayProperties);
             }
 
             // Test 6: Logical Edit
@@ -370,15 +370,12 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeCreateTest(JavaFileWriter w, List<Property> displayProperties) {
-        // The marker must land in a column that actually appears in the result grid — otherwise
-        // gridContainsRow can't find it even when the record was saved successfully (the value
-        // sits in the database in a field like 'Комментарий' that the search just doesn't list).
-        // Step 1: collect column names from the search SearchResultProperty list (these are
-        // exactly the columns rendered in the result grid). Step 2: pick the first STRING field
-        // whose name/title matches one of those columns. Step 3: fall back to any STRING field
-        // if no overlap is found, to keep behavior on entities without explicit search-result
-        // metadata.
+    /**
+     * Picks the field a unique marker is stamped into. Prefers a STRING field that is actually
+     * a visible result-grid column (so gridContainsRow can see it), falling back to the first
+     * STRING field otherwise. Shared by testCreate and testDelete so both agree on the marker.
+     */
+    private Property resolveMarkerField(List<Property> displayProperties) {
         java.util.Set<String> gridColumns = new java.util.HashSet<>();
         try {
             for (Search s : currentEntitySearches) {
@@ -399,13 +396,16 @@ public class TestClassWriter {
                         || (p.getName() != null && gridColumns.contains(p.getName().toLowerCase())))
                 .findFirst().orElse(null);
         if (markerField == null) {
-            // Fallback: first STRING field even if it's not in the visible columns. The assert
-            // may still fail to find the marker, but at least we tried with grid columns first.
             markerField = displayProperties.stream()
                     .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
                             && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
                     .findFirst().orElse(null);
         }
+        return markerField;
+    }
+
+    private void writeCreateTest(JavaFileWriter w, List<Property> displayProperties) {
+        Property markerField = resolveMarkerField(displayProperties);
 
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
@@ -648,7 +648,13 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeDeleteTest(JavaFileWriter w) {
+    private void writeDeleteTest(JavaFileWriter w, List<Property> displayProperties) {
+        Property markerField = resolveMarkerField(displayProperties);
+        if (markerField != null) {
+            writeSelfContainedDeleteTest(w, markerField);
+            return;
+        }
+        // Fallback (entity has no STRING field to mark): keep the legacy "delete row 0" approach.
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
         w.writeLine("@DisplayName(\"Delete record\")");
@@ -720,6 +726,106 @@ public class TestClassWriter {
         w.writeLine("    \"Delete: после ре-навигации к таблице результатов rows \" + rowsBefore + \" -> \" + rowsAfter");
         w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась\");");
         w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /**
+     * Self-contained delete: create our OWN uniquely-marked record, then find & delete exactly
+     * that row, then verify the unique marker is gone. Far more reliable than deleting an
+     * arbitrary existing row 0 and checking a captured text that often turned out to be a
+     * column label (e.g. 'Тип ГСК/ОГСК' — a field name, never absent from the grid).
+     */
+    private void writeSelfContainedDeleteTest(JavaFileWriter w, Property markerField) {
+        String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+
+        // Helper that creates one uniquely-marked record. Returns the marker, or "" on failure.
+        w.openBlock("private String createMarkedRecord()");
+        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
+        w.openBlock("if (!addClicked)");
+        w.writeLine("dumpCardDiagnostics();");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.openBlock("if (!addFormOpen)");
+        w.writeLine("dumpCardDiagnostics();");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        w.writeLine("String marker = \"AT\" + System.nanoTime();");
+        w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
+        w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
+        w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        w.writeLine("capturePopupText(\"after-Готово\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("try { clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\"); waitForDialogClose(); } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("return marker;");
+        w.closeBlock();
+        w.writeLine();
+
+        w.writeLine("@Test");
+        w.writeLine("@Order(5)");
+        w.writeLine("@DisplayName(\"Delete record\")");
+        w.openBlock("void testDelete()");
+        w.writeLine("shot(\"initial_grid\");");
+        // 1) Create a record we control.
+        w.writeLine("String marker = createMarkedRecord();");
+        w.writeLine("Assumptions.assumeTrue(!marker.isEmpty(), \"Delete: не удалось создать запись для удаления\");");
+        w.writeLine("shot(\"created_for_delete\");");
+        // 2) Re-navigate to the result grid so the new record is listed.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        // 3) Find & open exactly our marked row.
+        w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
+        w.writeLine("Assumptions.assumeTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не найдена в гриде для открытия\");");
+        w.writeLine("shot(\"row_selected\");");
+        // 4) Delete it.
+        w.openBlock("try");
+        w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), '\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c')] | //button[contains(text(), '\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e')]\")).click();");
+        w.closeBlock();
+        w.writeLine("shot(\"delete_clicked\");");
+        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("String popup = captureAndClassifyPopup(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.openBlock("if (isBlockingErrorPopup(popup))");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"blocked_by_server\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete refused by server: '\" + popup + \"'\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"after_confirm\");");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("String popup2 = captureAndClassifyPopup(\"after-confirm\");");
+        w.openBlock("if (isBlockingErrorPopup(popup2))");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"blocked_post_confirm\");");
+        w.writeLine("Assumptions.assumeTrue(false, \"Delete refused after confirm: '\" + popup2 + \"'\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
+        // 5) Re-navigate and verify the marker is gone.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
+        w.writeLine("boolean markerGone = !gridContainsRow(marker);");
+        w.writeLine("System.out.println(\"testDelete: markerGone=\" + markerGone + \" marker=\" + marker);");
+        w.writeLine("assertTrue(markerGone,");
+        w.writeLine("    \"Delete: маркер '\" + marker + \"' всё ещё в гриде после удаления — запись не удалилась\");");
         w.closeBlock();
         w.writeLine();
     }

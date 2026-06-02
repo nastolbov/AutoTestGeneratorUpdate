@@ -142,4 +142,34 @@ public class TestDataFactory {
         if (value == null) return "null";
         return "\"" + value + "\"";
     }
+
+    /**
+     * Java source EXPRESSION (NOT a baked literal) that yields a per-run-UNIQUE value at test
+     * runtime. Static values like "Test_GBS_NAME" or INN "123456789012" are identical on every
+     * run, so on a unique-constrained field (name, ИНН, кадастровый №) the server rejects the
+     * second+ insert and the create looks like it "didn't save". Masks are preserved:
+     *   - date / datetime masks  → a valid current date/time literal (uniqueness not needed);
+     *   - any other mask         → uniqDigits("&lt;mask&gt;"): same shape, runtime-unique digits;
+     *   - free-text STRING       → "Test_&lt;attr&gt;_" + uniqSuffix(): unique suffix;
+     *   - DECIMAL                → uniqDigits("999999"): unique number.
+     * The helpers uniqSuffix() / uniqDigits(String) are emitted into each page object class, so
+     * these expressions are only valid inside page-object methods (fillAllFields / fillRequiredFields).
+     */
+    public static String generateValueCode(Property property) {
+        if ("Directory".equals(property.getStereoType()) || "Ref".equals(property.getStereoType())) {
+            return "null"; // FK / reference — picked from dropdown, not typed
+        }
+        String mask = property.getMask();
+        if (mask != null && !mask.isEmpty()) {
+            if (looksLikeDateMask(mask))     return "\"" + todayMsk() + "\"";
+            if (looksLikeDateTimeMask(mask)) return "\"" + nowMskMinus10() + "\"";
+            return "uniqDigits(\"" + mask + "\")";
+        }
+        return switch (property.getAttrType()) {
+            case DECIMAL  -> "uniqDigits(\"999999\")";
+            case DATE     -> "\"" + todayMsk() + "\"";
+            case DATETIME -> "\"" + nowMskMinus10() + "\"";
+            case STRING   -> "\"Test_" + property.getAttrName() + "_\" + uniqSuffix()";
+        };
+    }
 }

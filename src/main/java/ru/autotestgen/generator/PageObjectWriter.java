@@ -495,6 +495,9 @@ public class PageObjectWriter {
             writeInputMethod(w, prop);
         }
 
+        // Runtime helpers that make generated values unique per run (anti-collision).
+        writeUniqueValueHelpers(w);
+
         // Method to fill all required fields
         writeFilAllRequiredMethod(w, displayProperties);
 
@@ -658,24 +661,60 @@ public class PageObjectWriter {
         w.writeLine();
     }
 
+    // Runtime helpers emitted into every page object so generated fill-values are UNIQUE per run.
+    // Static values (Test_GBS_NAME, INN 123456789012, ...) collide with records left by previous
+    // runs and the server rejects the insert on unique-constrained fields — that was the real
+    // cause of "запись не сохранилась". See TestDataFactory.generateValueCode.
+    private void writeUniqueValueHelpers(JavaFileWriter w) {
+        w.writeLine("// --- unique-value helpers (per-run anti-collision) ---");
+        w.writeLine("private static final java.util.concurrent.atomic.AtomicLong UNIQ_SEQ =");
+        w.writeLine("    new java.util.concurrent.atomic.AtomicLong(System.nanoTime());");
+        w.writeLine();
+        w.writeLine("/** Short per-run-unique suffix for free-text values (names etc.). */");
+        w.openBlock("protected static String uniqSuffix()");
+        w.writeLine("return Long.toString(Math.abs(UNIQ_SEQ.incrementAndGet()) % 100000000L);");
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("/** Mask-conforming value whose DIGIT positions are filled with per-run-unique");
+        w.writeLine(" *  digits (letters/any stay deterministic, separators kept literally). Keeps the");
+        w.writeLine(" *  field valid (INN length, cadastral №, ...) while avoiding cross-run collisions. */");
+        w.openBlock("protected static String uniqDigits(String mask)");
+        w.writeLine("String pool = Long.toString(Math.abs(UNIQ_SEQ.incrementAndGet()))");
+        w.writeLine("    + Long.toString(Math.abs(System.nanoTime()));");
+        w.writeLine("StringBuilder sb = new StringBuilder();");
+        w.writeLine("int p = 0;");
+        w.openBlock("for (int i = 0; i < mask.length(); i++)");
+        w.writeLine("char c = mask.charAt(i);");
+        w.openBlock("if (c == '9' || c == '0' || c == '#')");
+        w.writeLine("sb.append(pool.charAt(p % pool.length())); p++;");
+        w.closeBlock();
+        w.openBlock("else if (c == 'a' || c == 'A' || c == 'L' || c == 'X' || c == 'x' || c == '*' || c == '?')");
+        w.writeLine("sb.append((char) ('A' + (i % 26)));");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("sb.append(c);");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return sb.toString();");
+        w.closeBlock();
+        w.writeLine();
+    }
+
     private void writeFilAllRequiredMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillRequiredFields()");
         // KEY: каждое обязательное поле ДОЛЖНО быть заполнено, иначе сервер вернёт ошибку
-        // валидации и testCreate провалится. Если TestDataFactory не смогла сгенерировать значение
-        // (FK/Ref-поле), даём хотя бы "1" — это типовое значение для FK-пикера на E3Core. fillX в
-        // PageObject сам разберётся (попробует вписать в инпут, потом откроет дропдаун).
+        // валидации и testCreate провалится. generateValueCode даёт УНИКАЛЬНОЕ per-run значение
+        // (см. writeUniqueValueHelpers), чтобы повторные прогоны не конфликтовали по уникальным
+        // полям. Для FK/Ref значение null — fillPropertyGridField идёт в DOM-пикер выпадашки.
         for (Property prop : properties) {
             if (!prop.isRequired() || isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
-            String value = TestDataFactory.generateValue(prop);
-            if (value == null) {
-                // FK / Directory / Ref — нет генерируемого значения. Передаём null —
-                // fillPropertyGridField это распознаёт и идёт в DOM-пикер выпадающего списка,
-                // где берёт случайный пункт.
+            String code = TestDataFactory.generateValueCode(prop);
+            if ("null".equals(code)) {
                 w.writeLine("// " + prop.getName() + " — required FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
             } else {
-                w.writeLine(methodName + "(\"" + value + "\");");
+                w.writeLine(methodName + "(" + code + ");");
             }
         }
         w.closeBlock();
@@ -696,14 +735,14 @@ public class PageObjectWriter {
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
-            String value = TestDataFactory.generateValue(prop);
+            String code = TestDataFactory.generateValueCode(prop);
             w.openBlock("if (!skipDisplayNames.contains(\"" + prop.getName() + "\"))");
-            if (value == null) {
+            if ("null".equals(code)) {
                 // FK / Directory / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
                 w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
             } else {
-                w.writeLine(methodName + "(\"" + value + "\");");
+                w.writeLine(methodName + "(" + code + ");");
             }
             w.closeBlock();
         }

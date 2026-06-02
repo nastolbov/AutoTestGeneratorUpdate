@@ -1416,6 +1416,29 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // openResultRowContaining(marker): scans the result grid for the row whose text contains
+        // the marker and opens THAT row (not row 0). Used by testDelete to act on its own freshly
+        // created, uniquely-marked record. Returns false if the marker isn't found in any row.
+        w.openBlock("protected boolean openResultRowContaining(String marker)");
+        w.openBlock("if (marker == null || marker.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("for (int i = 0; i < 500; i++)");
+        w.writeLine("String t = getResultRowText(i);");
+        // getResultRowText returns "" once idx runs past the last row of the largest group.
+        w.openBlock("if (t == null || t.isEmpty())");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.openBlock("if (t.contains(marker))");
+        w.writeLine("System.out.println(\"openResultRowContaining: marker found at row \" + i);");
+        w.writeLine("return selectAndOpenRecordAtIndex(i);");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"openResultRowContaining: marker '\" + marker + \"' not found in result grid\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine();
+
         // getResultRowText(idx): reads the .innerText of the row at index idx inside the
         // LARGEST visible row group of the active Ext window — i.e. exactly the row that
         // selectAndOpenRecordAtIndex(idx) would open. Used by testDelete/testArchive to
