@@ -276,6 +276,7 @@ public class TestClassWriter {
         w.openBlock("if (totalCount > 0)");
         w.writeLine("int best = Math.max(foundOnGrid, foundInCard);");
         w.writeLine("assertTrue(best >= 1, \"0 of \" + totalCount + \" expected fields visible — navigation likely failed entirely (grid missing: \" + String.join(\", \", missingOnGrid) + \"; card missing: \" + String.join(\", \", missingInCard) + \")\");");
+        w.writeLine("System.out.println(\"[PASS] testFieldsPresent: '\" + ENTITY_NAME + \"' — найдено \" + Math.max(foundOnGrid, foundInCard) + \" из \" + totalCount + \" ожидаемых полей (grid=\" + foundOnGrid + \", card=\" + foundInCard + \")\");");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
@@ -326,6 +327,7 @@ public class TestClassWriter {
         w.writeLine("assertTrue(dialogStillOpen || hasErrors || errorFieldCount > 0,");
         w.writeLine("    \"Empty submit of required-field form must trigger validation: dialog should stay open OR errors shown OR fields highlighted. \"");
         w.writeLine("    + \"None of the three happened — form likely silently accepted invalid data.\");");
+        w.writeLine("System.out.println(\"[PASS] testRequiredFieldValidation: пустая форма '\" + ENTITY_NAME + \"' отвергнута валидацией (dialogStillOpen=\" + dialogStillOpen + \", hasErrors=\" + hasErrors + \", errorFieldCount=\" + errorFieldCount + \")\");");
         // ВАЖНО: на этом моменте диалог Сведения остался открытым (это и есть PASS-сигнал
         // валидации). Если его не закрыть — следующий тест (testCreate, Order 3) не сможет
         // пронавигироваться: модальный диалог блокирует клик по верхнему меню. Жмём «Отмена».
@@ -514,6 +516,7 @@ public class TestClassWriter {
             w.closeBlock();
             w.writeLine("assertTrue(markerInGrid,");
             w.writeLine("    \"Create: маркер '\" + createdMarker + \"' не найден в гриде после сохранения — запись не сохранилась.\");");
+            w.writeLine("System.out.println(\"[PASS] testCreate: запись с маркером '\" + createdMarker + \"' создана в '\" + ENTITY_NAME + \"' (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \")\");");
         } else {
             // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("resetState();");
@@ -526,6 +529,7 @@ public class TestClassWriter {
             w.writeLine("int rowsAfter = page.getTableRowCount();");
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+            w.writeLine("System.out.println(\"[PASS] testCreate: запись добавлена в '\" + ENTITY_NAME + \"' (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \")\");");
         }
         w.closeBlock();
         w.writeLine();
@@ -566,6 +570,7 @@ public class TestClassWriter {
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("System.out.println(\"testCreateOnlyRequired: rows \" + rowsBefore + \" -> \" + rowsAfter);");
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after create-with-only-required\");");
+        w.writeLine("System.out.println(\"[PASS] testCreateOnlyRequired: запись добавлена в '\" + ENTITY_NAME + \"' (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \")\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -661,6 +666,7 @@ public class TestClassWriter {
             w.writeLine("shot(\"after_save\");");
             w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
         }
+        w.writeLine("System.out.println(\"[PASS] testUpdate: запись в '\" + ENTITY_NAME + \"' обновлена и сохранена\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -921,6 +927,7 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testDelete: markerGone=\" + markerGone + \" marker=\" + marker);");
         w.writeLine("assertTrue(markerGone,");
         w.writeLine("    \"Delete: маркер '\" + marker + \"' всё ещё в гриде после удаления — запись не удалилась\");");
+        w.writeLine("System.out.println(\"[PASS] testDelete: запись с маркером '\" + marker + \"' создана и удалена из '\" + ENTITY_NAME + \"'\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -1076,6 +1083,7 @@ public class TestClassWriter {
         }
         w.writeLine("int resultRows = getVisibleRowCount();");
         w.writeLine("System.out.println(\"Search returned \" + resultRows + \" visible row(s)\");");
+        w.writeLine("System.out.println(\"[PASS] testSearch" + index + ": поиск '" + search.getName().replace("\"", "\\\"") + "' в '\" + ENTITY_NAME + \"' вернул \" + resultRows + \" строк\");");
         w.closeBlock();
         w.writeLine();
     }

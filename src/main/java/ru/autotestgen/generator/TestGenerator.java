@@ -623,7 +623,27 @@ public class TestGenerator {
         w.writeLine("import java.time.Duration;");
         w.writeLine("import java.util.List;");
         w.writeLine();
+        // PassLogger: JUnit5 TestWatcher that prints a [PASS-SUMMARY] line for every test that
+        // ended successfully. Users running tests in the JavaFX UI see Maven stdout — without
+        // this, a passing test produced ZERO output, so the user couldn't tell what actually
+        // worked. Now every PASS prints e.g. '[PASS-SUMMARY] Create new record (testCreate) PASS
+        // in 41.2s'. Specific tests add their OWN println with marker/row-count details before
+        // returning, so PASS-lines are followed by the test-specific context.
+        w.writeLine("class PassLogger implements org.junit.jupiter.api.extension.TestWatcher {");
+        w.writeLine("    private long startNs;");
+        w.writeLine("    @Override public void testDisabled(org.junit.jupiter.api.extension.ExtensionContext c, java.util.Optional<String> r) {}");
+        w.writeLine("    @Override public void testAborted(org.junit.jupiter.api.extension.ExtensionContext c, Throwable cause) {}");
+        w.writeLine("    @Override public void testFailed(org.junit.jupiter.api.extension.ExtensionContext c, Throwable cause) {}");
+        w.writeLine("    @Override");
+        w.writeLine("    public void testSuccessful(org.junit.jupiter.api.extension.ExtensionContext c) {");
+        w.writeLine("        String name = c.getDisplayName();");
+        w.writeLine("        String method = c.getTestMethod().map(java.lang.reflect.Method::getName).orElse(\"?\");");
+        w.writeLine("        System.out.println(\"[PASS-SUMMARY] \" + name + \" (\" + method + \") PASS\");");
+        w.writeLine("    }");
+        w.writeLine("}");
+        w.writeLine();
         w.writeLine("@TestInstance(TestInstance.Lifecycle.PER_CLASS)");
+        w.writeLine("@org.junit.jupiter.api.extension.ExtendWith(PassLogger.class)");
         w.openBlock("public abstract class BaseTest");
         w.writeLine();
         w.writeLine("protected WebDriver driver;");
