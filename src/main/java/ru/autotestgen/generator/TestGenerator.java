@@ -302,14 +302,6 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("options.addArguments(\"--no-sandbox\");");
         w.writeLine("options.addArguments(\"--disable-dev-shm-usage\");");
-        // Self-signed / invalid SSL on internal stands: without these flags Chrome shows
-        // 'NET::ERR_CERT_AUTHORITY_INVALID' instead of the actual page, and the test sees the
-        // browser's warning page ('об этом предупреждении', 'включите режим "Улучшенная защита"')
-        // — selectSubsystem can't find any tile because there isn't one. Disable certificate
-        // verification so the stand loads regardless of cert validity.
-        w.writeLine("options.addArguments(\"--ignore-certificate-errors\");");
-        w.writeLine("options.addArguments(\"--allow-insecure-localhost\");");
-        w.writeLine("options.setAcceptInsecureCerts(true);");
         w.writeLine("options.addArguments(\"--window-size=1920,1080\");");
         // Уникальный user-data-dir на каждый JVM-форк — без этого 2+ параллельных Chrome
         // дерутся за один профиль и падают «user data directory is already in use».

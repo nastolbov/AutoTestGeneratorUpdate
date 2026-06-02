@@ -380,7 +380,21 @@ public class MainController {
         task.setOnSucceeded(event -> {
             TestRunResult result = task.getValue();
             displayResults(result);
-            reportDao.saveRun(result);
+            // Persist to SQLite in a BACKGROUND thread. saveRun does many INSERTs and can
+            // include large BLOB-ish payloads (stdOut, screenshots, steps) — running it on the
+            // FX thread froze the UI after 'Тесты завершены': the table didn't render and
+            // buttons stayed disabled. UI state is updated synchronously below; DB persistence
+            // is purely a side effect we can defer.
+            Thread saveThread = new Thread(() -> {
+                try {
+                    reportDao.saveRun(result);
+                } catch (Exception ex) {
+                    javafx.application.Platform.runLater(() ->
+                        log("Ошибка сохранения отчёта в БД: " + ex.getMessage()));
+                }
+            }, "report-save");
+            saveThread.setDaemon(true);
+            saveThread.start();
             progressBar.setVisible(false);
             btnRunTests.setDisable(false);
             btnRunSelected.setDisable(false);
