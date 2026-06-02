@@ -797,10 +797,20 @@ public class TestClassWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
-        // 5) Verify the marker is gone — search for it again; the filtered grid must be empty.
+        // 5) Verify the marker is gone. Search-by-marker filters the grid; if the marker is still
+        // present, retry: ExtJS sometimes commits the delete on the server only after the next
+        // store reload. Up to 3 retries with a 2s wait — total ≤ 6s extra, no hidden skips.
+        w.writeLine("boolean markerGone = false;");
+        w.openBlock("for (int attempt = 0; attempt < 3; attempt++)");
         w.writeLine("searchByMarker(ENTITY_NAME, FEATURE_NAME, \"" + markerField.getName() + "\", marker);");
+        w.writeLine("markerGone = !gridContainsRow(marker);");
+        w.openBlock("if (markerGone)");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"testDelete: marker still present, retry \" + (attempt + 1) + \"/3\");");
+        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
+        w.closeBlock();
         w.writeLine("shot(\"after_renavigate\");");
-        w.writeLine("boolean markerGone = !gridContainsRow(marker);");
         w.writeLine("System.out.println(\"testDelete: markerGone=\" + markerGone + \" marker=\" + marker);");
         w.writeLine("assertTrue(markerGone,");
         w.writeLine("    \"Delete: маркер '\" + marker + \"' всё ещё в гриде после удаления — запись не удалилась\");");

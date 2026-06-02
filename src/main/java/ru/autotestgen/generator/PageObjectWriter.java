@@ -736,10 +736,20 @@ public class PageObjectWriter {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String code = TestDataFactory.generateValueCode(prop);
+            // Optional FK / Ref: SKIP. fillFKViaDropdown picks a RANDOM entry from a global
+            // dictionary (e.g. 917 Председателей), and many of those entries are invalid in
+            // this entity's context — e.g. a 'Председатель' tied to a different ГСК. The server
+            // then rejects save with a validation error. Required FKs are still filled (they
+            // are listed in fillRequiredFields), and testCreateOnlyRequired still covers them.
+            // For free-text / date / mask values we keep the previous behavior (unique per run).
+            if ("null".equals(code) && !prop.isRequired()) {
+                w.writeLine("// " + prop.getName() + " — optional FK/Ref, skipped to keep save valid");
+                continue;
+            }
             w.openBlock("if (!skipDisplayNames.contains(\"" + prop.getName() + "\"))");
             if ("null".equals(code)) {
-                // FK / Directory / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
-                w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
+                // Required FK / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
+                w.writeLine("// " + prop.getName() + " — required FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
             } else {
                 w.writeLine(methodName + "(" + code + ");");
