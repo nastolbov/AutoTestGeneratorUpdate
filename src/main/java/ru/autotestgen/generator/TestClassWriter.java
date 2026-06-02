@@ -793,15 +793,43 @@ public class TestClassWriter {
         w.writeLine("boolean opened = step(\"open marked row\", () -> openResultRowContaining(marker));");
         w.writeLine("assertTrue(opened, \"Delete: помеченная запись '\" + marker + \"' не открылась из грида\");");
         w.writeLine("shot(\"row_selected\");");
-        // 4) Delete it.
+        // 4) Delete it. Two paths: (a) Edit-dropdown 'Удалить' inside the open card; (b) toolbar
+        // button 'Удалить' directly visible on the card window. If neither leads to a confirm
+        // dialog within 3s, dump what's actually visible so we can see why.
         w.openBlock("try");
         w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), '\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c')] | //button[contains(text(), '\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e')]\")).click();");
+        w.writeLine("try { driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c')] | //button[contains(text(), '\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c')]\")).click(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
+        // Diagnostic: if no confirm dialog showed up in 3s, dump visible toolbar buttons so the
+        // next iteration can pinpoint which button the card actually exposes for delete.
+        w.openBlock("if (!waitUntil(d -> isDialogOpen(), 3, \"delete-confirm dialog\"))");
+        w.writeLine("System.out.println(\"  [testDelete diag] confirm dialog did NOT appear after Удалить — dumping visible toolbar:\");");
+        w.openBlock("try");
+        w.writeLine("java.util.List<org.openqa.selenium.WebElement> btns = driver.findElements(By.cssSelector(\"button, .x-btn\"));");
+        w.writeLine("int shown = 0;");
+        w.openBlock("for (org.openqa.selenium.WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (!b.isDisplayed() || shown >= 15)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String t = b.getText() == null ? \"\" : b.getText().trim();");
+        w.openBlock("if (t.isEmpty() || t.length() > 80)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"    button: '\" + t + \"'\");");
+        w.writeLine("shown++;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("String popup = captureAndClassifyPopup(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
         w.openBlock("if (isBlockingErrorPopup(popup))");
         w.writeLine("confirmDialogYes();");

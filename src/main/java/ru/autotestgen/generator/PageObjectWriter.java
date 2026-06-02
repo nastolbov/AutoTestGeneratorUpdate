@@ -736,14 +736,22 @@ public class PageObjectWriter {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String code = TestDataFactory.generateValueCode(prop);
-            // Optional FK / Ref: SKIP. fillFKViaDropdown picks a RANDOM entry from a global
-            // dictionary (e.g. 917 Председателей), and many of those entries are invalid in
-            // this entity's context — e.g. a 'Председатель' tied to a different ГСК. The server
-            // then rejects save with a validation error. Required FKs are still filled (they
-            // are listed in fillRequiredFields), and testCreateOnlyRequired still covers them.
-            // For free-text / date / mask values we keep the previous behavior (unique per run).
+            // Optional FK / Ref: SKIP — random pick from a global dictionary often violates the
+            // entity's own validation (e.g. a 'Председатель' tied to a different ГСК).
             if ("null".equals(code) && !prop.isRequired()) {
                 w.writeLine("// " + prop.getName() + " — optional FK/Ref, skipped to keep save valid");
+                continue;
+            }
+            // Optional unmasked free-text: SKIP. Many such fields have semantic constraints we
+            // can't infer from XML (ИНН = 10/12 digits, Кадастровый = '00:00:0000000:000',
+            // phone, OGRN, ...). Sending 'Test_INN_91689475' breaks server-side validation and
+            // the whole save fails. fillRequiredFields still covers required text fields, and
+            // masked fields (dates, INN-with-mask) are still filled with uniqDigits().
+            String mask = prop.getMask();
+            boolean isUnmaskedString = (prop.getAttrType() == ru.autotestgen.model.AttrType.STRING)
+                && (mask == null || mask.isEmpty());
+            if (!prop.isRequired() && isUnmaskedString) {
+                w.writeLine("// " + prop.getName() + " — optional unmasked text, skipped to keep save valid");
                 continue;
             }
             w.openBlock("if (!skipDisplayNames.contains(\"" + prop.getName() + "\"))");
