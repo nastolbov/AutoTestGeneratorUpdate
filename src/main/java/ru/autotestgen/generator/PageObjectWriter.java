@@ -72,6 +72,54 @@ public class PageObjectWriter {
         w.writeLine("fillFKViaDropdown(fieldName);");
         w.writeLine("return;");
         w.closeBlock();
+
+        // === STRATEGY A: ExtJS API direct commit ===
+        // The DOM-input path below writes to <input>, but PropertyGrid IGNORES our 'input'/
+        // 'change' events on this stand — every typed value is lost on save and the server
+        // replies 'Необходимо обязательно указать значения свойств: …'. Same record-set
+        // approach already works for FK fields in fillFKViaDropdown (rec.set('value', x)) —
+        // applying it to text/date fields fixes the empty-record save.
+        w.openBlock("try");
+        w.writeLine("Object apiRes = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  if (!aw) return 'no-window';\"");
+        w.writeLine("    + \"  var fieldName = arguments[0]; var value = arguments[1];\"");
+        w.writeLine("    + \"  var grids = []; var queue = [aw]; var seen = {};\"");
+        w.writeLine("    + \"  while (queue.length) {\"");
+        w.writeLine("    + \"    var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
+        w.writeLine("    + \"    if (c.getStore && c.getStore() && c.getStore().getCount) grids.push(c);\"");
+        w.writeLine("    + \"    if (c.items && c.items.items) { for (var i = 0; i < c.items.items.length; i++) queue.push(c.items.items[i]); }\"");
+        w.writeLine("    + \"    else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  for (var gi = 0; gi < grids.length; gi++) {\"");
+        w.writeLine("    + \"    var grid = grids[gi]; var st = grid.getStore();\"");
+        w.writeLine("    + \"    for (var ri = 0; ri < st.getCount(); ri++) {\"");
+        w.writeLine("    + \"      var rec = st.getAt(ri); if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
+        // Match strictly first, then prefix match (handles trailing ' *' marker for required).
+        w.writeLine("    + \"      if (dn === fieldName || nn === fieldName || dn.indexOf(fieldName) === 0 || nn.indexOf(fieldName) === 0 || fieldName.indexOf(dn) === 0 || fieldName.indexOf(nn) === 0) {\"");
+        w.writeLine("    + \"        try { rec.set('value', value); } catch (eS) { return 'set-err:' + eS.message; }\"");
+        w.writeLine("    + \"        if (grid.view && grid.view.refresh) try { grid.view.refresh(); } catch (eR) {}\"");
+        w.writeLine("    + \"        return 'OK';\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", fieldName, value);");
+        w.openBlock("if (apiRes != null && \"OK\".equals(String.valueOf(apiRes)))");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS API)\");");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' API path returned: \" + apiRes + \" — falling back to DOM clicks\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception apiEx)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' API path threw: \" + apiEx.getMessage());");
+        w.closeBlock();
+
+        // === STRATEGY B: DOM clicks fallback (original code below) ===
         // ДЛЯ ТЕКСТ/ДАТА ПОЛЕЙ: rec.set + c.source НЕ достаточно — сервер всё равно
         // считает поле пустым ("Необходимо обязательно указать значения свойств..."). Нужна
         // активация editor'а ячейки и реальный ввод значения, как это делает оператор —
