@@ -516,7 +516,7 @@ public class TestClassWriter {
             w.closeBlock();
             w.writeLine("assertTrue(markerInGrid,");
             w.writeLine("    \"Create: маркер '\" + createdMarker + \"' не найден в гриде после сохранения — запись не сохранилась.\");");
-            w.writeLine("System.out.println(\"[PASS] testCreate: запись с маркером '\" + createdMarker + \"' создана в '\" + ENTITY_NAME + \"' (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \")\");");
+            w.writeLine("System.out.println(\"[PASS] testCreate: запись с маркером '\" + createdMarker + \"' создана и найдена в гриде '\" + ENTITY_NAME + \"'\");");
         } else {
             // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("resetState();");
