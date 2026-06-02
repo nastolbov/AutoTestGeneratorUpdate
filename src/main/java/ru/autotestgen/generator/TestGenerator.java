@@ -1541,13 +1541,75 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // commitPropertyGridChanges: walks PropertyGrid stores inside the active Ext window,
+        // and for each row whose value cell has rendered text different from rec.data.value
+        // pushes that text into the record via rec.set('value', uiText). This is required
+        // because our JS value-setter + TAB inside fillPropertyGridField updates the DOM
+        // input but does NOT always trigger ExtJS PropertyGrid's commit listener on this
+        // stand. The result is a popup like:
+        //   'Необходимо обязательно указать значения свойств: Наименование ГСК/ОГСК, НДЗ.'
+        // even though every fill logged 'OK via editor input'. Calling this before Готово
+        // synchronizes UI text -> record values so the save sends a fully-populated record.
+        w.openBlock("protected int commitPropertyGridChanges()");
+        w.openBlock("try");
+        w.writeLine("Object res = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  if (!aw) return 'no-window';\"");
+        w.writeLine("    + \"  var grids = []; var seen = {};\"");
+        w.writeLine("    + \"  var queue = [aw];\"");
+        w.writeLine("    + \"  while (queue.length) {\"");
+        w.writeLine("    + \"    var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
+        w.writeLine("    + \"    if (c.getStore && c.customEditors) grids.push(c);\"");
+        w.writeLine("    + \"    if (c.items && c.items.items) { for (var i = 0; i < c.items.items.length; i++) queue.push(c.items.items[i]); }\"");
+        w.writeLine("    + \"    else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  if (!grids.length) return 'no-propgrid';\"");
+        w.writeLine("    + \"  var commits = 0; var dbg = [];\"");
+        w.writeLine("    + \"  for (var gi = 0; gi < grids.length; gi++) {\"");
+        w.writeLine("    + \"    var grid = grids[gi]; var st = grid.getStore(); if (!st || !st.getCount) continue;\"");
+        w.writeLine("    + \"    for (var ri = 0; ri < st.getCount(); ri++) {\"");
+        w.writeLine("    + \"      var rec = st.getAt(ri); if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"      var row = (grid.view && grid.view.getRow) ? grid.view.getRow(ri) : null;\"");
+        w.writeLine("    + \"      if (!row) continue;\"");
+        w.writeLine("    + \"      var cells = row.querySelectorAll('td');\"");
+        w.writeLine("    + \"      if (cells.length < 2) continue;\"");
+        w.writeLine("    + \"      var inner = cells[1].querySelector('.x-grid3-cell-inner, .x-grid-cell-inner') || cells[1];\"");
+        w.writeLine("    + \"      var uiText = (inner.innerText || inner.textContent || '').trim();\"");
+        w.writeLine("    + \"      var curVal = rec.data.value;\"");
+        w.writeLine("    + \"      var curStr = (curVal == null ? '' : String(curVal)).trim();\"");
+        w.writeLine("    + \"      if (uiText && uiText !== curStr && uiText !== '&nbsp;') {\"");
+        w.writeLine("    + \"        try { rec.set('value', uiText); commits++; dbg.push((rec.data.displayName || rec.data.name || '?') + '=' + uiText.substring(0, 30)); } catch (eS) {}\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'commits=' + commits + ' details=' + dbg.join('|');\"");
+        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"  [commitPropertyGrid] \" + res);");
+        // crude commit count — we just want the side effect; return 0 if anything weird.
+        w.openBlock("if (res != null && String.valueOf(res).startsWith(\"commits=\"))");
+        w.openBlock("try");
+        w.writeLine("String s = String.valueOf(res);");
+        w.writeLine("int eq = s.indexOf('=');");
+        w.writeLine("int sp = s.indexOf(' ', eq);");
+        w.writeLine("return Integer.parseInt(s.substring(eq + 1, sp));");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.writeLine("return 0;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return 0;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [commitPropertyGrid] err: \" + e.getMessage());");
+        w.writeLine("return 0;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // getResultRowText(idx): reads the .innerText of the row at index idx inside the
         // LARGEST visible row group of the active Ext window — i.e. exactly the row that
-        // selectAndOpenRecordAtIndex(idx) would open. Used by testDelete/testArchive to
-        // capture a stable marker BEFORE the card is opened, because after the card opens
-        // the CSS selectors .x-grid3-row-selected / .x-grid3-row-over start matching
-        // unrelated DOM (tree nodes, child grids, hover ghosts) and the marker becomes
-        // wrong (e.g. the entity's own menu label for tiny dictionaries).
         w.openBlock("protected String getResultRowText(int idx)");
         w.openBlock("try");
         w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");

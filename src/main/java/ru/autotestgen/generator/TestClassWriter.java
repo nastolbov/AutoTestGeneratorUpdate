@@ -301,6 +301,11 @@ public class TestClassWriter {
         w.writeLine("step(\"clear form\", () -> { try { page.clearForm(); } catch (Exception ignored) {} });");
         w.writeLine("shot(\"after_clear\");");
         w.writeLine();
+        // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         // Don't waitForDialogClose — we EXPECT the dialog to stay open due to validation. Just give
         // ExtJS a brief moment to render error indicators, no longer.
@@ -354,6 +359,11 @@ public class TestClassWriter {
             w.writeLine("step(\"fill first required\", () -> page." + firstMethod + "(\"" + firstValue + "\"));");
         }
         w.writeLine("shot(\"first_filled\");");
+        // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         // We expect the dialog to NOT close — short buffer for error rendering only.
         w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
@@ -451,6 +461,11 @@ public class TestClassWriter {
             w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
         }
         w.writeLine("shot(\"all_fields_filled\");");
+        // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
         // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
@@ -539,6 +554,11 @@ public class TestClassWriter {
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
         w.writeLine("shot(\"required_filled\");");
+        // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
@@ -635,7 +655,12 @@ public class TestClassWriter {
             w.writeLine("Assumptions.assumeTrue(updateApplied,");
             w.writeLine("    \"testUpdate: ни одну из первых \" + maxAttempts + \" записей обновить не удалось (либо нет 'Сохранить Изменения', либо колонка '\" + \"" + stringField.getName() + "\" + \"' не выводится в гриде).\");");
         } else {
-            w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+            // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
+        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
             w.writeLine("waitForDialogClose();");
             w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_save\");");
@@ -753,6 +778,11 @@ public class TestClassWriter {
         w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + markerField.getName() + "\")));");
         w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
         w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
+        // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
+        // trigger ExtJS's commit, so without this the server would see empty required fields
+        // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
+        // [fill] in the log said OK.
+        w.writeLine("commitPropertyGridChanges();");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         w.writeLine("capturePopupText(\"after-Готово\");");
         w.writeLine("confirmDialogYes();");
