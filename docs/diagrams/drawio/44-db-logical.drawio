@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="generated" version="24.6.4">
+  <diagram id="d" name="ER-диаграмма (логическая модель)">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Логическая модель БД — AutoTestGenerator (нотация ERwin / Crow&#x27;s Foot)" style="text;html=1;fontSize=15;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Нотация (ERwin / Crow&#39;s Foot)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;PK&lt;/b&gt; — первичный ключ (выше двойной линии)&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; — внешний ключ&lt;br&gt;&lt;b&gt;NN&lt;/b&gt; — NOT NULL&lt;br&gt;&lt;br&gt;Конец связи:&lt;br&gt;&amp;nbsp;&amp;nbsp;||  — ровно один (1, обязательная)&lt;br&gt;&amp;nbsp;&amp;nbsp;}|  — один или больше (1..*, обязательная)&lt;br&gt;&amp;nbsp;&amp;nbsp;}o  — ноль или больше (0..*, опц.)" style="text;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;spacingLeft=8;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1230" y="70" width="420" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="TR" value="&lt;b&gt;TestRun&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-style:italic&#39;&gt;Прогон тестов&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="340" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="TR_pk" value="&amp;nbsp;&amp;nbsp;&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&amp;nbsp;id : Integer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="116" width="340" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="TR_attr" value="&amp;nbsp;&amp;nbsp;runDate : DateTime  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;xmlFileName : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;baseUrl : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;totalTests : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;passedCount : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;failedCount : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;skippedCount : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;durationMs : Long  NN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="144" width="340" height="168" as="geometry"/>
+        </mxCell>
+        <mxCell id="TC" value="&lt;b&gt;TestCase&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-style:italic&#39;&gt;Результат одного тестового метода&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="340" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="TC_pk" value="&amp;nbsp;&amp;nbsp;&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&amp;nbsp;id : Integer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="560" y="116" width="340" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="TC_attr" value="&amp;nbsp;&amp;nbsp;runId : Integer  NN  FK&lt;br&gt;&amp;nbsp;&amp;nbsp;className : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;methodName : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;passed : Boolean  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;skipped : Boolean  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;failureMessage : String&lt;br&gt;&amp;nbsp;&amp;nbsp;durationMs : Long  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;stdOut : Text" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="560" y="144" width="340" height="168" as="geometry"/>
+        </mxCell>
+        <mxCell id="SP" value="&lt;b&gt;SearchParam&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-style:italic&#39;&gt;Параметр поиска (1НФ из Map)&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="600" width="340" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="SP_pk" value="&amp;nbsp;&amp;nbsp;&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&amp;nbsp;id : Integer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="636" width="340" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="SP_attr" value="&amp;nbsp;&amp;nbsp;caseId : Integer  NN  FK&lt;br&gt;&amp;nbsp;&amp;nbsp;paramName : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;paramValue : String" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="80" y="664" width="340" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="SC" value="&lt;b&gt;Screenshot&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-style:italic&#39;&gt;Скриншот шага (1НФ из List)&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="480" y="600" width="340" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="SC_pk" value="&amp;nbsp;&amp;nbsp;&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&amp;nbsp;id : Integer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="480" y="636" width="340" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="SC_attr" value="&amp;nbsp;&amp;nbsp;caseId : Integer  NN  FK&lt;br&gt;&amp;nbsp;&amp;nbsp;sequenceNo : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;filePath : String  NN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="480" y="664" width="340" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="ST" value="&lt;b&gt;StepTiming&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-style:italic&#39;&gt;Шаг прогона (1НФ из List)&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="880" y="600" width="340" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="ST_pk" value="&amp;nbsp;&amp;nbsp;&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&amp;nbsp;id : Integer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="880" y="636" width="340" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ST_attr" value="&amp;nbsp;&amp;nbsp;caseId : Integer  NN  FK&lt;br&gt;&amp;nbsp;&amp;nbsp;sequenceNo : Integer  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;stepName : String  NN&lt;br&gt;&amp;nbsp;&amp;nbsp;durationMs : Long  NN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="880" y="664" width="340" height="88" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1" value="содержит" style="endArrow=ERzeroToMany;html=1;startArrow=ERmandOne;fontSize=10;edgeStyle=entityRelationEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="TR_attr" target="TC">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2" value="имеет" style="endArrow=ERzeroToMany;html=1;startArrow=ERmandOne;fontSize=10;edgeStyle=entityRelationEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="TC_attr" target="SP">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3" value="имеет" style="endArrow=ERzeroToMany;html=1;startArrow=ERmandOne;fontSize=10;edgeStyle=entityRelationEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="TC_attr" target="SC">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4" value="имеет" style="endArrow=ERzeroToMany;html=1;startArrow=ERmandOne;fontSize=10;edgeStyle=entityRelationEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="TC_attr" target="ST">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="ВНИМАНИЕ: SearchParam, Screenshot, StepTiming присутствуют в объектной модели (TestCaseResult), но НЕ материализованы в физической БД (schema drift). Эти данные сейчас собираются в памяти, но не сохраняются. См. физическую модель." style="text;html=1;align=left;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="80" y="1020" width="1580" height="60" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
