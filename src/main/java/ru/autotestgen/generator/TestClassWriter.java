@@ -455,23 +455,20 @@ public class TestClassWriter {
         // here this JVM. Lets us inspect the real form layout (PropertyGrid vs FormPanel vs
         // multi-step wizard, label DOM, buttons available) when [fill]=OK lies and save fails.
         w.writeLine("dumpDialogHtmlOnce(\"create-\" + ENTITY_NAME.replaceAll(\"[^A-Za-z0-9]+\", \"_\"));");
-        // Two-shot marker stamping. Some entities (e.g. GSKOGSK) have CONDITIONAL fields:
-        // 'Наименование ГСК/ОГСК' is hidden until 'Тип ГСК/ОГСК' (FK) is selected, so the
-        // first stamp would silently SKIP (label cell not in DOM) and fillAllFields(skip=name)
-        // would leave the field empty — save fails on required validation. Strategy:
-        //   1) Try stamping marker first (works when the field is unconditional, e.g. Soveshchanie).
-        //   2) Fill everything else, EXCLUDING the marker field (skip arg). This selects FKs and
-        //      makes any conditional dependent fields appear.
-        //   3) Drop the active inline editor (blur) and stamp the marker AGAIN.
-        // Restored from the version that made Soveshchanie testCreate PASS — single-stamp
-        // regressed it without giving GSK a corresponding win.
+        // Marker LAST. Last log proved the case:
+        //   testCreateOnlyRequired (FK first, then text) -> PASS
+        //   createMarkedRecord with stamp-first (text before FK) -> 'Необходимо...'
+        // On GSK 'Наименование ГСК/ОГСК' is a CONDITIONAL field — its inline editor doesn't
+        // attach until 'Тип ГСК/ОГСК' (FK) is selected. Stamping the marker before fillAllFields
+        // writes into an editor not yet bound to the row, the typed text goes nowhere, and save
+        // sees an empty field. fillAllFields(skip=marker) selects the FK first, the conditional
+        // editor becomes real, and the LAST stamp lands the marker into a now-active cell.
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-            w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
             w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-            w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(createdMarker));");
+            w.writeLine("step(\"stamp marker (after FKs)\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
@@ -803,11 +800,10 @@ public class TestClassWriter {
         w.writeLine("return \"\";");
         w.closeBlock();
         w.writeLine("String marker = \"AT\" + System.nanoTime();");
-        // Two-shot — same restoration reason as testCreate above.
-        w.writeLine("step(\"stamp marker first try\", () -> page." + fillMethod + "(marker));");
+        // Marker LAST — same reason as testCreate above (conditional 'Наименование' editor).
         w.writeLine("step(\"fill other fields\", () -> page.fillAllFields(java.util.Set.of(\"" + TestDataFactory.escapeJavaString(markerField.getName()) + "\")));");
         w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"if (document.activeElement) document.activeElement.blur();\"); } catch (Exception ignored) {}");
-        w.writeLine("step(\"stamp marker second try (after FKs filled)\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("step(\"stamp marker (after FKs)\", () -> page." + fillMethod + "(marker));");
         // Sync DOM-typed text into PropertyGrid records: our value-setter doesn't always
         // trigger ExtJS's commit, so without this the server would see empty required fields
         // and reply 'Необходимо обязательно указать значения свойств: ...' — even though every
