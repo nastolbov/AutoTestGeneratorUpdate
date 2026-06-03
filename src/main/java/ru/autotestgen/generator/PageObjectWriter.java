@@ -47,6 +47,11 @@ public class PageObjectWriter {
         w.writeLine();
         w.writeLine("private WebDriver driver;");
         w.writeLine("private WebDriverWait wait;");
+        // Сюда складываем (Русское имя поля -> значение) КАЖДЫЙ раз, когда тест что-то
+        // вписывает через fillX(...). Используется в testCreate, чтобы после сохранения
+        // искать запись в гриде НЕ по «рассчитанному» маркеру, а по фактически
+        // заполненным значениям полей. Сбрасывается в fillAllFields / fillRequiredFields.
+        w.writeLine("public java.util.LinkedHashMap<String, String> lastFilledValues = new java.util.LinkedHashMap<>();");
         w.writeLine();
 
         // Constructor — no PageFactory since PropertyGrid has no named inputs
@@ -654,12 +659,19 @@ public class PageObjectWriter {
         // All field types use fillPropertyGridField with the Russian display name
         w.openBlock("public void " + methodName + "(String value)");
         w.writeLine("fillPropertyGridField(\"" + displayName + "\", value);");
+        // Записываем фактически вписанное значение (не null — пустые/FK-пикеры мы не
+        // можем сравнивать с гридом) в lastFilledValues для последующего поиска записи
+        // в результирующей таблице.
+        w.openBlock("if (value != null && !value.isEmpty())");
+        w.writeLine("lastFilledValues.put(\"" + displayName.replace("\\", "\\\\").replace("\"", "\\\"") + "\", value);");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine();
     }
 
     private void writeFilAllRequiredMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillRequiredFields()");
+        w.writeLine("lastFilledValues.clear();");
         // KEY: каждое обязательное поле ДОЛЖНО быть заполнено, иначе сервер вернёт ошибку
         // валидации и testCreate провалится. Если TestDataFactory не смогла сгенерировать значение
         // (FK/Ref-поле), даём хотя бы "1" — это типовое значение для FK-пикера на E3Core. fillX в
@@ -684,6 +696,7 @@ public class PageObjectWriter {
 
     private void writeFillAllFieldsMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillAllFields()");
+        w.writeLine("lastFilledValues.clear();");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());

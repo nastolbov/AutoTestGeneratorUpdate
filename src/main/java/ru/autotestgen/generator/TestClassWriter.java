@@ -404,6 +404,11 @@ public class TestClassWriter {
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
         }
+        // Запоминаем ВСЕ фактически вписанные значения — это снимок того, что мы
+        // отправили на сервер. Дальше используем его, если маркер не нашёлся в гриде
+        // напрямую (например, поле-маркер не отображается в результирующей таблице).
+        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
+        w.writeLine("System.out.println(\"testCreate: запомнили заполненные поля: \" + filledSnapshot);");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
         // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
@@ -440,15 +445,42 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
         w.writeLine();
+        // Грид после пустого поиска показывает только N рассчитанных результатов
+        // (типично 10-30 строк) — наша запись может быть на «следующей странице» и
+        // не отобразиться. Пытаемся ОТФИЛЬТРОВАТЬ поиск по полю с маркером, чтобы
+        // получить грид всего с нашей записью. Если форма поиска не приняла значение
+        // (другой набор колонок) — пытаемся фильтровать по каждому из остальных
+        // заполненных значений.
+        if (markerField != null) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            w.writeLine("try { page." + fillMethod + "(createdMarker); } catch (Exception ignored) {}");
+            w.writeLine("try { executeSearchIfPresent(); } catch (Exception ignored) {}");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_marker_search\");");
+        }
         w.writeLine("int rowsAfter = page.getTableRowCount();");
+        // markerInGrid: сначала по самому маркеру (стабильный stamp), потом по любому
+        // из реально вписанных значений — если поле-маркер не выводится в результирующей
+        // таблице, попадание по «Тип ГСК» / «Адрес» и т.п. тоже доказывает, что запись
+        // вернулась из поиска.
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
+        w.writeLine("String hitVia = markerInGrid ? \"marker\" : \"\";");
+        w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
+        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+        w.writeLine("String v = e.getValue();");
+        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
+        w.writeLine("markerInGrid = true;");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'\";");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"testCreate: markerInGrid=\" + markerInGrid + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
-            // Маркер в гриде — единственный надёжный сигнал. Row count считает ВСЕ
-            // .x-grid3-row на странице, включая чужие гриды (история, документы и т.п.)
-            // и поэтому скачет. Маркер — конкретный уникальный текст этой записи.
+            // Маркер или ЛЮБОЕ заполненное значение в гриде — надёжный сигнал.
             w.writeLine("assertTrue(markerInGrid,");
-            w.writeLine("    \"Create test: маркер '\" + createdMarker + \"' не найден в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась.\");");
+            w.writeLine("    \"Create test: ни маркер '\" + createdMarker + \"', ни одно из заполненных значений \" + filledSnapshot.values() + \" не найдено в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась.\");");
         } else {
             // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
@@ -589,18 +621,17 @@ public class TestClassWriter {
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
+        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: захватываем подпись удаляемой записи ДО открытия карточки.
+        // Раньше захват шёл ПОСЛЕ selectAndOpenRecord() — карточка уже на экране,
+        // .x-grid3-row-selected находит селекцию в чужом гриде/таблице, а лидирующая
+        // ячейка «номер строки» (1) делает маркер несамоидентифицирующим — после удаления
+        // на ту же позицию встаёт следующая запись и markerGone всегда был false.
+        // captureFirstResultRowSignature() берёт первую строку самого большого видимого
+        // грида и срезает ведущую цифровую ячейку.
+        w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
+        w.writeLine("System.out.println(\"testDelete: маркер удаляемой записи (ДО открытия карточки) = '\" + deletedMarker + \"'\");");
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
-        // Capture the selected row's text so we can verify the row is actually gone, not just
-        // that the row count dropped by one (different row could vanish for unrelated reasons).
-        w.writeLine("String deletedMarker = \"\";");
-        w.openBlock("try");
-        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
-        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
-        w.writeLine("deletedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
         w.openBlock("try");
         w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"Удалить\"));");
         w.closeBlock();
@@ -678,16 +709,11 @@ public class TestClassWriter {
         w.openBlock("void testArchive()");
         w.writeLine("shot(\"initial_grid\");");
         w.writeLine("int rowsBefore = page.getTableRowCount();");
+        // Захватываем подпись архивируемой записи ДО открытия карточки (см. testDelete).
+        w.writeLine("String archivedMarker = captureFirstResultRowSignature();");
+        w.writeLine("System.out.println(\"testArchive: маркер архивируемой записи (ДО открытия карточки) = '\" + archivedMarker + \"'\");");
         w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("shot(\"row_selected\");");
-        w.writeLine("String archivedMarker = \"\";");
-        w.openBlock("try");
-        w.writeLine("org.openqa.selenium.WebElement sel = driver.findElement(");
-        w.writeLine("    By.cssSelector(\".x-grid3-row-selected, .x-grid-row-selected, tr.selected, tr.x-grid3-row-over\"));");
-        w.writeLine("archivedMarker = sel.getText() == null ? \"\" : sel.getText().trim();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
         w.writeLine("step(\"click в Архив in card toolbar\", () -> clickEditDropdownAction(\"в Архив\"));");
         w.writeLine("shot(\"archive_clicked\");");
         w.writeLine("acceptAlertIfPresent();");

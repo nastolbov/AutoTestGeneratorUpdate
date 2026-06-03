@@ -2704,6 +2704,85 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // captureFirstResultRowSignature(): возвращает текст ПЕРВОЙ видимой строки САМОГО
+        // БОЛЬШОГО грида на странице (как selectAndOpenRecord) — то есть строки, которую
+        // мы готовы открыть на редактирование/удаление. С этого текста срезаем ведущую
+        // ячейку «номер строки» (число), чтобы маркер не сматчился с «новой первой
+        // строкой» после того как нашу запись удалят. Используется testDelete: захватываем
+        // подпись ДО открытия карточки, потом после удаления проверяем что её больше нет.
+        w.openBlock("protected String captureFirstResultRowSignature()");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
+        w.openBlock("try");
+        w.writeLine("Object raw = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"var groups = {};\"");
+        w.writeLine("    + \"for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"  var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"  var p = r.parentElement;\"");
+        w.writeLine("    + \"  while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"  var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"  if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"if (!bestKey) return '';\"");
+        w.writeLine("    + \"var r0 = groups[bestKey][0];\"");
+        w.writeLine("    + \"return r0.innerText || r0.textContent || '';\");");
+        w.writeLine("String full = raw == null ? \"\" : raw.toString().trim();");
+        w.openBlock("if (full.isEmpty())");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        // Срезаем ведущие строки, которые выглядят как «номер строки» (чисто цифры
+        // или пусто) — оставляем только содержимое последующих ячеек, чтобы маркер
+        // искался по реальным данным, а не по нумерации.
+        w.writeLine("String[] lines = full.split(\"\\r?\\n\");");
+        w.writeLine("StringBuilder sig = new StringBuilder();");
+        w.openBlock("for (String line : lines)");
+        w.writeLine("String t = line == null ? \"\" : line.trim();");
+        w.openBlock("if (sig.length() == 0 && (t.isEmpty() || t.matches(\"\\\\d+\")))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.openBlock("if (sig.length() > 0)");
+        w.writeLine("sig.append('\\n');");
+        w.closeBlock();
+        w.writeLine("sig.append(t);");
+        w.closeBlock();
+        // Trim trailing whitespace.
+        w.writeLine("return sig.toString().trim();");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"captureFirstResultRowSignature failed: \" + e.getMessage());");
+        w.writeLine("return \"\";");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // gridContainsAny(values): true если ХОТЯ БЫ одно из переданных значений
+        // содержится в видимом гриде (использует gridContainsRow по очереди). Нужно для
+        // testCreate: после save мы знаем КАКИЕ значения вписывали и проверяем по любому
+        // из них — типовой случай, когда marker-поле не отображается в результирующей
+        // таблице, но другое заполненное поле (например, Тип/Адрес) — отображается.
+        w.openBlock("protected boolean gridContainsAny(java.util.Collection<String> values)");
+        w.openBlock("if (values == null || values.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("for (String v : values)");
+        w.openBlock("if (v == null || v.isEmpty())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.openBlock("if (gridContainsRow(v))");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine();
+
         // matchesMask(value, mask): true if value conforms to an E3Core/ExtJS-style mask.
         // Mask grammar (must stay in sync with TestDataFactory.generateFromMask):
         //   digit  : '9', '0', '#'
