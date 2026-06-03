@@ -73,57 +73,13 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
 
-        // === STRATEGY A: ExtJS API direct commit ===
-        // The DOM-input path below writes to <input>, but PropertyGrid IGNORES our 'input'/
-        // 'change' events on this stand — every typed value is lost on save and the server
-        // replies 'Необходимо обязательно указать значения свойств: …'. Same record-set
-        // approach already works for FK fields in fillFKViaDropdown (rec.set('value', x)) —
-        // applying it to text/date fields fixes the empty-record save.
-        w.openBlock("try");
-        w.writeLine("Object apiRes = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
-        w.writeLine("    + \"  var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
-        w.writeLine("    + \"  if (!aw) return 'no-window';\"");
-        w.writeLine("    + \"  var fieldName = arguments[0]; var value = arguments[1];\"");
-        w.writeLine("    + \"  var grids = []; var queue = [aw]; var seen = {};\"");
-        w.writeLine("    + \"  while (queue.length) {\"");
-        w.writeLine("    + \"    var c = queue.shift(); if (!c || (c.id && seen[c.id])) continue; if (c.id) seen[c.id] = true;\"");
-        w.writeLine("    + \"    if (c.getStore && c.getStore() && c.getStore().getCount) grids.push(c);\"");
-        w.writeLine("    + \"    if (c.items && c.items.items) { for (var i = 0; i < c.items.items.length; i++) queue.push(c.items.items[i]); }\"");
-        w.writeLine("    + \"    else if (c.items && c.items.each) { c.items.each(function(child){ queue.push(child); }); }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  for (var gi = 0; gi < grids.length; gi++) {\"");
-        w.writeLine("    + \"    var grid = grids[gi]; var st = grid.getStore();\"");
-        w.writeLine("    + \"    for (var ri = 0; ri < st.getCount(); ri++) {\"");
-        w.writeLine("    + \"      var rec = st.getAt(ri); if (!rec || !rec.data) continue;\"");
-        w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
-        w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
-        // Match strictly first, then prefix match (handles trailing ' *' marker for required).
-        w.writeLine("    + \"      if (dn === fieldName || nn === fieldName || dn.indexOf(fieldName) === 0 || nn.indexOf(fieldName) === 0 || fieldName.indexOf(dn) === 0 || fieldName.indexOf(nn) === 0) {\"");
-        w.writeLine("    + \"        try { rec.set('value', value); } catch (eS) { return 'set-err:' + eS.message; }\"");
-        w.writeLine("    + \"        if (grid.view && grid.view.refresh) try { grid.view.refresh(); } catch (eR) {}\"");
-        w.writeLine("    + \"        return 'OK';\"");
-        w.writeLine("    + \"      }\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-match';\"");
-        w.writeLine("    + \"} catch (e) { return 'err:' + e.message; }\", fieldName, value);");
-        w.openBlock("if (apiRes != null && \"OK\".equals(String.valueOf(apiRes)))");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS API)\");");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' API path returned: \" + apiRes + \" — falling back to DOM clicks\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception apiEx)");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' API path threw: \" + apiEx.getMessage());");
-        w.closeBlock();
-
-        // === STRATEGY B: DOM clicks fallback (original code below) ===
-        // ДЛЯ ТЕКСТ/ДАТА ПОЛЕЙ: rec.set + c.source НЕ достаточно — сервер всё равно
-        // считает поле пустым ("Необходимо обязательно указать значения свойств..."). Нужна
-        // активация editor'а ячейки и реальный ввод значения, как это делает оператор —
-        // ExtJS внутри сам прокинет value в form data.
+        // Strategy: activate inline editor by double-clicking the value cell, then enter the
+        // value via REAL key events (sendKeys), then TAB. JS value-setter + dispatchEvent did
+        // NOT commit on this stand — ExtJS treats DOM 'input'/'change' from execute_script as
+        // synthetic and discards the typed text at editor.complete(). sendKeys generates real
+        // OS-level key events that ExtJS routes into the editor's onKeyDown/onKeyUp handlers,
+        // which then commit the value into the record on TAB. Direct rec.set('value', x) via
+        // executeScript was also tried and ignored — same root cause.
         w.openBlock("try");
         w.writeLine("String xpStr = xpathLiteral(fieldName);");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
@@ -185,21 +141,23 @@ public class PageObjectWriter {
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible)\");");
         w.writeLine("return;");
         w.closeBlock();
-        // Очистка + ввод. JS-путь надёжнее sendKeys для ExtJS — пробрасывает change-event так,
-        // что ExtJS field фиксирует значение в своей модели и далее в form data.
+        // Real keyboard input: clear the editor and sendKeys the value. Selenium's sendKeys
+        // dispatches OS-level KeyboardEvents that ExtJS routes into the editor's input chain,
+        // so onKeyDown/onKeyUp + textchange fire correctly and editor.complete() (triggered by
+        // the trailing TAB) writes the typed text back to the record store. The JS-setter +
+        // synthetic 'input'/'change' approach this replaces was ignored by ExtJS — the typed
+        // text was lost at commit time and the server kept seeing required fields empty.
         w.openBlock("try");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"var inp = arguments[0]; var v = arguments[1];\"");
-        w.writeLine("    + \"inp.focus();\"");
-        w.writeLine("    + \"var setter = Object.getOwnPropertyDescriptor(inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value').set;\"");
-        w.writeLine("    + \"setter.call(inp, v);\"");
-        w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
-        w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
-        // 100мс — компромисс: меньше провоцирует ExtJS на drop-edit, но не тормозит сильно.
+        w.openBlock("try");
+        w.writeLine("editor.clear();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("editor.sendKeys(value);");
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("Thread.sleep(120);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via sendKeys)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
