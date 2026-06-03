@@ -445,44 +445,79 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
         w.writeLine();
-        // Грид после пустого поиска показывает только N рассчитанных результатов
-        // (типично 10-30 строк) — наша запись может быть на «следующей странице» и
-        // не отобразиться. Пытаемся ОТФИЛЬТРОВАТЬ поиск по полю с маркером, чтобы
-        // получить грид всего с нашей записью. Если форма поиска не приняла значение
-        // (другой набор колонок) — пытаемся фильтровать по каждому из остальных
-        // заполненных значений.
-        if (markerField != null) {
-            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
-            w.writeLine("try { page." + fillMethod + "(createdMarker); } catch (Exception ignored) {}");
-            w.writeLine("try { executeSearchIfPresent(); } catch (Exception ignored) {}");
-            w.writeLine("waitForGridSettle();");
-            w.writeLine("shot(\"after_marker_search\");");
-        }
+        // Стратегия поиска созданной записи (3 уровня — от дешёвого к дорогому):
+        // 1) НЕФИЛЬТРОВАННЫЙ грид — маркер или любое заполненное значение видно в DOM
+        // 2) ExtJS store — маркер есть в store (обходит пейджинацию)
+        // 3) ФИЛЬТРОВАННЫЙ поиск — ре-навигируем, вписываем маркер в форму поиска, ищем
+        //    Делаем это ПОСЛЕДНИМ, т.к. page.fillX() на форме поиска может исказить
+        //    параметры и вернуть неверный resultset.
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        // markerInGrid: сначала по самому маркеру (стабильный stamp), потом по любому
-        // из реально вписанных значений — если поле-маркер не выводится в результирующей
-        // таблице, попадание по «Тип ГСК» / «Адрес» и т.п. тоже доказывает, что запись
-        // вернулась из поиска.
         w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
-        w.writeLine("String hitVia = markerInGrid ? \"marker\" : \"\";");
+        w.writeLine("String hitVia = markerInGrid ? \"marker(DOM)\" : \"\";");
+        w.writeLine();
+        // Уровень 1б: проверяем заполненные значения в видимых строках
         w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
         w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
         w.writeLine("String v = e.getValue();");
         w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
         w.writeLine("markerInGrid = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'\";");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(DOM)\";");
         w.writeLine("break;");
         w.closeBlock();
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("System.out.println(\"testCreate: markerInGrid=\" + markerInGrid + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
+        w.writeLine();
+        // Уровень 2: ExtJS store — обходит пейджинацию
+        w.openBlock("if (!markerInGrid && !createdMarker.isEmpty())");
+        w.openBlock("if (gridStoreContainsText(createdMarker))");
+        w.writeLine("markerInGrid = true;");
+        w.writeLine("hitVia = \"marker(ExtJS store)\";");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+        if (markerField != null) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            // Уровень 3: фильтрованный поиск — ре-навигируем чисто, вписываем маркер, ищем
+            w.openBlock("if (!markerInGrid)");
+            w.writeLine("System.out.println(\"testCreate: маркер не найден в DOM/store, пробуем фильтрованный поиск\");");
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false;");
+            w.writeLine("cardOpenAttempted = false;");
+            w.writeLine("addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            w.openBlock("try");
+            w.writeLine("page." + fillMethod + "(createdMarker);");
+            w.writeLine("executeSearchIfPresent();");
+            w.writeLine("waitForGridSettle();");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.writeLine("shot(\"after_marker_search\");");
+            w.writeLine("rowsAfter = page.getTableRowCount();");
+            w.openBlock("if (!createdMarker.isEmpty() && gridContainsRow(createdMarker))");
+            w.writeLine("markerInGrid = true;");
+            w.writeLine("hitVia = \"marker(filtered search)\";");
+            w.closeBlock();
+            // Fallback: проверяем заполненные значения и в фильтрованном гриде
+            w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
+            w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+            w.writeLine("String v = e.getValue();");
+            w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
+            w.writeLine("markerInGrid = true;");
+            w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(filtered)\";");
+            w.writeLine("break;");
+            w.closeBlock();
+            w.closeBlock();
+            w.closeBlock();
+            w.closeBlock();
+        }
+        w.writeLine("System.out.println(\"testCreate: markerInGrid=\" + markerInGrid + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia) + \" rowsAfter=\" + rowsAfter);");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
-            // Маркер или ЛЮБОЕ заполненное значение в гриде — надёжный сигнал.
             w.writeLine("assertTrue(markerInGrid,");
             w.writeLine("    \"Create test: ни маркер '\" + createdMarker + \"', ни одно из заполненных значений \" + filledSnapshot.values() + \" не найдено в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась.\");");
         } else {
-            // Нет строкового поля для маркера — последний резерв: счётчик не должен УПАСТЬ.
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
         }

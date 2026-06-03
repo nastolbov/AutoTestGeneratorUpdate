@@ -2783,6 +2783,44 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // gridStoreContainsText(marker): ищет marker в данных ВСЕХ ExtJS grid store на странице.
+        // В отличие от gridContainsRow (который видит только отрендеренные DOM-строки),
+        // этот метод обходит ВСЕ записи store, включая те, что на «следующих страницах»
+        // пейджинации. Используется testCreate как fallback если маркер не видно в DOM.
+        w.openBlock("protected boolean gridStoreContainsText(String marker)");
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined') return false;\"");
+        w.writeLine("    + \"var marker = arguments[0];\"");
+        w.writeLine("    + \"var grids = Ext.ComponentQuery ? Ext.ComponentQuery.query('gridpanel,grid') : [];\"");
+        w.writeLine("    + \"if (!grids || grids.length === 0) {\"");
+        w.writeLine("    + \"  grids = [];\"");
+        w.writeLine("    + \"  Ext.ComponentMgr.all.each(function(c) { if (c.getStore && c.getColumnModel) grids.push(c); });\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"for (var gi = 0; gi < grids.length; gi++) {\"");
+        w.writeLine("    + \"  var store = grids[gi].getStore ? grids[gi].getStore() : null;\"");
+        w.writeLine("    + \"  if (!store) continue;\"");
+        w.writeLine("    + \"  var count = store.getCount ? store.getCount() : 0;\"");
+        w.writeLine("    + \"  for (var ri = 0; ri < count; ri++) {\"");
+        w.writeLine("    + \"    var rec = store.getAt(ri);\"");
+        w.writeLine("    + \"    if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"    for (var key in rec.data) {\"");
+        w.writeLine("    + \"      var val = rec.data[key];\"");
+        w.writeLine("    + \"      if (val != null && String(val).indexOf(marker) >= 0) return true;\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"return false;\",");
+        w.writeLine("    marker);");
+        w.writeLine("return Boolean.TRUE.equals(result);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"gridStoreContainsText failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // matchesMask(value, mask): true if value conforms to an E3Core/ExtJS-style mask.
         // Mask grammar (must stay in sync with TestDataFactory.generateFromMask):
         //   digit  : '9', '0', '#'
