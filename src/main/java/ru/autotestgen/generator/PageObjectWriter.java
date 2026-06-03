@@ -64,7 +64,11 @@ public class PageObjectWriter {
         // какие именно обязательные поля не заполняются (раньше падали в silent skip и в
         // итоге Готово отбивался валидацией).
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(80));");
+        // 200ms is the original setting from commit 32f3587. The aggressive cut to 80ms in
+        // the 'speed-up' commit a0b46dc caused findElements to give up before the editor's
+        // own DOM nodes finished rendering, which in turn made the editor lookup pick a
+        // stale input from outside the dialog. Back to 200ms.
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));");
         // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки.
         w.openBlock("if (value == null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' — FK field, opening dropdown\");");
@@ -122,9 +126,16 @@ public class PageObjectWriter {
         w.writeLine("    .perform();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("try { valueCell.click(); Thread.sleep(50); valueCell.click(); } catch (Exception ignored) {}");
+        w.writeLine("try { valueCell.click(); Thread.sleep(350); valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(50);");
+        // 400ms — critical wait. ExtJS PropertyGrid opens its inline editor asynchronously
+        // (cell render -> editor.startEdit -> editor.field.focus). At 50ms the editor isn't
+        // there yet and we pick the FIRST visible input on the page (often a search-form
+        // input outside the dialog) — sendKeys then goes into the wrong field and the record
+        // stays empty. This was the regression from commit a0b46dc ('Speed up FK-dropdown'):
+        // the speedup landed but broke text/date fills. Restoring the original timing from
+        // commit 32f3587 'Fill text/date fields via editor input'.
+        w.writeLine("Thread.sleep(400);");
         // Найти видимый input редактора
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
         w.writeLine("WebElement editor = null;");
@@ -141,23 +152,25 @@ public class PageObjectWriter {
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible)\");");
         w.writeLine("return;");
         w.closeBlock();
-        // Real keyboard input: clear the editor and sendKeys the value. Selenium's sendKeys
-        // dispatches OS-level KeyboardEvents that ExtJS routes into the editor's input chain,
-        // so onKeyDown/onKeyUp + textchange fire correctly and editor.complete() (triggered by
-        // the trailing TAB) writes the typed text back to the record store. The JS-setter +
-        // synthetic 'input'/'change' approach this replaces was ignored by ExtJS — the typed
-        // text was lost at commit time and the server kept seeing required fields empty.
+        // JS native-setter path. The original investigation (commit 32f3587) found that
+        // sendKeys was UNRELIABLE on this stand — ExtJS sometimes swallowed key events when
+        // the editor lost focus mid-typing — while the native HTMLInputElement value setter
+        // + dispatched 'input' + 'change' events made ExtJS field reliably register the
+        // change, then TAB committed it via editor.complete(). 150ms after the JS-set lets
+        // ExtJS process the change-event before the commit; 200ms after TAB lets the store
+        // afterEdit/save fire before the next field is touched.
         w.openBlock("try");
-        w.openBlock("try");
-        w.writeLine("editor.clear();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.writeLine("editor.sendKeys(value);");
-        w.writeLine("Thread.sleep(100);");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var inp = arguments[0]; var v = arguments[1];\"");
+        w.writeLine("    + \"inp.focus();\"");
+        w.writeLine("    + \"var setter = Object.getOwnPropertyDescriptor(inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value').set;\"");
+        w.writeLine("    + \"setter.call(inp, v);\"");
+        w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
+        w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
+        w.writeLine("Thread.sleep(150);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
-        w.writeLine("Thread.sleep(120);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via sendKeys)\");");
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
