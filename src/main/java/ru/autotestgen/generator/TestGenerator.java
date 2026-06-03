@@ -78,6 +78,10 @@ public class TestGenerator {
                 testWriter.write(entity, model, srcDir, null);
             } else if (cls.kind == EntityKind.CHILD) {
                 child++;
+                if (cls.parentEntity != null && cls.parentGrid != null) {
+                    pageWriter.write(entity, srcDir);
+                    testWriter.writeChildTest(entity, model, srcDir, cls);
+                }
             } else {
                 ref++;
             }

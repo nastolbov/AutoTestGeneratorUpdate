@@ -18,9 +18,21 @@ public final class EntityClassifier {
     public static final class Classification {
         public final EntityKind kind;
         public final String reason;
+        /** For CHILD entities: the parent entity that hosts this child's grid tab. */
+        public final EntityObject parentEntity;
+        /** For CHILD entities: the Grid PropertyGroup inside the parent. */
+        public final PropertyGroup parentGrid;
+
         public Classification(EntityKind kind, String reason) {
+            this(kind, reason, null, null);
+        }
+
+        public Classification(EntityKind kind, String reason,
+                              EntityObject parentEntity, PropertyGroup parentGrid) {
             this.kind = kind;
             this.reason = reason;
+            this.parentEntity = parentEntity;
+            this.parentGrid = parentGrid;
         }
     }
 
@@ -32,9 +44,9 @@ public final class EntityClassifier {
      * Всё остальное — PRIMARY.
      */
     public static Classification classify(EntityObject entity, AppModel model) {
-        String childReason = findParentGridReason(entity, model);
-        if (childReason != null) {
-            return new Classification(EntityKind.CHILD, childReason);
+        Classification childResult = findParentGrid(entity, model);
+        if (childResult != null) {
+            return childResult;
         }
         String dictReason = isReferenceDictionary(entity, model);
         if (dictReason != null) {
@@ -47,7 +59,7 @@ public final class EntityClassifier {
         return new Classification(EntityKind.PRIMARY, "has menu entry, CRUD and own searches");
     }
 
-    private static String findParentGridReason(EntityObject entity, AppModel model) {
+    private static Classification findParentGrid(EntityObject entity, AppModel model) {
         if (entity.hasCrudOperations()) return null;
         for (EntityObject other : model.getEntities()) {
             if (other.getGuid() != null && other.getGuid().equals(entity.getGuid())) continue;
@@ -57,7 +69,8 @@ public final class EntityClassifier {
                 if (gridName == null || gridName.isEmpty()) continue;
                 if (gridName.equalsIgnoreCase(other.getName())) continue;
                 if (nameStemsMatch(entity.getName(), gridName)) {
-                    return "tab/grid '" + gridName + "' inside '" + other.getName() + "'";
+                    String reason = "tab/grid '" + gridName + "' inside '" + other.getName() + "'";
+                    return new Classification(EntityKind.CHILD, reason, other, pg);
                 }
             }
         }

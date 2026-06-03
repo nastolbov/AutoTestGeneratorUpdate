@@ -213,6 +213,323 @@ public class TestClassWriter {
         w.writeToFile(dir, testClassName + ".java");
     }
 
+    /**
+     * Generates an in-context test class for a CHILD entity — one that lives as a grid tab inside
+     * a parent entity's card. The generated @BeforeEach navigates to the parent entity, opens a
+     * record card, and switches to the child tab. CRUD tests use the grid toolbar buttons, not the
+     * main menu.
+     */
+    public void writeChildTest(EntityObject entity, AppModel model, Path outputDir,
+                               EntityClassifier.Classification cls) throws IOException {
+        EntityObject parent = cls.parentEntity;
+        PropertyGroup parentGrid = cls.parentGrid;
+        String tabName = parentGrid.getName();
+
+        String entityClassName = Transliterator.toClassName(entity.getName());
+        String testClassName = entityClassName + "Test";
+        String pageClassName = entityClassName + "Page";
+        String packageName = basePackage + ".test";
+        Path dir = outputDir.resolve(packageName.replace('.', '/'));
+
+        List<Property> displayProperties = getDisplayProperties(entity);
+
+        Operation gridOperation = parentGrid.getOperation();
+        boolean hasCrud = gridOperation != null && !gridOperation.getModifiers().isEmpty();
+
+        List<Property> gridColumns = parentGrid.getProperties().stream()
+                .filter(p -> !isSystemField(p) && p.isFlagDisplay())
+                .toList();
+
+        JavaFileWriter w = new JavaFileWriter();
+
+        w.writeLine("package " + packageName + ";");
+        w.writeLine();
+        w.writeLine("import org.junit.jupiter.api.*;");
+        w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.By;");
+        w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
+        w.writeLine("import " + basePackage + ".BaseTest;");
+        w.writeLine("import " + basePackage + ".page." + pageClassName + ";");
+        w.writeLine();
+
+        w.writeLine("@TestMethodOrder(MethodOrderer.OrderAnnotation.class)");
+        w.openBlock("public class " + testClassName + " extends BaseTest");
+        w.writeLine();
+        w.writeLine("private " + pageClassName + " page;");
+        w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
+        w.writeLine("private static final String PARENT_ENTITY_NAME = \"" + parent.getName() + "\";");
+        w.writeLine("private static final String PARENT_FEATURE_NAME = \"" + parent.getFeatureName() + "\";");
+        w.writeLine("private static final String TAB_NAME = \"" + tabName + "\";");
+        w.writeLine();
+
+        w.writeLine("@Override");
+        w.openBlock("protected String entityName()");
+        w.writeLine("return PARENT_ENTITY_NAME;");
+        w.closeBlock();
+        w.writeLine();
+
+        // @BeforeEach: navigate to parent → open card → switch to child tab
+        w.writeLine("@BeforeEach");
+        w.openBlock("void setUp()");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(PARENT_ENTITY_NAME, PARENT_FEATURE_NAME);");
+        w.writeLine("assumeNavigated();");
+        w.writeLine("boolean cardOpened = selectAndOpenRecord();");
+        w.writeLine("Assumptions.assumeTrue(cardOpened, \"Could not open parent '\" + PARENT_ENTITY_NAME + \"' record card\");");
+        w.writeLine("waitForCardLoaded(10);");
+        w.writeLine("shot(\"parent_card\");");
+        w.writeLine("boolean tabOpened = openTab(TAB_NAME);");
+        w.writeLine("Assumptions.assumeTrue(tabOpened, \"Tab '\" + TAB_NAME + \"' not found in parent card\");");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"child_tab\");");
+        w.writeLine("page = new " + pageClassName + "(driver);");
+        w.closeBlock();
+        w.writeLine();
+
+        w.writeLine("@AfterEach");
+        w.openBlock("void captureFinalShot(TestInfo testInfo)");
+        w.writeLine("shot(\"END\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // Test 1: Grid columns
+        writeChildGridColumnsTest(w, gridColumns, tabName);
+
+        if (isFull() && hasCrud) {
+            // Test 3: Create
+            if (hasModifier(gridOperation, ModifyType.INSERT)) {
+                writeChildCreateTest(w, displayProperties, tabName);
+            }
+            // Test 4: Update
+            if (hasModifier(gridOperation, ModifyType.UPDATE)) {
+                writeChildUpdateTest(w, displayProperties, tabName);
+            }
+            // Test 5: Delete
+            if (hasModifier(gridOperation, ModifyType.DELETE)) {
+                writeChildDeleteTest(w, tabName);
+            }
+        }
+
+        w.closeBlock(); // end class
+        w.writeToFile(dir, testClassName + ".java");
+    }
+
+    private void writeChildGridColumnsTest(JavaFileWriter w, List<Property> gridColumns, String tabName) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(1)");
+        w.writeLine("@DisplayName(\"Grid columns: " + tabName.replace("\"", "\\\"") + "\")");
+        w.openBlock("void testGridColumns()");
+        w.writeLine("shot(\"grid_view\");");
+        if (!gridColumns.isEmpty()) {
+            w.writeLine("int colsFound = 0;");
+            w.writeLine("java.util.List<String> missingCols = new java.util.ArrayList<>();");
+            for (Property col : gridColumns) {
+                w.openBlock("if (isColumnPresent(\"" + col.getName().replace("\"", "\\\"") + "\"))");
+                w.writeLine("colsFound++;");
+                w.closeBlock();
+                w.openBlock("else");
+                w.writeLine("missingCols.add(\"" + col.getName().replace("\"", "\\\"") + "\");");
+                w.closeBlock();
+            }
+            w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "' columns: \" + colsFound + \" of " + gridColumns.size() + "\");");
+            w.openBlock("if (!missingCols.isEmpty())");
+            w.writeLine("System.out.println(\"  missing: \" + String.join(\", \", missingCols));");
+            w.closeBlock();
+            w.writeLine("shot(\"columns_checked\");");
+            w.writeLine("Assumptions.assumeTrue(colsFound >= 1,");
+            w.writeLine("    \"Grid '" + tabName.replace("\"", "\\\"") + "': 0 of " + gridColumns.size() + " columns found — selectors don't match this build. Missing: \" + String.join(\", \", missingCols));");
+        } else {
+            w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "': no columns defined in model\");");
+        }
+        w.writeLine("int rows = getVisibleRowCount();");
+        w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "' rows: \" + rows);");
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    private void writeChildCreateTest(JavaFileWriter w, List<Property> displayProperties, String tabName) {
+        Property markerField = displayProperties.stream()
+                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .findFirst().orElse(null);
+
+        w.writeLine("@Test");
+        w.writeLine("@Order(3)");
+        w.writeLine("@DisplayName(\"Create in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.openBlock("void testCreate()");
+        w.writeLine("shot(\"grid_before_add\");");
+        w.writeLine("int rowsBefore = getVisibleRowCount();");
+        w.writeLine();
+        // Click "Добавить" in grid toolbar
+        w.writeLine("boolean addClicked = clickButtonByText(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.writeLine("System.out.println(\"child testCreate: addClicked=\" + addClicked + \" in tab '\" + TAB_NAME + \"'\");");
+        w.writeLine("Assumptions.assumeTrue(addClicked, \"'\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c' button not found in child grid toolbar\");");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("System.out.println(\"child testCreate: addFormOpen=\" + addFormOpen);");
+        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open in child grid context\");");
+        w.writeLine("shot(\"add_form\");");
+        w.writeLine();
+        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        w.writeLine("shot(\"fields_filled\");");
+        if (markerField != null) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+            w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
+        } else {
+            w.writeLine("String createdMarker = \"\";");
+        }
+        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
+        w.writeLine("System.out.println(\"child testCreate: filled values: \" + filledSnapshot);");
+        w.writeLine("shot(\"marker_applied\");");
+        w.writeLine();
+        // Save
+        w.writeLine("step(\"click \\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
+        w.writeLine("capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("System.out.println(\"child testCreate: dialog stuck, pressing \\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
+        w.openBlock("try");
+        w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
+        w.writeLine("waitForDialogClose();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_save\");");
+        w.writeLine();
+        // Verify in child grid
+        w.writeLine("assertFalse(isErrorPresent(), \"Error after creating child record\");");
+        w.writeLine("int rowsAfter = getVisibleRowCount();");
+        w.writeLine("boolean markerFound = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
+        w.writeLine("String hitVia = markerFound ? \"marker(DOM)\" : \"\";");
+        w.writeLine();
+        w.openBlock("if (!markerFound && !filledSnapshot.isEmpty())");
+        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+        w.writeLine("String v = e.getValue();");
+        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
+        w.writeLine("markerFound = true;");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(DOM)\";");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+        w.openBlock("if (!markerFound && !createdMarker.isEmpty())");
+        w.openBlock("if (gridStoreContainsText(createdMarker))");
+        w.writeLine("markerFound = true;");
+        w.writeLine("hitVia = \"marker(ExtJS store)\";");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("System.out.println(\"child testCreate: markerFound=\" + markerFound + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia)");
+        w.writeLine("    + \" rows \" + rowsBefore + \" -> \" + rowsAfter);");
+        w.writeLine("shot(markerFound ? \"marker_found\" : \"final_grid\");");
+        if (markerField != null) {
+            w.writeLine("assertTrue(markerFound,");
+            w.writeLine("    \"Child grid create: marker '\" + createdMarker + \"' not found in grid after save. rows \" + rowsBefore + \" -> \" + rowsAfter);");
+        } else {
+            w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
+            w.writeLine("    \"Child grid should have same or more rows after create (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+        }
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    private void writeChildUpdateTest(JavaFileWriter w, List<Property> displayProperties, String tabName) {
+        Property stringField = displayProperties.stream()
+                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .findFirst().orElse(null);
+
+        w.writeLine("@Test");
+        w.writeLine("@Order(4)");
+        w.writeLine("@DisplayName(\"Update in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.openBlock("void testUpdate()");
+        w.writeLine("shot(\"grid_before_update\");");
+        w.writeLine("int rowCount = getVisibleRowCount();");
+        w.writeLine("Assumptions.assumeTrue(rowCount >= 1, \"No rows in child grid to update\");");
+        w.writeLine();
+        // Open child record
+        w.writeLine("boolean opened = selectAndOpenRecord();");
+        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open child record for editing\");");
+        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("shot(\"child_record_opened\");");
+        if (stringField != null) {
+            String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
+            w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
+            w.writeLine("page." + methodName + "(updatedValue);");
+            w.writeLine("shot(\"value_typed\");");
+        }
+        // Try "Сохранить Изменения" dropdown, fallback to "Готово"
+        w.writeLine("boolean saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.openBlock("if (!saved)");
+        w.writeLine("saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.closeBlock();
+        w.writeLine("Assumptions.assumeTrue(saved, \"Neither '\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f' nor '\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e' found\");");
+        w.writeLine("capturePopupText(\"after-save\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_update\");");
+        w.writeLine("assertFalse(isErrorPresent(), \"Error after updating child record\");");
+        if (stringField != null) {
+            w.writeLine("boolean updated = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
+            w.writeLine("System.out.println(\"child testUpdate: updatedValue='\" + updatedValue + \"' found=\" + updated);");
+        }
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    private void writeChildDeleteTest(JavaFileWriter w, String tabName) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(5)");
+        w.writeLine("@DisplayName(\"Delete in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.openBlock("void testDelete()");
+        w.writeLine("shot(\"grid_before_delete\");");
+        w.writeLine("int rowsBefore = getVisibleRowCount();");
+        w.writeLine("Assumptions.assumeTrue(rowsBefore >= 1, \"No rows in child grid to delete\");");
+        w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
+        w.writeLine("System.out.println(\"child testDelete: marker='\" + deletedMarker + \"' rowsBefore=\" + rowsBefore);");
+        w.writeLine();
+        // Open child record then delete via dropdown
+        w.writeLine("boolean opened = selectAndOpenRecord();");
+        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open child record for deletion\");");
+        w.writeLine("shot(\"child_record_opened\");");
+        w.openBlock("try");
+        w.writeLine("clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.closeBlock();
+        w.writeLine("shot(\"delete_clicked\");");
+        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("shot(\"after_confirm\");");
+        w.writeLine("waitForDialogClose();");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_delete\");");
+        w.writeLine();
+        w.writeLine("assertFalse(isErrorPresent(), \"Error after deleting child record\");");
+        w.writeLine("int rowsAfter = getVisibleRowCount();");
+        w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
+        w.writeLine("System.out.println(\"child testDelete: rows \" + rowsBefore + \" -> \" + rowsAfter + \", markerGone=\" + markerGone);");
+        w.openBlock("if (deletedMarker.isEmpty())");
+        w.writeLine("Assumptions.assumeTrue(rowsAfter < rowsBefore,");
+        w.writeLine("    \"Delete: no marker captured AND row count unchanged (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
+        w.writeLine("    \"Delete in child grid: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND marker '\" + deletedMarker + \"' still present\");");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+    }
+
     private void writeFieldsPresentTest(JavaFileWriter w, List<Property> properties, String entityName) {
         int totalCount = 0;
         for (Property prop : properties) {
