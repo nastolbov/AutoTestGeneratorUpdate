@@ -672,20 +672,16 @@ public class PageObjectWriter {
     private void writeFilAllRequiredMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillRequiredFields()");
         w.writeLine("lastFilledValues.clear();");
-        // KEY: каждое обязательное поле ДОЛЖНО быть заполнено, иначе сервер вернёт ошибку
-        // валидации и testCreate провалится. Если TestDataFactory не смогла сгенерировать значение
-        // (FK/Ref-поле), даём хотя бы "1" — это типовое значение для FK-пикера на E3Core. fillX в
-        // PageObject сам разберётся (попробует вписать в инпут, потом откроет дропдаун).
+        w.writeLine("String __uniq = String.valueOf(System.nanoTime());");
         for (Property prop : properties) {
             if (!prop.isRequired() || isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
             if (value == null) {
-                // FK / Directory / Ref — нет генерируемого значения. Передаём null —
-                // fillPropertyGridField это распознаёт и идёт в DOM-пикер выпадающего списка,
-                // где берёт случайный пункт.
                 w.writeLine("// " + prop.getName() + " — required FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
+            } else if (prop.getAttrType() == AttrType.STRING && (prop.getMask() == null || prop.getMask().isEmpty())) {
+                w.writeLine(methodName + "(\"" + value + "_\" + __uniq);");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
@@ -697,14 +693,16 @@ public class PageObjectWriter {
     private void writeFillAllFieldsMethod(JavaFileWriter w, List<Property> properties) {
         w.openBlock("public void fillAllFields()");
         w.writeLine("lastFilledValues.clear();");
+        w.writeLine("String __uniq = String.valueOf(System.nanoTime());");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
             String value = TestDataFactory.generateValue(prop);
             if (value == null) {
-                // FK / Directory / Ref — null триггерит DOM-пикер выпадашки в fillPropertyGridField.
                 w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
+            } else if (prop.getAttrType() == AttrType.STRING && (prop.getMask() == null || prop.getMask().isEmpty())) {
+                w.writeLine(methodName + "(\"" + value + "_\" + __uniq);");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }

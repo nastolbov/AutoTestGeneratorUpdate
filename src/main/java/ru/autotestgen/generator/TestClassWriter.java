@@ -859,6 +859,10 @@ public class TestClassWriter {
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
         w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
+        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: заполненные обязательные поля: \" + filledSnapshot);");
+        w.writeLine("Assumptions.assumeFalse(filledSnapshot.isEmpty(),");
+        w.writeLine("    \"testCreateOnlyRequired: ни одно обязательное поле не было заполнено — проверьте PageObject\");");
         w.writeLine("shot(\"required_filled\");");
         w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
         w.writeLine("confirmDialogYes();");
@@ -866,12 +870,32 @@ public class TestClassWriter {
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");
-        // У некоторых сущностей на странице много гридов (история, документы, side-панели),
-        // и getTableRowCount считает их все — поэтому строгий count-check бесполезен. Считаем
-        // тест PASS если не было ошибок (нет error popup, нет валидационных подсветок).
         w.writeLine("int rowsAfter = page.getTableRowCount();");
         w.writeLine("System.out.println(\"testCreateOnlyRequired: rows \" + rowsBefore + \" -> \" + rowsAfter);");
-        w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after create-with-only-required\");");
+        w.writeLine("boolean recordFound = false;");
+        w.writeLine("String hitVia = \"\";");
+        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+        w.writeLine("String v = e.getValue();");
+        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
+        w.writeLine("recordFound = true;");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(DOM)\";");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (!recordFound)");
+        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+        w.writeLine("String v = e.getValue();");
+        w.openBlock("if (v != null && !v.isEmpty() && gridStoreContainsText(v))");
+        w.writeLine("recordFound = true;");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(ExtJS store)\";");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: recordFound=\" + recordFound + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
+        w.writeLine("shot(recordFound ? \"record_found\" : \"final_grid\");");
+        w.writeLine("assertTrue(recordFound,");
+        w.writeLine("    \"testCreateOnlyRequired: запись с заполненными обязательными полями не найдена в гриде. Filled: \" + filledSnapshot);");
         w.closeBlock();
         w.writeLine();
     }
