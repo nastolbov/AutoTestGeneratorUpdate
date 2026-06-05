@@ -726,11 +726,18 @@ public class TestClassWriter {
         // напрямую (например, поле-маркер не отображается в результирующей таблице).
         w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
         w.writeLine("System.out.println(\"testCreate: запомнили заполненные поля: \" + filledSnapshot);");
-        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // Раньше: step("click Готово", () -> clickButtonByText("Готово")); — результат click'a
+        // выбрасывался. Если Готово не находился (ExtJS-кнопка с вложенным span), тест шёл
+        // дальше, диалог оставался открытым, запись не создавалась, а assert падал
+        // как "не найдено в гриде" — диагностика была ложной.
+        w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
+        w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
+        w.writeLine("assertTrue(gotovoClicked, \"testCreate: не удалось нажать кнопку 'Готово' — её не нашли в DOM. Проверьте что форма создания реально открылась.\");");
         // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
         // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
         // отверг save. Если это «Запись сохранена» — confirmDialogYes просто его закроет.
-        w.writeLine("capturePopupText(\"after-Готово\");");
+        w.writeLine("String createPopupText = capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("System.out.println(\"testCreate: popup после Готово = '\" + createPopupText + \"'\");");
         // После «Готово» стенд может показать модалку-подтверждение ("Запись сохранена",
         // ExtJS message box). Жмём «ОК»/«Да» если она есть.
         w.writeLine("confirmDialogYes();");
@@ -833,7 +840,7 @@ public class TestClassWriter {
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
             w.writeLine("assertTrue(markerInGrid,");
-            w.writeLine("    \"Create test: ни маркер '\" + createdMarker + \"', ни одно из заполненных значений \" + filledSnapshot.values() + \" не найдено в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась.\");");
+            w.writeLine("    \"Create test: ни маркер '\" + createdMarker + \"', ни одно из заполненных значений \" + filledSnapshot.values() + \" не найдено в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась. Popup после Готово='\" + createPopupText + \"'.\");");
         } else {
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
@@ -864,9 +871,33 @@ public class TestClassWriter {
         w.writeLine("Assumptions.assumeFalse(filledSnapshot.isEmpty(),");
         w.writeLine("    \"testCreateOnlyRequired: ни одно обязательное поле не было заполнено — проверьте PageObject\");");
         w.writeLine("shot(\"required_filled\");");
-        w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
+        // Раньше: step(\"click Готово\", () -> clickButtonByText(\"Готово\")); — результат click'a
+        // выбрасывался. Если Готово не находился (ExtJS-кнопка с вложенным span), тест шёл
+        // дальше, диалог оставался открытым, запись не создавалась, а assert падал
+        // как «не найдено в гриде» — диагностика была ложной.
+        w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: gotovoClicked=\" + gotovoClicked);");
+        w.writeLine("assertTrue(gotovoClicked, \"testCreateOnlyRequired: не удалось нажать кнопку 'Готово' — её не нашли в DOM. Проверьте что форма создания реально открылась.\");");
+        // Захватываем popup-текст ПЕРЕД confirmDialogYes — это либо «Запись сохранена»,
+        // либо ошибка валидации («Необходимо обязательно указать значения свойств: ...»).
+        // Раньше confirmDialogYes молча кликал OK на error-popup и тест думал что всё ок.
+        w.writeLine("String popupText = capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: popup после Готово = '\" + popupText + \"'\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
+        // Если диалог Сведения ВСЁ ЕЩЁ открыт после Готово + confirm — значит сервер
+        // отверг save (валидация). Закрываем Отменой чтобы не блокировать след.тест и фейлим
+        // с текстом popup'a — теперь видно ПОЧЕМУ не сохранилось.
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: диалог не закрылся после Готово — валидация отвергла save\");");
+        w.openBlock("try");
+        w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
+        w.writeLine("waitForDialogClose();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("fail(\"testCreateOnlyRequired: save отвергнут — диалог Сведения остался открыт. Popup='\" + popupText + \"'. Заполненные поля: \" + filledSnapshot + \". Скорее всего обязательное FK/Ref поле не было заполнено (выпадашка не сработала) или сервер требует ещё одно поле.\");");
+        w.closeBlock();
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");

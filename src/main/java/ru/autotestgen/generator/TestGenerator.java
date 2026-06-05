@@ -1419,10 +1419,12 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // capturePopupText: печатает текст самого верхнего видимого .x-window / .x-message-box
-        // (если есть). Используется ПЕРЕД confirmDialogYes — чтобы увидеть ПРИЧИНУ ошибки
-        // валидации формы, а не молча кликать OK на сообщении 'Не заполнено поле X'.
-        w.openBlock("protected void capturePopupText(String tag)");
+        // capturePopupText: печатает И возвращает текст самого верхнего видимого .x-window /
+        // .x-message-box (если есть). Раньше возвращал void — но в testCreate / testCreateOnlyRequired
+        // мы хотим включить причину отказа («Необходимо обязательно указать значения свойств: X»)
+        // в текст assert/fail, чтобы по логу сразу было видно ПОЧЕМУ save отвергнут.
+        w.openBlock("protected String capturePopupText(String tag)");
+        w.writeLine("StringBuilder collected = new StringBuilder();");
         w.openBlock("try");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         // Сначала пробуем ExtJS Ext.MessageBox: его контейнер обычно .x-window-dlg
@@ -1434,6 +1436,8 @@ public class TestGenerator {
         w.writeLine("String t = m.getText() == null ? \"\" : m.getText().trim();");
         w.openBlock("if (!t.isEmpty())");
         w.writeLine("System.out.println(\"  [popup \" + tag + \"]: '\" + t.replace(\"\\n\", \" | \") + \"'\");");
+        w.writeLine("if (collected.length() > 0) collected.append(\" | \");");
+        w.writeLine("collected.append(t.replace(\"\\n\", \" | \"));");
         w.writeLine("shown++;");
         w.closeBlock();
         w.closeBlock();
@@ -1450,6 +1454,8 @@ public class TestGenerator {
         w.writeLine("String t = w2.getText() == null ? \"\" : w2.getText().trim();");
         w.openBlock("if (!t.isEmpty() && t.length() < 300)");
         w.writeLine("System.out.println(\"  [popup \" + tag + \" window]: '\" + t.replace(\"\\n\", \" | \") + \"'\");");
+        w.writeLine("if (collected.length() > 0) collected.append(\" | \");");
+        w.writeLine("collected.append(t.replace(\"\\n\", \" | \"));");
         w.writeLine("shown++;");
         w.closeBlock();
         w.closeBlock();
@@ -1464,6 +1470,7 @@ public class TestGenerator {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        w.writeLine("return collected.toString();");
         w.closeBlock();
         w.writeLine();
 
@@ -2551,8 +2558,34 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("masks = driver.findElements(By.cssSelector(\".ext-el-mask, .x-mask\"));");
         w.closeBlock();
-        w.writeLine("WebElement btn = driver.findElement(By.xpath(\"//button[contains(text(), '\" + buttonText + \"')]\"));");
-        w.writeLine("clickSafely(btn);");
+        // ВАЖНО: раньше тут было //button[contains(text(),'Готово')] — это ищет ПРЯМОЙ
+        // дочерний text-node. ExtJS оборачивает label кнопки в <span>, а кнопки часто
+        // <a class="x-btn">, поэтому совпадение не находилось и click тихо возвращал false.
+        // Тест считал что Готово нажат, дальше confirmDialogYes ничего не находил, диалог
+        // оставался открытым → запись не создавалась → testCreate падал как "не найдено в гриде",
+        // вместо реальной причины "не смог нажать Готово". Используем normalize-space(.) как в
+        // isButtonVisible, плюс fallback на ExtJS <a class="x-btn"><span>...</span></a>.
+        w.writeLine("String xp = \"//button[contains(normalize-space(.), '\" + buttonText + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//span[contains(normalize-space(.), '\" + buttonText + \"')]]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-btn')][contains(normalize-space(.), '\" + buttonText + \"')]\"");
+        w.writeLine("    + \" | //input[@type='button'][@value='\" + buttonText + \"' or contains(@value,'\" + buttonText + \"')]\";");
+        w.writeLine("java.util.List<WebElement> btns = driver.findElements(By.xpath(xp));");
+        w.writeLine("WebElement target = null;");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.openBlock("if (b.isDisplayed() && b.isEnabled())");
+        w.writeLine("target = b; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (target == null)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.writeLine("System.out.println(\"clickButtonByText: '\" + buttonText + \"' not found (matched \" + btns.size() + \" total, none displayed/enabled)\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("clickSafely(target);");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.writeLine("return true;");
         w.closeBlock();
