@@ -63,7 +63,6 @@ public class MainController {
         {"Архивирование",                    "testArchive"},
         {"Валидация (все обязательные)",     "testRequiredFieldValidation"},
         {"Валидация (частичная)",            "testPartialRequiredFieldValidation"},
-        {"Маски полей",                      "testMaskedFieldInput"},
         {"Поиск (все варианты)",             "testSearch*"},
         {"Гриды (все варианты)",             "testGrid*"},
     };

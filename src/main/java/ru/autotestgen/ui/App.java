@@ -19,17 +19,6 @@ public class App extends Application {
     }
 
     public static void main(String[] args) {
-        boolean cliMode = false;
-        for (String arg : args) {
-            if ("--cli".equals(arg)) {
-                cliMode = true;
-                break;
-            }
-        }
-        if (cliMode) {
-            CliRunner.run(args);
-        } else {
-            launch(args);
-        }
+        launch(args);
     }
 }

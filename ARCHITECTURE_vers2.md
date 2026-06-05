@@ -33,10 +33,7 @@ XML-метамодель ──► [Парсер] ──► AppModel ──► [
                                                                   SQLite (история)
 ```
 
-Двойной UI:
-
-- **GUI-режим** (по умолчанию) — `App` (`mvn javafx:run`).
-- **CLI-режим** — `App --cli` или `CliMain` (`mvn exec:java`).
+Запуск: **GUI-режим** — `App` (`mvn javafx:run`).
 
 ---
 
@@ -73,18 +70,14 @@ model     ──► (нет внутренних зависимостей)
 
 | Класс             | Роль                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------ |
-| `App`             | Точка входа (`main`). Запускает либо JavaFX (`launch`), либо CLI (`CliRunner.run`).         |
-| `CliMain`         | Дублирующая точка входа для безоконного запуска через `mvn exec:java`.                      |
-| `CliRunner`       | Безголовый сценарий: парсинг → генерация → запуск → вывод в `stdout` + сохранение в БД.     |
+| `App`             | Точка входа (`main`). Запускает JavaFX (`launch`).                                           |
 | `MainController`  | JavaFX-контроллер `main.fxml`. Связан с XML через `fx:controller="..."`.                    |
 | `MainController.TestCaseRow` | Внутренний static-класс — модель строки `TableView` с результатами.              |
 
 ### 3.2. Связи внутри пакета `ui`
 
 ```
-App                 -->  CliRunner            // вызов CliRunner.run при наличии --cli
 App                 -->  MainController       // косвенно: FXMLLoader инстанцирует через main.fxml
-CliMain             -->  CliRunner            // тонкая обвязка main -> run
 MainController      ♦--> TestCaseRow          // вложенный static-класс, модель строки таблицы
 ```
 
@@ -103,9 +96,6 @@ MainController      -->  EntityObject         // итерация по сущн�
 MainController      -->  Transliterator       // static: имя класса теста из имени сущности
 MainController      -->  ParserException      // ловит при парсинге
 
-CliRunner           -->  XmlModelParser, TestGenerator, TestConfig, TestRunner
-CliRunner           -->  ReportDao
-CliRunner           -->  AppModel, EntityObject, TestCaseResult, TestRunResult
 ```
 
 ### 3.4. Особенности GUI-части
@@ -118,7 +108,6 @@ CliRunner           -->  AppModel, EntityObject, TestCaseResult, TestRunResult
 - **Двухрежимный диалог запуска**: `onRunSelected` собирает чекбоксы сущностей × чекбоксы видов тестов и формирует `-Dtest=ClassA,ClassB#m1+m2` (Surefire-фильтр) с live-превью.
 - **Уровни тестов**: SMOKE / BASIC / FULL — пробрасываются в `TestConfig` и далее в генератор.
 - **Сохранение истории**: каждый прогон через `reportDao.saveRun(result)`.
-- **CLI-двойник GUI**: `CliRunner` повторяет цепочку без визуальной части — удобно для CI.
 
 ---
 
