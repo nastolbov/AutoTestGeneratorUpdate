@@ -77,10 +77,53 @@ public class PageObjectWriter {
         w.writeLine("fillFKViaDropdown(fieldName);");
         w.writeLine("return;");
         w.closeBlock();
-        // ДЛЯ ТЕКСТ/ДАТА ПОЛЕЙ: rec.set + c.source НЕ достаточно — сервер всё равно
-        // считает поле пустым ("Необходимо обязательно указать значения свойств..."). Нужна
-        // активация editor'а ячейки и реальный ввод значения, как это делает оператор —
-        // ExtJS внутри сам прокинет value в form data.
+        // СТРАТЕГИЯ A (надёжная): прямой rec.set('value', v) на record PropertyGrid'а через
+        // ExtJS API. ТАК ЖЕ работает fillFKViaDropdown для FK полей — поэтому FK сохраняются,
+        // а текст/дата раньше нет: для них использовался DOM-editor + dispatchEvent(change),
+        // но ExtJS PropertyGrid читает rec.data.value при save, а не DOM input.value.
+        // Дополнительно после установки делаем view.refresh() чтобы значение отрисовалось.
+        w.openBlock("try");
+        w.writeLine("Object apiResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var name = arguments[0]; var val = arguments[1];\"");
+        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
+        w.writeLine("    + \"  if (!mgr || !mgr.all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var items = [];\"");
+        w.writeLine("    + \"  if (mgr.all.items) items = mgr.all.items;\"");
+        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){items.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in mgr.all) items.push(mgr.all[k]);\"");
+        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
+        w.writeLine("    + \"    var c = items[i];\"");
+        w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors) continue;\"");
+        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0 || c.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
+        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue; var d = rec.data;\"");
+        w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
+        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        w.writeLine("    + \"        try { rec.set('value', val); } catch(e) { return 'err-set:' + e.message; }\"");
+        w.writeLine("    + \"        try { if (c.view && c.view.refresh) c.view.refresh(); } catch(e) {}\"");
+        w.writeLine("    + \"        return 'OK:' + (dn || nn);\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
+        w.writeLine("String apiStr = apiResult == null ? \"null\" : String.valueOf(apiResult);");
+        w.openBlock("if (apiStr.startsWith(\"OK\"))");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS rec.set)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS rec.set didn't apply (\" + apiStr + \") — falling back to DOM editor click\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception apiEx)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API threw: \" + apiEx.getMessage());");
+        w.closeBlock();
+        // СТРАТЕГИЯ B (DOM fallback): активируем editor ячейки и вводим значение.
+        // Используется только если ExtJS API не нашёл PropertyGrid / record.
         w.openBlock("try");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
@@ -155,35 +198,6 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("Thread.sleep(120);");
-        // КРИТИЧЕСКИ ВАЖНО: после DOM-ввода надо ещё зафиксировать значение через ExtJS API.
-        // DOM setter + dispatchEvent(change) НЕ обновляют внутренний value поля ExtJS (TextField
-        // / DateField / NumberField) — PropertyGrid при сохранении читает getValue() с поля, а
-        // не DOM input.value. Если после нашего поля не кликнуть следующее (что автоматически
-        // вызывает completeEdit), значение теряется. testCreate работал потому что заполнялось
-        // МНОГО полей и каждый следующий клик коммитил предыдущий; testCreateOnlyRequired
-        // заполнял мало полей и последнее оставалось незакоммиченным.
-        // Решение: находим активный editor PropertyGrid и вызываем field.setValue(value) +
-        // completeEdit() через ExtJS API.
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  if (typeof Ext === 'undefined') return;\"");
-        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
-        w.writeLine("    + \"  if (!mgr || !mgr.all) return;\"");
-        w.writeLine("    + \"  var items = mgr.all.items || [];\"");
-        w.writeLine("    + \"  if (typeof items.forEach !== 'function' && mgr.all.each) { var a = []; mgr.all.each(function(c){a.push(c);}); items = a; }\"");
-        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
-        w.writeLine("    + \"    var c = items[i];\"");
-        w.writeLine("    + \"    if (!c || !c.rendered || !c.activeEditor) continue;\"");
-        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0) continue; } catch(e) { continue; }\"");
-        w.writeLine("    + \"    var ed = c.activeEditor;\"");
-        w.writeLine("    + \"    if (ed.field && ed.field.setValue) {\"");
-        w.writeLine("    + \"      try { ed.field.setValue(arguments[0]); } catch(e) {}\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"    try { ed.completeEdit(); } catch(e) {}\"");
-        w.writeLine("    + \"    break;\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"} catch(e) {}\", value);");
-        w.writeLine("Thread.sleep(100);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
