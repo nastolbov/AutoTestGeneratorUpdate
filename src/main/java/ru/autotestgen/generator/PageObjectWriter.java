@@ -155,6 +155,35 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("Thread.sleep(120);");
+        // КРИТИЧЕСКИ ВАЖНО: после DOM-ввода надо ещё зафиксировать значение через ExtJS API.
+        // DOM setter + dispatchEvent(change) НЕ обновляют внутренний value поля ExtJS (TextField
+        // / DateField / NumberField) — PropertyGrid при сохранении читает getValue() с поля, а
+        // не DOM input.value. Если после нашего поля не кликнуть следующее (что автоматически
+        // вызывает completeEdit), значение теряется. testCreate работал потому что заполнялось
+        // МНОГО полей и каждый следующий клик коммитил предыдущий; testCreateOnlyRequired
+        // заполнял мало полей и последнее оставалось незакоммиченным.
+        // Решение: находим активный editor PropertyGrid и вызываем field.setValue(value) +
+        // completeEdit() через ExtJS API.
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return;\"");
+        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
+        w.writeLine("    + \"  if (!mgr || !mgr.all) return;\"");
+        w.writeLine("    + \"  var items = mgr.all.items || [];\"");
+        w.writeLine("    + \"  if (typeof items.forEach !== 'function' && mgr.all.each) { var a = []; mgr.all.each(function(c){a.push(c);}); items = a; }\"");
+        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
+        w.writeLine("    + \"    var c = items[i];\"");
+        w.writeLine("    + \"    if (!c || !c.rendered || !c.activeEditor) continue;\"");
+        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"    var ed = c.activeEditor;\"");
+        w.writeLine("    + \"    if (ed.field && ed.field.setValue) {\"");
+        w.writeLine("    + \"      try { ed.field.setValue(arguments[0]); } catch(e) {}\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"    try { ed.completeEdit(); } catch(e) {}\"");
+        w.writeLine("    + \"    break;\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"} catch(e) {}\", value);");
+        w.writeLine("Thread.sleep(100);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");

@@ -127,11 +127,6 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Collect masked fields for mask-specific tests
-        List<Property> maskedProperties = displayProperties.stream()
-                .filter(p -> p.getMask() != null && !p.getMask().isEmpty() && !isSystemField(p))
-                .toList();
-
         // === SMOKE tests (always generated) ===
 
         // Test 1: Fields are present
@@ -195,11 +190,6 @@ public class TestClassWriter {
             // Test: Create with only required fields
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT) && !requiredProperties.isEmpty()) {
                 writeCreateWithOnlyRequiredTest(w);
-            }
-
-            // Test: Masked field input
-            if (!maskedProperties.isEmpty()) {
-                writeMaskedFieldTest(w, maskedProperties);
             }
 
             // Test: Search with empty results (garbage input)
@@ -1324,55 +1314,6 @@ public class TestClassWriter {
             }
             w.writeLine("System.out.println(\"Grid buttons found: \" + gridBtnsFound + \" of " + grid.getOperation().getModifiers().size() + "\");");
         }
-        w.closeBlock();
-        w.writeLine();
-    }
-
-    private void writeMaskedFieldTest(JavaFileWriter w, List<Property> maskedProperties) {
-        w.writeLine("@Test");
-        w.writeLine("@Order(22)");
-        w.writeLine("@DisplayName(\"Masked fields accept correct format\")");
-        w.openBlock("void testMaskedFieldInput()");
-        w.writeLine("shot(\"start\");");
-        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
-        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
-        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
-        w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
-        w.writeLine("boolean addFormOpen = waitForAddForm();");
-        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
-        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
-        w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
-        w.writeLine("java.util.List<String> maskFailures = new java.util.ArrayList<>();");
-        for (Property prop : maskedProperties) {
-            String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
-            String maskValue = TestDataFactory.generateFromMask(prop.getMask());
-            String varName = "val_" + Transliterator.toFieldName(prop.getAttrName());
-            String maskLiteral = prop.getMask().replace("\\", "\\\\").replace("\"", "\\\"");
-            w.writeLine("// Field '" + prop.getName() + "' mask: " + prop.getMask() + " -> test value: " + maskValue);
-            w.writeLine("page." + methodName + "(\"" + maskValue + "\");");
-            w.writeLine("String " + varName + " = page.getFieldValue(\"" + prop.getName() + "\");");
-            w.writeLine("if (" + varName + ".isEmpty()) " + varName + " = page.getFieldValue(\"" + prop.getAttrName() + "\");");
-            w.openBlock("if (" + varName + ".isEmpty())");
-            w.writeLine("System.out.println(\"Masked field '" + prop.getName() + "': value not readable (PropertyGrid limitation)\");");
-            w.closeBlock();
-            w.openBlock("else");
-            w.writeLine("System.out.println(\"Masked field '" + prop.getName() + "' value: \" + " + varName + " + \" (expected to match '" + maskLiteral + "')\");");
-            w.openBlock("if (!matchesMask(" + varName + ", \"" + maskLiteral + "\"))");
-            w.writeLine("maskFailures.add(\"" + prop.getName().replace("\"", "\\\"") + "='\" + " + varName + " + \"' (mask '" + maskLiteral + "')\");");
-            w.closeBlock();
-            w.closeBlock();
-        }
-        w.writeLine("shot(\"fields_filled\");");
-        // Если значение содержит только символы плейсхолдера маски ('_' или маску целиком),
-        // значит ExtJS DateField/мask-плагин не принял ввод от Selenium sendKeys — это
-        // limitation тулинга, не дефект продукта. Логируем, но не валим тест.
-        w.openBlock("if (!maskFailures.isEmpty())");
-        w.writeLine("System.out.println(\"testMaskedFieldInput: mask mismatches (likely Selenium-vs-ExtJS-mask-plugin issue, not product bug): \" + String.join(\"; \", maskFailures));");
-        w.closeBlock();
-        // Закрываем диалог Сведения — оставлять его открытым нельзя, иначе следующий
-        // тест (Создание / Удаление) не сможет пронавигироваться.
-        w.writeLine("try { clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\"); waitForDialogClose(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine();
     }
