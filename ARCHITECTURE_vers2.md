@@ -64,7 +64,7 @@ model     ──► (нет внутренних зависимостей)
 
 ---
 
-## 3. Пакет `ru.autotestgen.ui` — GUI и CLI
+## 3. Пакет `ru.autotestgen.ui` — GUI
 
 ### 3.1. Классы
 
