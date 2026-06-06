@@ -1,115 +1,130 @@
 digraph Constantine {
     rankdir=TB;
-    ranksep=0.9;
-    nodesep=0.4;
-    fontname="Arial";
-    label="Модульная структура информационной системы AutoTestGenerator\n(по Л. Константайну)";
+    ranksep=1.0;
+    nodesep=0.45;
+    fontname="DejaVu Sans";
+    label="Структурная карта Константайна\nдля информационной системы AutoTestGenerator";
     labelloc="t";
     fontsize=18;
-    splines=spline;
 
-    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=11, height=0.6];
-    edge [fontname="Arial", fontsize=9];
+    node [fontname="DejaVu Sans", fontsize=11];
+    edge [fontname="DejaVu Sans", fontsize=9];
 
-    // ===== Level 1: Entry point =====
-    App [label="App", fillcolor="#FFE4B5"];
+    // ==== МОДУЛИ (rect, одинарная рамка) ====
+    App                 [shape=box, label="App\n(точка входа)"];
+    MainController      [shape=box, label="MainController"];
+    XmlModelParser      [shape=box, label="XmlModelParser"];
+    EntityParser        [shape=box, label="EntityParser"];
+    SearchParser        [shape=box, label="SearchParser"];
+    PropertyGroupParser [shape=box, label="PropertyGroupParser"];
+    TestConfig          [shape=box, label="TestConfig"];
+    TestGenerator       [shape=box, label="TestGenerator"];
+    PageObjectWriter    [shape=box, label="PageObjectWriter"];
+    TestClassWriter     [shape=box, label="TestClassWriter"];
+    EntityClassifier    [shape=box, label="EntityClassifier"];
+    TestDataFactory     [shape=box, label="TestDataFactory"];
+    TestRunner          [shape=box, label="TestRunner"];
+    ReportDao           [shape=box, label="ReportDao"];
 
-    // ===== Level 2: Controller =====
-    MainController [label="MainController", fillcolor="#FFE4B5"];
+    // ==== БИБЛИОТЕКИ (rect с двойной рамкой = peripheries=2) ====
+    StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
+    XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
+    JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
+    Transliterator [shape=box, peripheries=2, label="Transliterator"];
 
-    // ===== Level 3: Subsystem facades =====
-    XmlModelParser [label="XmlModelParser\n«фасад»", fillcolor="#B0E0E6"];
-    TestConfig     [label="TestConfig",        fillcolor="#D8BFD8"];
-    TestGenerator  [label="TestGenerator\n«дирижёр»", fillcolor="#D8BFD8"];
-    TestRunner     [label="TestRunner",        fillcolor="#D8BFD8"];
-    ReportDao      [label="ReportDao",         fillcolor="#FFB6C1"];
+    // ==== ОБЛАСТИ ДАННЫХ (овал) ====
+    SQLite   [shape=ellipse, label="autotestgen.db\n(SQLite)"];
+    GenFiles [shape=ellipse, label="generated-tests/\n*.java, pom.xml,\nsurefire-reports/"];
 
-    // ===== Level 4: Specialised executors =====
-    EntityParser        [label="EntityParser",       fillcolor="#B0E0E6"];
-    SearchParser        [label="SearchParser",       fillcolor="#B0E0E6"];
-    PropertyGroupParser [label="PropertyGroupParser",fillcolor="#B0E0E6"];
-    PageObjectWriter    [label="PageObjectWriter",   fillcolor="#D8BFD8"];
-    TestClassWriter     [label="TestClassWriter",    fillcolor="#D8BFD8"];
-    EntityClassifier    [label="EntityClassifier\n(static)", fillcolor="#C1E1C1"];
-    TestDataFactory     [label="TestDataFactory\n(static)", fillcolor="#D8BFD8"];
+    // ==== СВЯЗИ ====
+    // Уровень 1 → 2: однократный вызов (метка «1»)
+    App -> MainController [label="  1\n(FXML)"];
 
-    // ===== Level 5: Shared utilities =====
-    StaxUtils       [label="StaxUtils\n(static)", fillcolor="#F0F0F0"];
-    XmlNamespaces   [label="XmlNamespaces\n(const)", fillcolor="#F0F0F0"];
-    JavaFileWriter  [label="JavaFileWriter", fillcolor="#F0F0F0"];
-    Transliterator  [label="Transliterator\n(static)", fillcolor="#F0F0F0"];
-    ParserException [label="ParserException", fillcolor="#F0F0F0"];
+    // Уровень 2 → 3: вызовы с couples по данным и управлению
+    MainController -> XmlModelParser
+        [label="↓○ File\n↑○ AppModel"];
+    MainController -> TestConfig
+        [label="↓○ setters"];
+    MainController -> TestGenerator
+        [label="↓○ AppModel,\n   TestConfig"];
+    MainController -> TestRunner
+        [label="↓○ outputDir, filter\n↓● fastMode"];
+    MainController -> ReportDao
+        [label="↓○ TestRunResult\n↑○ List<TestRunResult>"];
 
-    // ===== Level 6: External artifacts =====
-    GenFiles [label="generated-tests/\n*.java + pom.xml", shape="folder", fillcolor="#FFFACD"];
-    SQLite   [label="autotestgen.db\n(SQLite)", shape="cylinder", fillcolor="#FFFACD"];
-    Mvn      [label="mvn test\n(child process)", shape="oval", fillcolor="#FFFACD"];
+    // Уровень 3 → 4: парсеры (вложенно)
+    XmlModelParser -> EntityParser
+        [label="↓○ reader\n↑○ EntityObject"];
+    XmlModelParser -> SearchParser
+        [label="↓○ reader\n↑○ List<Search>"];
+    EntityParser -> PropertyGroupParser
+        [label="↓○ reader\n↑○ PropertyGroup"];
 
-    // ===== Edges (calls + couples) =====
-    // Level 1 -> 2
-    App -> MainController [label="FXML load"];
+    // Уровень 3 → 4: писатели и классификатор (циклический вызов по сущностям)
+    TestGenerator -> EntityClassifier
+        [label="цикл\n↓○ entity, model\n↑○ Classification"];
+    TestGenerator -> PageObjectWriter
+        [label="цикл\n↓○ entity, config"];
+    TestGenerator -> TestClassWriter
+        [label="цикл\n↓○ entity, model,\n   config"];
+    TestGenerator -> TestDataFactory
+        [label="↓○ property\n↑○ String"];
 
-    // Level 2 -> 3
-    MainController -> XmlModelParser [label="○ File"];
-    MainController -> TestConfig     [label="○ setters"];
-    MainController -> TestGenerator  [label="○ AppModel"];
-    MainController -> TestRunner     [label="○ filter\n● fastMode"];
-    MainController -> ReportDao      [label="○ TestRunResult"];
-
-    // Level 3 -> 4 (parser subtree)
-    XmlModelParser -> EntityParser   [label="○ reader"];
-    XmlModelParser -> SearchParser   [label="○ reader"];
-    EntityParser   -> PropertyGroupParser [label="○ reader"];
-
-    // Level 3 -> 4 (generator subtree)
-    TestGenerator -> PageObjectWriter [label="○ entity"];
-    TestGenerator -> TestClassWriter  [label="○ entity\n○ model"];
-    TestGenerator -> EntityClassifier [label="○ entity\n○ model"];
-    TestGenerator -> TestDataFactory  [label="○ property"];
-
-    // Level 4 -> 5 (parsers use utils)
-    EntityParser        -> StaxUtils     [style=dashed];
-    SearchParser        -> StaxUtils     [style=dashed];
-    PropertyGroupParser -> StaxUtils     [style=dashed];
-    EntityParser        -> XmlNamespaces [style=dashed];
+    // Уровень 4 → 5: библиотеки (common coupling — пунктир)
+    EntityParser        -> StaxUtils
+        [label="↓○ reader, name\n↑○ value", style=dashed];
+    SearchParser        -> StaxUtils [style=dashed];
+    PropertyGroupParser -> StaxUtils [style=dashed];
+    EntityParser        -> XmlNamespaces
+        [label="↑○ NS_E, NS_E3", style=dashed];
     SearchParser        -> XmlNamespaces [style=dashed];
     PropertyGroupParser -> XmlNamespaces [style=dashed];
 
-    // Level 4 -> 5 (writers use common)
-    PageObjectWriter -> JavaFileWriter  [style=dashed];
-    PageObjectWriter -> Transliterator  [style=dashed];
-    TestClassWriter  -> JavaFileWriter  [style=dashed];
-    TestClassWriter  -> Transliterator  [style=dashed];
+    PageObjectWriter -> JavaFileWriter
+        [label="↓○ строки\nкода", style=dashed];
+    TestClassWriter  -> JavaFileWriter [style=dashed];
+    PageObjectWriter -> Transliterator
+        [label="↓○ russianName\n↑○ Java-имя", style=dashed];
+    TestClassWriter  -> Transliterator [style=dashed];
 
-    // Exception path
-    XmlModelParser -> ParserException [label="throws", style=dashed, color=red];
+    // → области данных
+    TestGenerator -> GenFiles
+        [label="↓○ записывает\n   *.java, pom.xml"];
+    TestRunner    -> GenFiles
+        [label="↑○ читает\n   surefire-reports/*.xml"];
+    ReportDao     -> SQLite
+        [label="↓○ INSERT\n↑○ SELECT ResultSet"];
 
-    // Outputs to external artifacts
-    TestGenerator -> GenFiles [label="generate"];
-    TestRunner    -> Mvn      [label="ProcessBuilder"];
-    Mvn           -> GenFiles [label="reads", style=dashed];
-    ReportDao     -> SQLite   [label="JDBC"];
-
-    // ===== Layout hints =====
+    // ==== УРОВНИ ====
     { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; }
     { rank=same; EntityParser; SearchParser; PropertyGroupParser;
-                  PageObjectWriter; TestClassWriter; EntityClassifier; TestDataFactory; }
-    { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; ParserException; }
-    { rank=same; Mvn; GenFiles; SQLite; }
+                 PageObjectWriter; TestClassWriter; EntityClassifier; TestDataFactory; }
+    { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; }
+    { rank=same; GenFiles; SQLite; }
 
-    // ===== Legend =====
+    // ==== ЛЕГЕНДА ====
     subgraph cluster_legend {
-        label="Условные обозначения";
-        style="dashed";
+        label="Условные обозначения (по Л. Константайну)";
+        labelloc="b";
+        style=dashed;
         fontsize=11;
-        L1 [label="UI / точка входа",        fillcolor="#FFE4B5", shape=box, style="filled,rounded"];
-        L2 [label="Parser",                  fillcolor="#B0E0E6", shape=box, style="filled,rounded"];
-        L3 [label="Generator",               fillcolor="#D8BFD8", shape=box, style="filled,rounded"];
-        L4 [label="Model (EntityClassifier)",fillcolor="#C1E1C1", shape=box, style="filled,rounded"];
-        L5 [label="Data (DAO)",              fillcolor="#FFB6C1", shape=box, style="filled,rounded"];
-        L6 [label="Common (утилиты)",        fillcolor="#F0F0F0", shape=box, style="filled,rounded"];
-        L7 [label="Внешний артефакт",        fillcolor="#FFFACD", shape=box, style="filled,rounded"];
-        Lleg [label="○ data couple   ● control couple\n— — — общая утилита (common coupling)", shape=note, fillcolor="white"];
-        L1 -> L2 -> L3 -> L4 -> L5 -> L6 -> L7 -> Lleg [style=invis];
+        margin=12;
+
+        L_mod  [shape=box, label="модуль"];
+        L_lib  [shape=box, peripheries=2, label="библиотека"];
+        L_data [shape=ellipse, label="область\nданных"];
+
+        L_data_couple    [shape=plaintext, label="↓○ ↑○ — связь по данным (data couple)"];
+        L_control_couple [shape=plaintext, label="↓● — связь по управлению (control couple)"];
+        L_once           [shape=plaintext, label="1 — однократный вызов"];
+        L_cycle          [shape=plaintext, label="«цикл» — циклический вызов"];
+        L_common         [shape=plaintext, label="— — — common coupling (использование библиотеки)"];
+
+        L_mod -> L_lib -> L_data [style=invis];
+        L_data -> L_data_couple [style=invis];
+        L_data_couple -> L_control_couple [style=invis];
+        L_control_couple -> L_once [style=invis];
+        L_once -> L_cycle [style=invis];
+        L_cycle -> L_common [style=invis];
     }
 }
