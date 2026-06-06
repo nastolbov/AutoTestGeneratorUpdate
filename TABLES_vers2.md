@@ -1,0 +1,768 @@
+# Таблицы пакетов и модульная структура — vers2
+
+Документ собирает **все таблицы по образцу диплома** (форматы 37, 38–42, 70, 92) и модульную структуру системы по Л. Константайну. Предназначен для прямого переноса в Word.
+
+Используемые форматы:
+
+| Тип таблицы               | Столбцы                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| Описание классов пакета   | Класс \| Описание                                                  |
+| Описание полей класса     | Название \| Тип \| Описание                                        |
+| Описание методов класса   | Название \| Параметры \| Возвращаемое значение \| Описание         |
+| Спецификация модулей      | Название \| Входные параметры \| Выходные параметры \| Описание    |
+
+---
+
+## 1. Описание классов пакетов
+
+### 1.1. Пакет «UI» (3 класса)
+
+| Класс                         | Описание                                                                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `App`                         | Главный класс JavaFX-приложения, наследник `javafx.application.Application`. Загружает FXML-разметку, создаёт сцену и запускает GUI.                |
+| `MainController`              | FXML-контроллер главного окна. Связывает элементы интерфейса с обработчиками и координирует вызовы парсера, генератора, раннера и DAO.              |
+| `MainController.TestCaseRow`  | Вложенный статический класс — строка таблицы результатов тестов (5 неизменяемых полей).                                                              |
+
+### 1.2. Пакет «Model» (20 классов)
+
+| Класс / enum                              | Описание                                                                                                              |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `AppModel`                                | Корень объектной модели метаданных. Список сущностей и поисков, имя категории, GUID.                                  |
+| `EntityObject`                            | Бизнес-сущность (карточка): имя, ключевые атрибуты, ассоциации, группы свойств.                                       |
+| `PropertyGroup`                           | Группа свойств сущности: вкладка карточки (`typeLink="P"`) или Grid внутри неё (`stereoType="Grid"`).                  |
+| `Property`                                | Одно поле формы: атрибут БД + UI-метаданные (тип, маска, обязательность, порядок).                                    |
+| `Operation`                               | Серверная операция на форме: метод, модуль, параметры, модификаторы.                                                  |
+| `OperationParam`                          | Параметр серверной операции (имя, тип параметра, тип значения).                                                       |
+| `Modifier`                                | Кнопка-модификатор на форме (например, «Создать», «Удалить»).                                                          |
+| `ModifyType`  *(enum)*                    | Код типа модификации: `I` (Insert), `U` (Update), `D` (Delete), `E` (LogicalEdit), `A` (Archive).                     |
+| `Association`                             | Связь сущности с другой: FK-пикер или дочерняя коллекция, через `associateItemGuid`.                                  |
+| `Search`                                  | Параметрический поиск: имя, запрос, параметры, описание результата-грида.                                             |
+| `SearchParam`                             | Параметр формы поиска: имя, заголовок, тип, маска, обязательность.                                                    |
+| `SearchResult`                            | Описание грида-результата поиска: имя ID-объекта + колонки.                                                            |
+| `SearchResultProperty`                    | Колонка в гриде результата поиска.                                                                                    |
+| `AttrType`   *(enum)*                     | Тип атрибута: `STRING`, `DECIMAL`, `DATE`, `DATETIME`.                                                                |
+| `EntityKind` *(enum)*                     | Логическая роль сущности: `PRIMARY`, `CHILD`, `REFERENCE_DICTIONARY`.                                                  |
+| `EntityClassifier`                        | Static-классификатор: определяет роль сущности (используется генератором для решения, нужно ли генерировать тест).     |
+| `EntityClassifier.Classification`         | Результат классификации: `kind`, `reason`, опционально родительская сущность и Grid.                                  |
+| `TestRunResult`                           | Результат запуска тестов: счётчики + список `TestCaseResult` + maven-stdout.                                          |
+| `TestCaseResult`                          | Результат одного тест-метода: статус, длительность, скриншоты, шаги, поисковые параметры.                              |
+| `TestCaseResult.StepTiming`               | Один шаг теста: имя + длительность.                                                                                   |
+
+### 1.3. Пакет «Parser» (6 классов)
+
+| Класс                  | Описание                                                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `XmlModelParser`       | Фасад/координатор парсинга. Открывает StAX-reader, диспетчеризует top-level элементы `<Category>`, `<Object>`, `<Searches>` по специализированным парсерам.     |
+| `EntityParser`         | Парсит `<Object>` → `EntityObject` и `<AssociationObjectA>` → `Association`. Делегирует `<Properties>` в `PropertyGroupParser`.                                  |
+| `PropertyGroupParser`  | Парсит `<Properties>` → `PropertyGroup`, включая `<Property>` → `Property` и `<Operation>` → `Operation` + `OperationParam` + `Modifier`.                       |
+| `SearchParser`         | Парсит `<Searches>` → список `Search` со всеми `<SearchParam>`, `<SearchResult>`, `<SearchResultProperty>`.                                                     |
+| `StaxUtils`            | Статические утилиты для StAX: `attr(reader,name)`, `parseInt(value)`, `skipToEnd(reader)`.                                                                       |
+| `XmlNamespaces`        | Константы namespace-URI: `NS_E`, `NS_E3`, `NS_MD`. Единый источник правды для проверки `<имя>` в нужном NS.                                                       |
+
+### 1.4. Пакет «Common» (3 класса)
+
+| Класс             | Описание                                                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `Transliterator`  | Static-утилита транслитерации Cyrillic → Latin Java-идентификаторов: PascalCase, camelCase, snake-to-camel.              |
+| `JavaFileWriter`  | Fluent-билдер исходного Java-файла с управлением отступом: `writeLine`, `openBlock`, `closeBlock`, `writeToFile`.       |
+| `ParserException` | Доменное checked-исключение для оборачивания технических ошибок парсинга XML.                                            |
+
+### 1.5. Пакет «Data» (1 класс)
+
+| Класс       | Описание                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ReportDao` | JDBC-DAO для SQLite-базы `autotestgen.db`. Сохраняет результаты прогона и читает историю.                                |
+
+### 1.6. Пакет «Generator» (7 классов)
+
+| Класс                | Описание                                                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TestConfig`         | Контейнер настроек генерации: `baseUrl`, `login`, `password`, `outputDir`, `browserType`, `siteType`, `subsystemName`, `testLevel`, `smokeAllSubsystems`.            |
+| `TestGenerator`      | Дирижёр генерации: создаёт `pom.xml`, `BaseTest`, `SharedDriver`, smoke-тесты и для каждой PRIMARY-сущности — Page Object и Test-класс через writer-ы.                |
+| `PageObjectWriter`   | Генерирует Page Object Java-класс (`XxxPage`) по `EntityObject` + `TestConfig`. Скрывает работу с ExtJS-формами.                                                       |
+| `TestClassWriter`    | Генерирует JUnit-5 тест-класс (`XxxTest`) с методами `testCreate`, `testCreateOnlyRequired`, `testUpdate`, `testDelete`, `testSearch*`, `testGrid*` и др.              |
+| `TestDataFactory`    | Static-фабрика тестовых значений по `AttrType` и `mask`: случайные строки, decimal-числа, даты в формате `dd.MM.yyyy`.                                                |
+| `TestRunner`         | Запускает `mvn test` в сгенерированном проекте через `ProcessBuilder`, читает stdout построчно и парсит `target/surefire-reports/*.xml` → `TestRunResult`.            |
+| `RunReportWriter`    | Генерирует пользовательский HTML-отчёт v5 с фотолетописью и CSV-выгрузку из `TestRunResult`.                                                                          |
+
+---
+
+## 2. Описание полей классов
+
+### 2.1. `MainController`  *(пакет UI)*
+
+| Название                   | Тип                              | Описание                                                                       |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| `xmlPathField`             | `TextField`                      | Поле ввода пути к XML-файлу метаданных.                                        |
+| `urlField`                 | `TextField`                      | Поле ввода URL тестируемого веб-приложения.                                    |
+| `loginField`               | `TextField`                      | Поле ввода логина пользователя.                                                |
+| `passwordField`            | `PasswordField`                  | Поле ввода пароля с маскированием.                                             |
+| `outputDirField`           | `TextField`                      | Поле ввода каталога для сгенерированного проекта.                              |
+| `testLevelCombo`           | `ComboBox<String>`               | Выпадающий список уровня тестов (SMOKE / BASIC / FULL).                        |
+| `smokeAllSubsystemsCheck`  | `CheckBox`                       | Флаг прогона smoke-тестов по всем подсистемам.                                 |
+| `fastModeCheck`            | `CheckBox`                       | Флаг быстрого режима (3× headless-Chrome).                                     |
+| `siteTypeCombo`            | `ComboBox<String>`               | Выпадающий список типа сайта (E3Core / generic / custom).                      |
+| `subsystemField`           | `TextField`                      | Поле ввода названия подсистемы.                                                |
+| `btnSelectXml`             | `Button`                         | Кнопка открытия диалога выбора XML.                                            |
+| `btnSelectOutputDir`       | `Button`                         | Кнопка открытия диалога выбора каталога.                                       |
+| `btnParse`                 | `Button`                         | Кнопка запуска парсинга XML.                                                   |
+| `btnGenerate`              | `Button`                         | Кнопка запуска генерации тестов.                                               |
+| `btnRunTests`              | `Button`                         | Кнопка запуска всех тестов.                                                    |
+| `btnRunSelected`           | `Button`                         | Кнопка открытия диалога выбора тестов.                                         |
+| `btnShowHistory`           | `Button`                         | Кнопка показа истории прогонов.                                                |
+| `entityListView`           | `ListView<String>`               | Список сущностей XML-модели (левая панель).                                    |
+| `resultsTable`             | `TableView<TestCaseRow>`         | Таблица результатов прогона.                                                   |
+| `colClass`,`colMethod`,`colStatus`,`colDuration`,`colMessage` | `TableColumn<TestCaseRow,String>` | Столбцы таблицы результатов. |
+| `statusLabel`              | `Label`                          | Метка статуса в верхней части окна.                                            |
+| `progressBar`              | `ProgressBar`                    | Индикатор прогресса фоновых задач.                                             |
+| `logArea`                  | `TextArea`                       | Журнал событий программы.                                                      |
+| `totalLabel`,`passedLabel`,`failedLabel` | `Label`            | Метки счётчиков «Всего», «Успешно», «Ошибки».                                  |
+| `TEST_CATEGORIES`          | `static final String[][]`        | Каталог пар (label, Surefire-фильтр) для диалога выбора видов тестов.          |
+| `currentModel`             | `AppModel`                       | Загруженная XML-модель. `null`, пока не выполнен `onParse()`.                  |
+| `reportDao`                | `final ReportDao`                | DAO для сохранения и загрузки истории прогонов.                                |
+
+### 2.2. `MainController.TestCaseRow`  *(пакет UI)*
+
+| Название      | Тип            | Описание                                                          |
+| ------------- | -------------- | ----------------------------------------------------------------- |
+| `className`   | `final String` | Имя тестового класса (например, `GskOgskTest`).                   |
+| `methodName`  | `final String` | Имя тест-метода (например, `testCreate`).                         |
+| `status`      | `final String` | Статус: `OK`, `FAIL` или `SKIP`.                                  |
+| `duration`    | `final String` | Длительность выполнения с суффиксом «мс».                          |
+| `message`     | `final String` | Текст ошибки или подтверждение успеха.                             |
+
+### 2.3. `AppModel`  *(пакет Model)*
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `categoryName` | `String`                  | Полное имя категории из XML (`"Logical View::ГСК"`).            |
+| `guid`         | `String`                  | GUID корневой категории.                                       |
+| `entities`     | `List<EntityObject>`      | Все сущности модели.                                            |
+| `searches`     | `List<Search>`            | Все параметрические поиски модели.                              |
+
+### 2.4. `EntityObject`  *(пакет Model)*
+
+| Название           | Тип                  | Описание                                                        |
+| ------------------ | -------------------- | --------------------------------------------------------------- |
+| `guid`             | `String`             | GUID сущности.                                                  |
+| `name`             | `String`             | Человекочитаемое имя (например, «ГСК/ОГСК»).                    |
+| `keyName`          | `String`             | Имя ключевого поля для отображения сущности.                    |
+| `featureName`      | `String`             | Технический префикс (например, `V_S_GB_SOCIETY`).               |
+| `nameValueMethod`  | `String`             | Имя метода вычисления визуального имени.                        |
+| `associations`     | `List<Association>`  | Связи с другими сущностями.                                     |
+| `propertyGroups`   | `List<PropertyGroup>`| Группы свойств (вкладки формы + Grid-ы).                        |
+
+### 2.5. `PropertyGroup`  *(пакет Model)*
+
+| Название       | Тип                | Описание                                                                |
+| -------------- | ------------------ | ----------------------------------------------------------------------- |
+| `guid`         | `String`           | GUID группы.                                                            |
+| `name`         | `String`           | Имя группы (для grid это имя дочерней коллекции).                       |
+| `stereoType`   | `String`           | Стереотип группы (`"Form"`, `"Grid"`).                                  |
+| `dmodule`      | `String`           | Имя модуля БД.                                                          |
+| `typeLink`     | `String`           | Тип связи: `"P"` — основная форма, иное — вспомогательная.              |
+| `orderNumber`  | `int`              | Порядок отображения.                                                    |
+| `flagDisplay`  | `boolean`          | Видимость группы в UI.                                                  |
+| `properties`   | `List<Property>`   | Поля группы.                                                            |
+| `operation`    | `Operation`        | Серверная операция (может быть `null`).                                  |
+
+### 2.6. `Property`  *(пакет Model)*
+
+| Название            | Тип        | Описание                                                       |
+| ------------------- | ---------- | -------------------------------------------------------------- |
+| `guid`              | `String`   | GUID поля.                                                     |
+| `name`              | `String`   | Человекочитаемое имя поля (видно на форме).                    |
+| `stereoType`        | `String`   | Стереотип (`"Mask"`, `"Lookup"` и т.д.).                       |
+| `dmodule`           | `String`   | Имя БД-модуля.                                                 |
+| `attrName`          | `String`   | Имя атрибута БД (например, `KEY_GB_SOCIETY`).                  |
+| `tableName`         | `String`   | Имя таблицы БД.                                                |
+| `attrType`          | `AttrType` | Тип значения: `STRING` / `DECIMAL` / `DATE` / `DATETIME`.      |
+| `required`          | `boolean`  | Обязательное поле (`necessarily=1` в XML).                     |
+| `mask`              | `String`   | Маска ввода (если есть).                                       |
+| `orderNumber`       | `int`      | Порядок отображения на форме.                                  |
+| `flagDisplay`       | `boolean`  | Видимость поля в UI.                                           |
+| `defValueSource`    | `String`   | Источник значения по умолчанию.                                |
+| `comment`           | `String`   | Комментарий проектировщика.                                    |
+
+### 2.7. `Operation`  *(пакет Model)*
+
+| Название           | Тип                       | Описание                                              |
+| ------------------ | ------------------------- | ----------------------------------------------------- |
+| `guid`             | `String`                  | GUID операции.                                        |
+| `operationMethod`  | `String`                  | Имя серверного метода.                                |
+| `operationModule`  | `String`                  | Имя серверного модуля.                                |
+| `params`           | `List<OperationParam>`    | Параметры операции.                                   |
+| `modifiers`        | `List<Modifier>`          | Кнопки-модификаторы, привязанные к операции.          |
+
+### 2.8. `OperationParam`  *(пакет Model)*
+
+| Название    | Тип      | Описание                              |
+| ----------- | -------- | ------------------------------------- |
+| `name`      | `String` | Имя параметра.                        |
+| `paramType` | `String` | Тип параметра (in/out/in-out).        |
+| `valueType` | `String` | Тип значения.                         |
+
+### 2.9. `Modifier`  *(пакет Model)*
+
+| Название     | Тип          | Описание                                                  |
+| ------------ | ------------ | --------------------------------------------------------- |
+| `title`      | `String`     | Подпись кнопки (например, «Создать»).                     |
+| `modifyType` | `ModifyType` | Тип модификации (INSERT / UPDATE / DELETE / …).           |
+
+### 2.10. `Association`  *(пакет Model)*
+
+| Название              | Тип       | Описание                                                                          |
+| --------------------- | --------- | --------------------------------------------------------------------------------- |
+| `guid`                | `String`  | GUID ассоциации.                                                                  |
+| `roleA`, `roleB`      | `String`  | Кратности ролей (`"1"`, `"0..n"`).                                                 |
+| `roleACaption`        | `String`  | Подпись роли A.                                                                   |
+| `featureName`         | `String`  | Имя feature ассоциации.                                                           |
+| `associationId`       | `String`  | ID ассоциации в схеме БД.                                                          |
+| `associateItemName`   | `String`  | Имя ассоциируемой сущности.                                                       |
+| `associateItemGuid`   | `String`  | GUID ассоциируемой сущности (по нему происходит навигация в `AppModel`).           |
+| `searchGuid`          | `String`  | GUID поиска, который используется для FK-пикера.                                  |
+| `flagDisplay`         | `boolean` | Показывать ли связь в UI.                                                          |
+| `addFromTree`         | `boolean` | Можно ли добавлять через дерево слева (отличает CHILD от FK).                     |
+
+### 2.11. `Search`  *(пакет Model)*
+
+| Название            | Тип                | Описание                                            |
+| ------------------- | ------------------ | --------------------------------------------------- |
+| `guid`              | `String`           | GUID поиска.                                        |
+| `name`              | `String`           | Имя поиска.                                         |
+| `searchObjectGuid`  | `String`           | GUID сущности, по которой ищем.                     |
+| `query`             | `String`           | SQL-запрос (если задан).                            |
+| `minParamCount`     | `int`              | Минимум обязательных параметров для запуска.        |
+| `params`            | `List<SearchParam>`| Параметры формы поиска.                              |
+| `result`            | `SearchResult`     | Описание грида-результата.                          |
+
+### 2.12. `SearchParam`  *(пакет Model)*
+
+| Название       | Тип       | Описание                                          |
+| -------------- | --------- | ------------------------------------------------- |
+| `name`         | `String`  | Техническое имя параметра.                        |
+| `title`        | `String`  | Заголовок на форме.                               |
+| `valueType`    | `String`  | Тип значения.                                     |
+| `mask`         | `String`  | Маска ввода.                                      |
+| `required`     | `boolean` | Обязательность.                                   |
+| `orderNumber`  | `int`     | Порядок на форме.                                 |
+| `searchGuid`   | `String`  | GUID родительского поиска.                        |
+
+### 2.13. `SearchResult` и `SearchResultProperty`  *(пакет Model)*
+
+| Класс / поле          | Тип                          | Описание                                       |
+| --------------------- | ---------------------------- | ---------------------------------------------- |
+| `SearchResult.idObjectName` | `String`               | Имя ID-объекта-результата.                     |
+| `SearchResult.properties`   | `List<SearchResultProperty>`| Колонки грида результата.                       |
+| `SearchResultProperty.name` | `String`               | Техническое имя колонки.                       |
+| `SearchResultProperty.title`| `String`               | Заголовок колонки.                             |
+| `SearchResultProperty.valueType` | `String`          | Тип значения колонки.                          |
+| `SearchResultProperty.visible` | `boolean`           | Видимость колонки.                             |
+| `SearchResultProperty.orderNumber` | `int`           | Порядок колонки.                               |
+
+### 2.14. `EntityClassifier.Classification`  *(пакет Model)*
+
+| Название         | Тип            | Описание                                                                   |
+| ---------------- | -------------- | -------------------------------------------------------------------------- |
+| `kind`           | `final EntityKind` | Категория: PRIMARY / CHILD / REFERENCE_DICTIONARY.                     |
+| `reason`         | `final String` | Человекочитаемая причина классификации (для отчётов).                       |
+| `parentEntity`   | `final EntityObject` | Для CHILD — родительская сущность (`null` иначе).                    |
+| `parentGrid`     | `final PropertyGroup` | Для CHILD — Grid внутри родителя.                                   |
+
+### 2.15. `TestRunResult`  *(пакет Model)*
+
+| Название         | Тип                       | Описание                                                  |
+| ---------------- | ------------------------- | --------------------------------------------------------- |
+| `totalTests`     | `int`                     | Общее число тест-методов.                                 |
+| `passed`         | `int`                     | Число успешных.                                           |
+| `failed`         | `int`                     | Число упавших.                                            |
+| `skipped`        | `int`                     | Число пропущенных.                                        |
+| `runTimestamp`   | `LocalDateTime`           | Момент начала прогона.                                    |
+| `durationMs`     | `long`                    | Общая длительность прогона в миллисекундах.               |
+| `xmlFileName`    | `String`                  | Имя XML, по которому генерировались тесты.                |
+| `baseUrl`        | `String`                  | URL тестируемой системы.                                  |
+| `results`        | `List<TestCaseResult>`    | Результаты каждого тест-метода.                            |
+| `mavenOutput`    | `String`                  | Полный stdout `mvn test` (для лога).                       |
+
+### 2.16. `TestCaseResult`  *(пакет Model)*
+
+| Название         | Тип                          | Описание                                                  |
+| ---------------- | ---------------------------- | --------------------------------------------------------- |
+| `className`      | `String`                     | Имя тест-класса.                                          |
+| `methodName`     | `String`                     | Имя тест-метода.                                          |
+| `passed`         | `boolean`                    | Успех / падение.                                          |
+| `skipped`        | `boolean`                    | Пропущен.                                                 |
+| `failureMessage` | `String`                     | Текст ошибки (если упал).                                 |
+| `durationMs`     | `long`                       | Длительность в миллисекундах.                             |
+| `stdOut`         | `String`                     | Собственный stdout теста.                                 |
+| `searchParams`   | `Map<String,String>`         | Сгенерированные параметры поиска (для отчёта).            |
+| `screenshots`    | `List<String>`               | Пути к скриншотам.                                        |
+| `steps`          | `List<StepTiming>`           | Шаги теста + длительность каждого.                         |
+
+### 2.17. Парсеры  *(пакет Parser)*
+
+| Класс / поле                       | Тип                       | Описание                                                    |
+| ---------------------------------- | ------------------------- | ----------------------------------------------------------- |
+| `XmlModelParser.entityParser`      | `final EntityParser`      | Делегат для `<Object>` (агрегация — конструктор может принять извне).         |
+| `XmlModelParser.searchParser`      | `final SearchParser`      | Делегат для `<Searches>`.                                   |
+| `EntityParser.pgParser`            | `final PropertyGroupParser` | Делегат для `<Properties>`.                                |
+| `XmlNamespaces.NS_E`               | `static final String`     | `"uuid:EDDBACC6-A83C-4937-9748-B7333C7C9272"`               |
+| `XmlNamespaces.NS_E3`              | `static final String`     | `"uuid:EF6807BA-EBA2-42E5-9234-A24542B8791C"`               |
+| `XmlNamespaces.NS_MD`              | `static final String`     | `"urn:ruitsol-ru:E3"`                                       |
+
+### 2.18. `JavaFileWriter`  *(пакет Common)*
+
+| Название        | Тип                       | Описание                                                  |
+| --------------- | ------------------------- | --------------------------------------------------------- |
+| `sb`            | `final StringBuilder`     | Аккумулятор содержимого файла.                            |
+| `indentLevel`   | `int`                     | Текущий уровень отступа (4 пробела на уровень).           |
+| `INDENT`        | `static final String`     | Префикс отступа `"    "` (4 пробела).                     |
+
+### 2.19. `ReportDao`  *(пакет Data)*
+
+| Название      | Тип                          | Описание                                                |
+| ------------- | ---------------------------- | ------------------------------------------------------- |
+| `DB_URL`      | `static final String`        | JDBC-URL `"jdbc:sqlite:autotestgen.db"`.                |
+| `DT_FORMAT`   | `static final DateTimeFormatter` | Формат сериализации даты (ISO_LOCAL_DATE_TIME).      |
+
+### 2.20. `TestConfig`  *(пакет Generator)*
+
+| Название              | Тип       | Описание                                                                   |
+| --------------------- | --------- | -------------------------------------------------------------------------- |
+| `baseUrl`             | `String`  | URL тестируемого сайта.                                                    |
+| `login`               | `String`  | Имя пользователя.                                                          |
+| `password`            | `String`  | Пароль пользователя.                                                       |
+| `outputDir`           | `Path`    | Каталог для записи сгенерированного Maven-проекта.                         |
+| `browserType`         | `String`  | Имя браузера (`"chrome"` или `"firefox"`).                                 |
+| `basePackage`         | `String`  | Базовый Java-пакет для сгенерированного кода (`"generated"`).               |
+| `siteType`            | `String`  | Тип сайта: `"e3core"`, `"generic"`, `"custom"`.                             |
+| `subsystemName`       | `String`  | Имя подсистемы внутри E3Core, в которую заходим после логина.              |
+| `testLevel`           | `String`  | Уровень: `"smoke"`, `"basic"`, `"full"`.                                    |
+| `smokeAllSubsystems`  | `boolean` | Прогонять ли smoke по всем подсистемам.                                    |
+
+### 2.21. `TestGenerator` и `TestRunner`  *(пакет Generator)*
+
+| Класс / поле                  | Тип                  | Описание                                                |
+| ----------------------------- | -------------------- | ------------------------------------------------------- |
+| `TestGenerator.config`        | `final TestConfig`   | Настройки генерации (внедряются через конструктор).     |
+| `TestRunner.lastMavenOutput`  | `String`             | Кэш последнего stdout `mvn test` для повторного чтения. |
+
+---
+
+## 3. Описание методов классов
+
+### 3.1. `App`  *(пакет UI)*
+
+| Название | Параметры                | Возвращаемое значение | Описание                                                                                                                |
+| -------- | ------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `start`  | `primaryStage: Stage`    | `void`                | Переопределённый метод `Application`. Загружает FXML, создаёт сцену 1000×700, показывает окно.                          |
+| `main`   | `args: String[]`         | `void`                | Static. Точка входа в программу. Вызывает `launch(args)` — запуск JavaFX-runtime.                                       |
+
+### 3.2. `MainController`  *(пакет UI)*
+
+| Название              | Параметры                                                     | Возвращаемое значение | Описание                                                                                                              |
+| --------------------- | ------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `initialize`          | —                                                             | `void`                | Автовызов после inject FXML. Настраивает CellValueFactory, ComboBox-ы, дефолтные значения полей.                       |
+| `onSelectXml`         | —                                                             | `void`                | Открывает `FileChooser` (`*.xml`). Путь — в `xmlPathField`.                                                            |
+| `onSelectOutputDir`   | —                                                             | `void`                | Открывает `DirectoryChooser`. Путь — в `outputDirField`.                                                              |
+| `onParse`             | —                                                             | `void`                | Создаёт `XmlModelParser`, парсит файл, заполняет `entityListView`, активирует `btnGenerate`.                          |
+| `onGenerate`          | —                                                             | `void`                | Создаёт `TestConfig` + `TestGenerator`, запускает `generate(model)`. Активирует кнопки запуска.                       |
+| `onRunTests`          | —                                                             | `void`                | Вызывает `launchRun(null)` — прогон всех тестов.                                                                       |
+| `onRunSelected`       | —                                                             | `void`                | Открывает диалог выбора с чекбоксами сущностей и видов тестов; собирает Surefire-фильтр; вызывает `launchRun(filter)`. |
+| `buildTestFilter`     | `entityChecks: List<CheckBox>`, `typeChecks: List<CheckBox>`  | `String`              | Static. Из чекбоксов строит фильтр `Class1Test,Class2Test#m1+m2`.                                                       |
+| `launchRun`           | `testFilter: String`                                          | `void`                | Запускает `Task<TestRunResult>` с `TestRunner`. По завершении — `displayResults` + `reportDao.saveRun`.               |
+| `onShowHistory`       | —                                                             | `void`                | `reportDao.getAllRuns()` → сводка в `logArea`, последний прогон — в `resultsTable`.                                  |
+| `displayResults`      | `result: TestRunResult`                                       | `void`                | Заполняет `resultsTable` строками `TestCaseRow`, раскрашивает статусы.                                                |
+| `getXmlFileName`      | —                                                             | `String`              | Имя файла из `xmlPathField` (`File.getName()`) либо `"unknown.xml"`.                                                  |
+| `log`                 | `message: String`                                             | `void`                | Дозапись в `logArea` через `Platform.runLater`.                                                                       |
+| `showAlert`           | `title: String`, `content: String`                            | `void`                | Модальный `Alert.ERROR` через `Platform.runLater`.                                                                    |
+
+### 3.3. `MainController.TestCaseRow`  *(пакет UI)*
+
+| Название         | Параметры                                                                          | Возвращаемое значение | Описание                                                |
+| ---------------- | ---------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------- |
+| `TestCaseRow`    | `className, methodName, status, duration, message: String`                          | конструктор           | Инициализирует все пять `final` полей.                   |
+| `getClassName`   | —                                                                                  | `String`              | Возвращает имя тест-класса (для PropertyValueFactory).  |
+| `getMethodName`  | —                                                                                  | `String`              | Возвращает имя тест-метода.                             |
+| `getStatus`      | —                                                                                  | `String`              | Возвращает статус.                                       |
+| `getDuration`    | —                                                                                  | `String`              | Возвращает длительность.                                 |
+| `getMessage`     | —                                                                                  | `String`              | Возвращает сообщение.                                   |
+
+### 3.4. `AppModel`  *(пакет Model)*
+
+| Название                          | Параметры              | Возвращаемое значение | Описание                                                                          |
+| --------------------------------- | ---------------------- | --------------------- | --------------------------------------------------------------------------------- |
+| `getCategoryName` / `setCategoryName` | (`String`)         | `String` / `void`     | Геттер/сеттер поля `categoryName`.                                                |
+| `getGuid` / `setGuid`             | (`String`)             | `String` / `void`     | Геттер/сеттер GUID корневой категории.                                            |
+| `getEntities` / `setEntities`     | (`List<EntityObject>`) | `List<…>` / `void`    | Геттер/сеттер списка сущностей.                                                   |
+| `getSearches` / `setSearches`     | (`List<Search>`)       | `List<…>` / `void`    | Геттер/сеттер списка поисков.                                                     |
+| `findEntityByGuid`                | `guid: String`         | `EntityObject`        | Линейный поиск сущности по GUID, `null` если нет.                                  |
+| `getSubsystemNameFromCategory`    | —                      | `String`              | Из `categoryName` вида `"Logical View::ГСК"` возвращает `"ГСК"`.                  |
+
+### 3.5. `EntityObject`  *(пакет Model)*
+
+| Название                  | Параметры              | Возвращаемое значение | Описание                                                                       |
+| ------------------------- | ---------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| Геттеры/сеттеры 7 полей  | (`String/List<…>`)     | соответствующее       | Стандартные accessors.                                                          |
+| `hasCrudOperations`       | —                      | `boolean`             | `true`, если хотя бы один PropertyGroup имеет непустые модификаторы операции.   |
+| `getFormView`             | —                      | `PropertyGroup`       | Первый PropertyGroup с `isFormView()` (`typeLink="P"`); `null` если нет.        |
+
+### 3.6. `PropertyGroup`  *(пакет Model)*
+
+| Название           | Параметры        | Возвращаемое значение | Описание                                                |
+| ------------------ | ---------------- | --------------------- | ------------------------------------------------------- |
+| Геттеры/сеттеры 9 полей | —          | соответствующее        | Стандартные accessors.                                  |
+| `isFormView`       | —                | `boolean`             | `"P".equals(typeLink)` — это основная форма карточки.   |
+| `isGridView`       | —                | `boolean`             | `"Grid".equals(stereoType)` — это табличная вкладка.     |
+
+### 3.7. `Property`  *(пакет Model)*
+
+| Название                | Параметры | Возвращаемое значение | Описание                                  |
+| ----------------------- | --------- | --------------------- | ----------------------------------------- |
+| Геттеры/сеттеры 13 полей | —       | соответствующее        | Стандартные accessors. Логики нет.        |
+
+### 3.8. `Operation`, `OperationParam`, `Modifier`, `Association`, `Search`, `SearchParam`, `SearchResult`, `SearchResultProperty`  *(пакет Model)*
+
+Все классы POJO — содержат только геттеры/сеттеры для своих полей (см. секцию 2). Бизнес-логики не имеют.
+
+### 3.9. `AttrType` *(enum)*  *(пакет Model)*
+
+| Название    | Параметры       | Возвращаемое значение | Описание                                                              |
+| ----------- | --------------- | --------------------- | --------------------------------------------------------------------- |
+| `fromXml`   | `value: String` | `static AttrType`     | Парсит атрибут `attrType` XML в одно из значений (по умолчанию STRING). |
+
+### 3.10. `ModifyType` *(enum)*  *(пакет Model)*
+
+| Название    | Параметры       | Возвращаемое значение | Описание                                                        |
+| ----------- | --------------- | --------------------- | --------------------------------------------------------------- |
+| `getCode`   | —               | `String`              | Возвращает кодовый символ (`"I"`, `"U"`, `"D"`, `"E"`, `"A"`).  |
+| `fromCode`  | `code: String`  | `static ModifyType`   | Обратное: код XML → константа enum. `null`, если код неизвестен. |
+
+### 3.11. `EntityClassifier`  *(пакет Model)*
+
+| Название                | Параметры                              | Возвращаемое значение | Описание                                                                            |
+| ----------------------- | -------------------------------------- | --------------------- | ----------------------------------------------------------------------------------- |
+| `classify`              | `entity: EntityObject`, `model: AppModel` | `static Classification` | Цепочка правил: CHILD → REFERENCE_DICTIONARY → FK-target → PRIMARY (по умолчанию). |
+| `findParentGrid`        | `entity`, `model`                      | `private Classification` | Ищет родительский PropertyGroup со `stereoType="Grid"`, чьё имя совпадает по корням слов. |
+| `isFkTargetOnly`        | `entity`, `model`                      | `private String`      | Сущность считается FK-целью, если на неё ссылаются только как пикер.                |
+| `isChildOf`             | `child`, `parent`                      | `private boolean`     | `true`, если `child` появляется как Grid-вкладка внутри `parent`.                   |
+| `isReferenceDictionary` | `entity`, `model`                      | `private String`      | `V_S_…` префикс или пустые параметры всех поисков → справочник.                     |
+| `isTrivialResult`       | `search: Search`                       | `private boolean`     | `true`, если результат содержит только `SearchKey`+`SearchName`.                     |
+| `nameStemsMatch`        | `a, b: String`                         | `private boolean`     | Имена считаются совпадающими, если первые ≥3 буквы каждого слова совпадают.         |
+
+### 3.12. `EntityClassifier.Classification`  *(пакет Model)*
+
+| Название           | Параметры                                                                       | Возвращаемое значение | Описание                                          |
+| ------------------ | ------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------- |
+| `Classification`   | `kind: EntityKind, reason: String`                                              | конструктор           | Создаёт результат без указания родителя.          |
+| `Classification`   | `kind, reason, parentEntity: EntityObject, parentGrid: PropertyGroup`           | конструктор           | Создаёт результат CHILD с указанием родителя.     |
+
+### 3.13. `TestRunResult` и `TestCaseResult`  *(пакет Model)*
+
+| Класс / метод                | Параметры                            | Возвращаемое значение | Описание                                                            |
+| ---------------------------- | ------------------------------------ | --------------------- | ------------------------------------------------------------------- |
+| `TestRunResult` (все геттеры/сеттеры) | (по типу поля)              | соответствующее        | Стандартные accessors для 10 полей.                                  |
+| `TestCaseResult` (геттеры/сеттеры) | (по типу поля)                 | соответствующее        | Accessors для 9 полей.                                              |
+| `TestCaseResult.addScreenshot` | `path: String`                     | `void`                | Добавляет путь в список `screenshots`.                              |
+| `TestCaseResult.addStep`     | `name: String, ms: long`             | `void`                | Создаёт `StepTiming` и добавляет в `steps`.                          |
+| `StepTiming.StepTiming`      | `name: String, ms: long`             | конструктор           | Инициализация финальных полей шага.                                 |
+
+### 3.14. `XmlModelParser`  *(пакет Parser)*
+
+| Название         | Параметры                                       | Возвращаемое значение | Описание                                                                                    |
+| ---------------- | ----------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `XmlModelParser` | —                                               | конструктор           | Создаёт стандартные `EntityParser` и `SearchParser` (композиция).                           |
+| `XmlModelParser` | `EntityParser, SearchParser`                    | конструктор           | DI-конструктор для подмены парсеров в тестах.                                               |
+| `parse`          | `xmlFile: File`                                 | `AppModel` throws `ParserException` | Открывает StAX-reader, диспетчеризует элементы; оборачивает технические исключения.        |
+
+### 3.15. `EntityParser`  *(пакет Parser)*
+
+| Название           | Параметры                              | Возвращаемое значение | Описание                                                                                        |
+| ------------------ | -------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
+| `EntityParser`     | —                                      | конструктор           | Создаёт `PropertyGroupParser` сам (композиция).                                                  |
+| `EntityParser`     | `PropertyGroupParser`                  | конструктор           | DI-конструктор.                                                                                  |
+| `parseObject`     | `reader: XMLStreamReader`              | `EntityObject` throws `XMLStreamException` | Читает `<Object>` до конца; делегирует `<Properties>` → `pgParser`; вызывает `parseAssociation`. |
+| `parseAssociation` | `reader: XMLStreamReader`              | `private Association` throws `XMLStreamException` | Собирает `Association` с под-элементами `<Qualifier>` и `<AssociateItem>`.                       |
+
+### 3.16. `PropertyGroupParser`  *(пакет Parser)*
+
+| Название              | Параметры                  | Возвращаемое значение | Описание                                                                                  |
+| --------------------- | -------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `parsePropertyGroup`  | `reader: XMLStreamReader`  | `PropertyGroup` throws `XMLStreamException` | Читает `<Properties>`, делегирует вложенные `<Property>` и `<Operation>`.                  |
+| `parseProperty`       | `reader: XMLStreamReader`  | `private Property` throws `XMLStreamException` | Собирает `Property` из атрибутов; `skipToEnd` уводит курсор на закрывающий тег.            |
+| `parseOperation`      | `reader: XMLStreamReader`  | `private Operation` throws `XMLStreamException` | Собирает `Operation` + вложенные `<OperationParam>` и `<Modifier>`.                        |
+
+### 3.17. `SearchParser`  *(пакет Parser)*
+
+| Название              | Параметры                  | Возвращаемое значение | Описание                                                                                  |
+| --------------------- | -------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `parseSearches`       | `reader: XMLStreamReader`  | `List<Search>` throws `XMLStreamException` | Перебирает все `<Search>` под `<Searches>` и возвращает список.                            |
+| `parseSingleSearch`   | `reader: XMLStreamReader`  | `private Search` throws `XMLStreamException` | Собирает `Search` + `<SearchParam>` + `<SearchResult>` + `<SearchResultProperty>`.        |
+
+### 3.18. `StaxUtils`  *(пакет Parser)*
+
+| Название      | Параметры                                       | Возвращаемое значение | Описание                                                                              |
+| ------------- | ----------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------- |
+| `attr`        | `reader: XMLStreamReader, name: String`         | `static String`       | Безопасно читает атрибут, при отсутствии возвращает `""`.                              |
+| `parseInt`    | `value: String`                                 | `static int`          | Безопасный парсинг int, при пустоте/ошибке — `0`.                                     |
+| `skipToEnd`   | `reader: XMLStreamReader`                       | `static void` throws `XMLStreamException` | Прокручивает курсор до закрытия текущего элемента (счётчик depth).      |
+
+### 3.19. `Transliterator`  *(пакет Common)*
+
+| Название         | Параметры              | Возвращаемое значение | Описание                                                                                  |
+| ---------------- | ---------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `toClassName`    | `russianName: String`  | `static String`       | Cyrillic → PascalCase. «ГСК/ОГСК» → `GskOgsk`.                                            |
+| `toMethodName`   | `russianName: String`  | `static String`       | То же, но первая буква строчная.                                                          |
+| `toFieldName`    | `attrName: String`     | `static String`       | Если уже Latin (`KEY_GB_SOCIETY`) — snake→camelCase, иначе как `toMethodName`.            |
+| `transliterate`  | `word: String`         | `private static String` | Перевод слова посимвольно через `MAPPING`.                                              |
+| `snakeToCamel`   | `snake: String`        | `private static String` | Конвертит `KEY_GB_SOCIETY` → `keyGbSociety`.                                            |
+
+### 3.20. `JavaFileWriter`  *(пакет Common)*
+
+| Название      | Параметры                          | Возвращаемое значение | Описание                                                                          |
+| ------------- | ---------------------------------- | --------------------- | --------------------------------------------------------------------------------- |
+| `writeLine`   | `line: String`                     | `JavaFileWriter`      | Дописывает строку с текущим отступом + `\n`. Fluent (возвращает себя).            |
+| `writeLine`   | —                                  | `JavaFileWriter`      | Пустая строка-разделитель. Fluent.                                                |
+| `openBlock`   | `header: String`                   | `JavaFileWriter`      | `writeLine(header + " {")` и `indentLevel++`. Fluent.                              |
+| `closeBlock`  | —                                  | `JavaFileWriter`      | `indentLevel--` и `writeLine("}")`. Fluent.                                        |
+| `indent`      | —                                  | `JavaFileWriter`      | `indentLevel++` без записи. Fluent.                                                |
+| `unindent`    | —                                  | `JavaFileWriter`      | `indentLevel--` без записи. Fluent.                                                |
+| `writeToFile` | `dir: Path, fileName: String`      | `void` throws `IOException` | `Files.createDirectories(dir)` + запись содержимого в UTF-8.                      |
+| `toString`    | —                                  | `String`              | Возвращает накопленное содержимое (для логирования / тестов).                     |
+
+### 3.21. `ParserException`  *(пакет Common)*
+
+| Название           | Параметры                              | Возвращаемое значение | Описание                                       |
+| ------------------ | -------------------------------------- | --------------------- | ---------------------------------------------- |
+| `ParserException`  | `message: String`                      | конструктор           | Создаёт checked-исключение с сообщением.       |
+| `ParserException`  | `message: String, cause: Throwable`    | конструктор           | То же + причина (для wrap-pattern).            |
+
+### 3.22. `ReportDao`  *(пакет Data)*
+
+| Название           | Параметры                              | Возвращаемое значение | Описание                                                                                   |
+| ------------------ | -------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| `ReportDao`        | —                                      | конструктор           | Создаёт DAO и вызывает `initDatabase()`.                                                   |
+| `initDatabase`     | —                                      | `private void`        | Создаёт таблицы `test_run` и `test_case` через `CREATE TABLE IF NOT EXISTS`.               |
+| `saveRun`          | `result: TestRunResult`                | `void`                | Транзакция: INSERT в `test_run` + batch INSERT в `test_case`. `SQLException` логируется.   |
+| `getAllRuns`       | —                                      | `List<TestRunResult>` | `SELECT * FROM test_run ORDER BY id DESC`; для каждого — `getCaseResults` (классический N+1). |
+| `getCaseResults`   | `conn: Connection, runId: long`        | `private List<TestCaseResult>` throws `SQLException` | `SELECT * FROM test_case WHERE run_id = ?`.                            |
+| `getConnection`    | —                                      | `private Connection` throws `SQLException` | `DriverManager.getConnection(DB_URL)`.                                              |
+
+### 3.23. `TestConfig`  *(пакет Generator)*
+
+| Название                | Параметры | Возвращаемое значение | Описание                                                       |
+| ----------------------- | --------- | --------------------- | -------------------------------------------------------------- |
+| Геттеры/сеттеры 10 полей | (по типу поля) | соответствующее   | Стандартные accessors. Логики нет — POJO-контейнер настроек.    |
+
+### 3.24. `TestGenerator`  *(пакет Generator)*
+
+| Название                       | Параметры                                  | Возвращаемое значение | Описание                                                                                                 |
+| ------------------------------ | ------------------------------------------ | --------------------- | -------------------------------------------------------------------------------------------------------- |
+| `TestGenerator`                | `config: TestConfig`                       | конструктор           | Сохраняет конфиг как поле (агрегация).                                                                   |
+| `generate`                     | `model: AppModel`                          | `void` throws `IOException` | Главная точка: пишет `pom.xml`, `BaseTest`, `SharedDriver`, smoke-тесты, для каждой PRIMARY-сущности — Page Object + Test-класс. |
+| `generatePom`                  | `outputDir: Path`                          | `private void` throws `IOException` | Пишет `pom.xml` сгенерированного проекта (Selenium, JUnit5, WebDriverManager, Surefire 3.2.2). |
+| `generateBaseTest`             | `srcDir: Path, basePackage: String`        | `private void` throws `IOException` | Пишет `BaseTest.java` с общим `@BeforeAll/@AfterAll` для всех тест-классов.                    |
+| `generateSharedDriver`         | `srcDir: Path, basePackage: String`        | `private void` throws `IOException` | Пишет `SharedDriver.java` — singleton для переиспользования Chrome между тестами.                |
+| `generateTestData`             | `srcDir: Path, basePackage: String`        | `private void` throws `IOException` | Пишет утилиту `TestData.java` со случайной генерацией строк/чисел.                              |
+| `generateJUnitConfig`          | `outputDir: Path`                          | `private void` throws `IOException` | Создаёт `junit-platform.properties` (параллелизм, видимость).                                   |
+| `generateSubsystemsSmokeTest`  | `srcDir: Path, basePackage: String`        | `private void` throws `IOException` | Пишет smoke-тест прохода по всем подсистемам (если включено).                                   |
+
+### 3.25. `PageObjectWriter`  *(пакет Generator)*
+
+| Название                | Параметры                                                              | Возвращаемое значение | Описание                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `PageObjectWriter`      | `basePackage: String`                                                  | конструктор           | Сохраняет базовый пакет для импортов.                                                                   |
+| `write`                 | `entity: EntityObject, outputDir: Path`                                | `void` throws `IOException` | Генерирует Java-класс `XxxPage` с методами `open()`, `clickCreate()`, `fillField()`, `clickSave()` и т.п. |
+| `getDisplayProperties`  | `entity: EntityObject`                                                 | `private List<Property>` | Возвращает только видимые поля формы (`flagDisplay=true`) основной PropertyGroup.                       |
+
+### 3.26. `TestClassWriter`  *(пакет Generator)*
+
+| Название           | Параметры                                                                                | Возвращаемое значение | Описание                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `TestClassWriter`  | `basePackage: String, testLevel: String`                                                 | конструктор           | Сохраняет базовый пакет и уровень тестов (SMOKE/BASIC/FULL — влияет на набор генерируемых методов).            |
+| `write`            | `entity: EntityObject, model: AppModel, outputDir: Path`                                 | `void` throws `IOException` | Генерирует тест-класс `XxxTest` с JUnit5-методами по уровню теста.                                            |
+| `write`            | `entity, model, outputDir, disabledReason: String`                                       | `void` throws `IOException` | Перегрузка, добавляющая `@Disabled(reason)` ко всем методам класса (для CHILD/DICTIONARY).                    |
+| `writeChildTest`   | `entity, model, outputDir, parentEntity, parentGrid` (плюс прочие)                       | `void` throws `IOException` | Особый случай: тесты для CHILD-сущности живут внутри карточки родителя; навигация через Grid-вкладку.          |
+
+### 3.27. `TestDataFactory`  *(пакет Generator)*
+
+| Название                       | Параметры                  | Возвращаемое значение | Описание                                                                                  |
+| ------------------------------ | -------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `generateValue`                | `property: Property`       | `static String`       | По `AttrType` и `mask` подбирает корректное случайное значение для поля.                  |
+| `generateSearchParamValue`     | `param: SearchParam`       | `static String`       | То же для параметров поиска.                                                              |
+| `generateFromMask`             | `mask: String`             | `static String`       | Генерирует строку, удовлетворяющую маске ввода ExtJS.                                     |
+| `generateValueExpression`      | `property: Property`       | `static String`       | Возвращает Java-выражение, вычисляющее значение в runtime (для запуска тестов в разные моменты времени). |
+| `nowMskMinus10`                | —                          | `private static String` | Текущее московское время минус 10 минут (для дат в прошлом).                              |
+| `todayMsk`                     | —                          | `private static String` | Сегодняшняя дата в Московском часовом поясе.                                              |
+| `looksLikeDateMask`            | `mask: String`             | `private static boolean` | Эвристика «маска похожа на дату».                                                       |
+| `looksLikeDateTimeMask`        | `mask: String`             | `private static boolean` | Эвристика «маска похожа на дату+время».                                                 |
+
+### 3.28. `TestRunner`  *(пакет Generator)*
+
+| Название                | Параметры                                                                                  | Возвращаемое значение | Описание                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------- |
+| `run`                   | `projectDir: Path, xmlFileName: String, baseUrl: String`                                   | `TestRunResult` throws `IOException` | Запускает `mvn test` без фильтра, последовательно.                                              |
+| `run`                   | `projectDir, xmlFileName, baseUrl, lineConsumer: Consumer<String>`                          | `TestRunResult` throws `IOException` | То же + потоковый приёмник stdout-строк (для лога UI).                                            |
+| `run`                   | `projectDir, xmlFileName, baseUrl, lineConsumer, testFilter: String`                       | `TestRunResult` throws `IOException` | + Surefire-фильтр `-Dtest=...`.                                                                    |
+| `run`                   | `projectDir, xmlFileName, baseUrl, lineConsumer, testFilter, fastMode: boolean`            | `TestRunResult` throws `IOException` | + быстрый режим (3 параллельных headless-Chrome).                                                  |
+| `getLastMavenOutput`    | —                                                                                          | `String`              | Возвращает кэш последнего stdout `mvn test`.                                                        |
+
+### 3.29. `RunReportWriter`  *(пакет Generator)*
+
+| Название         | Параметры                                       | Возвращаемое значение | Описание                                                                                  |
+| ---------------- | ----------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `write`          | `htmlPath: Path, result: TestRunResult`         | `void` throws `IOException` | Генерирует HTML-отчёт v5 с фотолетописью, шагами и подсветкой ошибок.                       |
+| `writeCsv`       | `csvPath: Path, result: TestRunResult`          | `void` throws `IOException` | Генерирует CSV-выгрузку для Excel/BI.                                                       |
+| `csv`            | `v: String`                                     | `private static String` | Безопасное экранирование значения для CSV (кавычки + запятые).                              |
+| `esc`            | `s: String`                                     | `private static String` | HTML-экранирование (`<`, `>`, `&`).                                                          |
+| `shortName`      | `cls: String`                                   | `private static String` | Из `pkg.Sub.Class` оставляет только `Class` (для отображения в отчёте).                     |
+| `extractStepLabel` | `filename: String`                            | `private static String` | По имени файла скриншота восстанавливает имя шага теста.                                    |
+| `formatDuration` | `ms: long`                                      | `private static String` | Форматирует длительность как `1 м 23 с` или `420 мс`.                                       |
+
+---
+
+## 4. Модульная структура (по Л. Константайну)
+
+### 4.1. Назначение
+
+Структурная карта модулей по Л. Константайну отражает **физическую декомпозицию системы** на функциональные модули (классы), показывает направление **вызовов** между ними и характер передаваемых данных. На карте видны принципы:
+
+- **Высокая связность (cohesion)** внутри одного модуля — каждый класс решает одну задачу.
+- **Слабая сопряжённость (coupling)** между модулями — взаимодействие через ограниченное число интерфейсов и data-couples.
+- **Иерархическая декомпозиция** — главный модуль (`App`) делегирует подзадачи модулям второго уровня (`MainController`), которые в свою очередь обращаются к специализированным модулям.
+
+### 4.2. Диаграмма модульной структуры
+
+Обозначения:
+- `[Module]` — модуль (класс / группа близких классов).
+- `─►` — вызов (caller → callee).
+- `○─►` — data couple (передача данных).
+- `●─►` — control couple (передача флага/режима).
+
+```
+                                    ┌─────────┐
+                                    │   App   │   ← точка входа (main)
+                                    └────┬────┘
+                                         │ FXML load + Stage.show()
+                                         ▼
+                              ┌──────────────────────┐
+                              │   MainController     │   ← центральный модуль
+                              │  (обработчики UI)     │
+                              └──────┬───────────────┘
+                                     │
+              ┌──────────┬───────────┼───────────┬──────────┬────────────────┐
+              │          │           │           │          │                │
+       ○ XML  │   ○ конфиг           │ ○ модель  │ ○ фильтр │ ● команда      │
+        File  │     TestConfig       │ AppModel  │ Surefire │ saveRun        │
+              ▼          ▼           ▼           ▼          ▼                ▼
+       ┌─────────────┐ ┌────────┐ ┌──────────────┐ ┌────────────┐  ┌─────────────┐
+       │XmlModelParser│ │TestConfig│ │TestGenerator│ │ TestRunner │  │  ReportDao  │
+       │   (фасад)   │ └────────┘ └──┬───────────┘ └─────┬──────┘  └──────┬──────┘
+       └──────┬──────┘                │                  │                │
+              │ ○ reader               │                  │ ○ stdout       │ ○ run, cases
+       ┌──────┼──────┐                 │           ┌──────┴──────┐         ▼
+       ▼      ▼      ▼                 │           │             │  ┌─────────────┐
+   ┌────────┐┌──────────┐┌──────────┐  │           ▼             ▼  │   SQLite    │
+   │ Entity ││  Search  ││ XmlNames-│  │   ┌──────────────┐  ┌───────────────┐
+   │ Parser ││  Parser  ││  paces   │  │   │ProcessBuilder│  │parseSurefire  │
+   └────┬───┘└──────────┘└──────────┘  │   │  ("mvn test")│  │   Reports     │
+        │                              │   └──────────────┘  └───────────────┘
+        │ ○ reader                     │
+        ▼                              │
+   ┌────────────────────┐              │
+   │PropertyGroupParser │              │
+   └────────┬───────────┘              │
+            │                          │
+            ▼                          │
+        ┌─────────────┐                │
+        │ StaxUtils   │ ◄──────────────┼─── используется всеми парсерами
+        │ (static)    │                │
+        └─────────────┘                │
+                                       │
+       ┌───────────────┬───────────────┼────────────────────┬─────────────────┐
+       │               │               │                    │                 │
+       ▼               ▼               ▼                    ▼                 ▼
+┌──────────────┐ ┌────────────┐ ┌────────────────┐ ┌──────────────────┐ ┌───────────────┐
+│PageObjectWri-│ │TestClass   │ │EntityClassifier│ │ TestDataFactory  │ │JavaFileWriter │
+│ ter           │ │Writer      │ │   (static)     │ │   (static)        │ │ (Common)       │
+└──────┬───────┘ └────┬───────┘ └────────────────┘ └──────────────────┘ └──────┬────────┘
+       │               │                                                       │
+       │ ○ entity      │ ○ entity, model                                        │
+       ▼               ▼                                                       ▼
+   ┌────────────────────────────────────────────────────────────────┐   ┌────────────────┐
+   │  Файлы Java-проекта:                                            │   │ Transliterator │
+   │  generated-tests/src/main/java/...Page.java                      │   │ (Common)        │
+   │  generated-tests/src/test/java/...Test.java                      │   └────────────────┘
+   │  generated-tests/pom.xml, BaseTest.java, SharedDriver.java       │
+   └────────────────────────────────────────────────────────────────┘
+```
+
+### 4.3. Описание уровней иерархии
+
+| Уровень | Модули                                  | Роль                                                                            |
+| ------- | --------------------------------------- | ------------------------------------------------------------------------------- |
+| **1**   | `App`                                   | Главный модуль: точка входа, инициализация JavaFX.                              |
+| **2**   | `MainController`                        | Координатор UI: обрабатывает события, делегирует подзадачи.                     |
+| **3**   | `XmlModelParser`, `TestGenerator`, `TestRunner`, `TestConfig`, `ReportDao` | Фасады подсистем (парсинг, генерация, запуск, БД).                      |
+| **4**   | `EntityParser`, `SearchParser`, `PropertyGroupParser`, `PageObjectWriter`, `TestClassWriter`, `EntityClassifier`, `TestDataFactory` | Специализированные исполнители.                  |
+| **5**   | `StaxUtils`, `XmlNamespaces`, `JavaFileWriter`, `Transliterator`, `ParserException` | Общие утилиты, использующиеся со многих уровней. |
+
+### 4.4. Спецификация модулей программы
+
+**Таблица 4.1. Спецификация модулей программы**
+
+| Название                     | Входные параметры                                         | Выходные параметры                            | Описание                                                                                |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `App.java`                   | `args: String[]`                                          | окно GUI                                       | Точка входа, инициализация JavaFX и загрузка FXML.                                       |
+| `MainController.java`        | FXML-элементы, действия пользователя                       | UI-обновления, побочные эффекты               | Контроллер главного окна, центральный координатор всех сценариев.                       |
+| `AppModel.java`              | (наполняется парсером)                                     | объект модели                                  | Корень объектной модели метаданных.                                                      |
+| `EntityObject.java`          | GUID, имя, ассоциации, группы свойств                      | объект сущности                                | Бизнес-сущность модели (карточка).                                                       |
+| `PropertyGroup.java`         | GUID, тип, поля, операция                                  | объект группы свойств                          | Группа полей формы или Grid-вкладки.                                                     |
+| `Property.java`              | GUID, имя, тип, маска, обязательность                      | объект поля                                    | Описание одного поля формы.                                                              |
+| `Operation.java`             | метод, модуль, параметры, модификаторы                     | объект операции                                | Серверная операция формы.                                                                |
+| `OperationParam.java`        | имя, типы                                                  | объект параметра                               | Один параметр серверной операции.                                                        |
+| `Modifier.java`              | заголовок, тип модификации                                 | объект модификатора                            | Кнопка-модификатор формы.                                                                |
+| `ModifyType.java`            | код буквы                                                  | константа enum                                 | Тип модификации (INSERT, UPDATE, DELETE, LOGICAL_EDIT, ARCHIVE).                         |
+| `Association.java`           | GUID, роли, FK-данные                                      | объект ассоциации                              | Связь сущностей (FK или дочерняя коллекция).                                             |
+| `Search.java`                | имя, GUID объекта, query, параметры                        | объект поиска                                  | Параметрический поиск сущности.                                                          |
+| `SearchParam.java`           | имя, тип, маска, обязательность                            | объект параметра                               | Поле формы поиска.                                                                       |
+| `SearchResult.java`          | колонки результата                                         | объект описания грида                          | Описание грида-результата поиска.                                                        |
+| `SearchResultProperty.java`  | имя, заголовок, тип, видимость                             | объект колонки                                 | Колонка грида результата.                                                                |
+| `AttrType.java`              | строка XML                                                 | константа enum                                  | Тип атрибута (STRING / DECIMAL / DATE / DATETIME).                                       |
+| `EntityKind.java`            | —                                                          | константа enum                                  | Логическая роль сущности (PRIMARY / CHILD / REFERENCE_DICTIONARY).                       |
+| `EntityClassifier.java`      | `EntityObject`, `AppModel`                                 | `Classification`                                | Определяет роль сущности по структуре XML.                                               |
+| `TestRunResult.java`         | счётчики, список кейсов                                    | объект результата прогона                       | Контейнер результатов прогона тестов.                                                    |
+| `TestCaseResult.java`        | класс, метод, статус, длительность, скриншоты              | объект результата теста                         | Контейнер результата одного тест-метода.                                                 |
+| `XmlModelParser.java`        | `File` XML, опционально `EntityParser`+`SearchParser`     | `AppModel` или `ParserException`               | Фасад/координатор парсинга XML-модели.                                                   |
+| `EntityParser.java`          | `XMLStreamReader`                                          | `EntityObject` или `Association`                | Парсер `<Object>` и `<AssociationObjectA>`.                                              |
+| `PropertyGroupParser.java`   | `XMLStreamReader`                                          | `PropertyGroup`                                 | Парсер `<Properties>` со всеми `<Property>` и `<Operation>`.                             |
+| `SearchParser.java`          | `XMLStreamReader`                                          | `List<Search>`                                  | Парсер `<Searches>` со всеми вложенными элементами.                                      |
+| `StaxUtils.java`             | `XMLStreamReader`, имя атрибута                            | значение / int / `void`                         | Утилиты для StAX: чтение атрибутов, парсинг int, перемотка курсора.                      |
+| `XmlNamespaces.java`         | —                                                          | константы строк                                 | URI namespace-ов формата E3Core.                                                         |
+| `Transliterator.java`        | русское имя                                                | Java-идентификатор                              | Транслитерация имён сущностей в имена классов/методов.                                   |
+| `JavaFileWriter.java`        | строки кода                                                | файл `.java`                                    | Билдер форматированного Java-исходника.                                                  |
+| `ParserException.java`       | сообщение, причина                                         | объект-исключение                               | Доменное исключение для ошибок парсинга.                                                 |
+| `ReportDao.java`             | `TestRunResult` (для записи); ID прогона (для чтения)      | `void` или `List<TestRunResult>`                | DAO для SQLite-базы истории прогонов.                                                    |
+| `TestConfig.java`            | URL, логин, пароль, каталог, уровень тестов                | объект-настройки                                | Контейнер параметров генерации.                                                          |
+| `TestGenerator.java`         | `AppModel`, `TestConfig`                                   | каталог `generated-tests/` с проектом           | Дирижёр генерации тестового проекта.                                                     |
+| `PageObjectWriter.java`      | `EntityObject`, `TestConfig`                               | `.java` Page Object                             | Генератор Page Object Java-классов.                                                      |
+| `TestClassWriter.java`       | `EntityObject`, `AppModel`, `TestConfig`                   | `.java` тест-класс                              | Генератор JUnit-5 тест-классов.                                                          |
+| `TestDataFactory.java`       | `Property` / `SearchParam`                                 | строка-значение или выражение                   | Фабрика тестовых значений по типу и маске.                                               |
+| `TestRunner.java`            | `Path` каталога, фильтр Surefire, режим                    | `TestRunResult`                                 | Запуск `mvn test` через `ProcessBuilder` + парсинг Surefire-XML-отчётов.                 |
+| `RunReportWriter.java`       | `TestRunResult`, путь к выходным файлам                    | `.html`, `.csv` отчёты                          | Кастомный HTML-отчёт v5 с фотолетописью + CSV-выгрузка.                                  |
+
+### 4.5. Анализ связности и сопряжённости
+
+| Принцип Константайна          | Где применён                                                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Функциональная связность       | Каждый класс пакета `parser` отвечает за свой тип XML-узла. Каждый writer в `generator` пишет одну сущность файла. |
+| Информационная связность       | Пакет `model` — POJO без поведения, чисто данные.                                                                 |
+| Data couple (○─►)              | Между `MainController` и `XmlModelParser` передаётся `File`; в ответ — `AppModel`. Чистые данные.                |
+| Stamp couple                    | `TestGenerator` получает целый `AppModel`, а использует не все поля (только PRIMARY-сущности). Допустимо.        |
+| Control couple (●─►)            | Флаг `fastMode` в `TestRunner.run(...)` — управляет режимом параллельности. Допустимо.                            |
+| Common coupling                 | `XmlNamespaces` используется четырьмя парсерами как общий источник констант. Допустимо для read-only constants.   |
+| Content coupling                | Отсутствует: нет модулей, лезущих во внутренние поля чужих классов.                                              |
+
+---
+
+*Документ предназначен для прямого переноса таблиц в Word/диплом и для построения структурных диаграмм по Константайну. Все таблицы соответствуют форматам диплома (37, 38–42, 70, 92).*
