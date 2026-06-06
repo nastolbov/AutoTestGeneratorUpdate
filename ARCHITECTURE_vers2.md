@@ -187,33 +187,59 @@ EntityClassifier.Classification -->  EntityKind     // kind
 
 ## 5. Пакет `ru.autotestgen.parser`
 
+Пакет декомпозирован по принципу единственной ответственности (SRP): каждый класс отвечает за разбор своего типа XML-узлов. Раньше всё лежало в одном `XmlModelParser` (≈300 строк) — теперь это **фасад-координатор**, который делегирует работу специализированным парсерам.
+
 ### 5.1. Классы
 
-| Класс             | Роль                                                                |
-| ----------------- | ------------------------------------------------------------------- |
-| `XmlModelParser`  | StAX-парсер: `File → AppModel`. Узнаёт элементы по namespace (NS_E, NS_E3, NS_MD). |
+| Класс                 | Роль                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `XmlModelParser`      | **Фасад/координатор**. `File → AppModel`. Открывает StAX-reader, диспетчеризует `<Category>`, `<Object>`, `<Searches>`. |
+| `EntityParser`        | Парсит `<Object>` → `EntityObject` + `<AssociationObjectA>` → `Association`. Делегирует `<Properties>` в `PropertyGroupParser`. |
+| `PropertyGroupParser` | Парсит `<Properties>` → `PropertyGroup`, включая `<Property>` → `Property` и `<Operation>` → `Operation` + `OperationParam` + `Modifier`. |
+| `SearchParser`        | Парсит `<Searches>` → `List<Search>`, включая `<SearchParam>`, `<SearchResult>`, `<SearchResultProperty>`. |
+| `StaxUtils`           | Статические утилиты: `attr(reader, name)`, `parseInt(value)`, `skipToEnd(reader)`. Общие для всех парсеров. |
+| `XmlNamespaces`       | Константы namespace-URI: `NS_E`, `NS_E3`, `NS_MD`. Один источник правды.                       |
 
-### 5.2. Связи
+### 5.2. Связи внутри пакета
 
 ```
-XmlModelParser      -->  AppModel              // создаёт корень модели
-XmlModelParser      -->  EntityObject          // создаёт и заполняет
-XmlModelParser      -->  Association
-XmlModelParser      -->  PropertyGroup
-XmlModelParser      -->  Property
-XmlModelParser      -->  AttrType              // fromXml()
-XmlModelParser      -->  Operation
-XmlModelParser      -->  OperationParam
-XmlModelParser      -->  Modifier, ModifyType
-XmlModelParser      -->  Search, SearchParam, SearchResult, SearchResultProperty
-XmlModelParser      -->  ParserException       // оборачивает IOException/XMLStreamException
+XmlModelParser        ♦--> EntityParser              // создаёт в конструкторе, владеет
+XmlModelParser        ♦--> SearchParser              // создаёт в конструкторе, владеет
+
+EntityParser          ♦--> PropertyGroupParser       // создаёт в конструкторе, владеет
+
+XmlModelParser        -->  StaxUtils                 // static-вызовы attr()
+XmlModelParser        -->  XmlNamespaces             // константы NS_E, NS_E3
+EntityParser          -->  StaxUtils                 // attr()
+EntityParser          -->  XmlNamespaces             // NS_E, NS_E3
+PropertyGroupParser   -->  StaxUtils                 // attr(), parseInt(), skipToEnd()
+PropertyGroupParser   -->  XmlNamespaces             // NS_E, NS_E3
+SearchParser          -->  StaxUtils                 // attr(), parseInt()
+SearchParser          -->  XmlNamespaces             // NS_E3
 ```
 
-### 5.3. Особенности
+> Конструкторы `XmlModelParser` и `EntityParser` перегружены: есть `new XmlModelParser()` (создаёт зависимости сам = композиция) и `new XmlModelParser(entityParser, searchParser)` (зависимости извне = инверсия зависимостей / агрегация). Это позволяет подменять парсеры в тестах.
+
+### 5.3. Связи с другими пакетами
+
+```
+XmlModelParser        -->  AppModel                  // создаёт и возвращает
+XmlModelParser        -->  ParserException           // оборачивает IOException/XMLStreamException
+
+EntityParser          -->  EntityObject, Association
+
+PropertyGroupParser   -->  PropertyGroup, Property, Operation, OperationParam, Modifier
+PropertyGroupParser   -->  AttrType, ModifyType      // enums (fromXml / fromCode)
+
+SearchParser          -->  Search, SearchParam, SearchResult, SearchResultProperty
+```
+
+### 5.4. Особенности
 
 - **Поточный (StAX)**, а не DOM: не загружает весь XML в память — критично для больших моделей.
-- **Namespace-aware**: одни и те же локальные имена тегов могут быть в разных URI; парсер фильтрует по NS.
-- **Граница уровней** через локальный `depth`-счётчик — стандартный паттерн для StAX.
+- **Namespace-aware**: одни и те же локальные имена тегов могут быть в разных URI; каждый парсер фильтрует по NS из `XmlNamespaces`.
+- **Граница уровней** через локальный `depth`-счётчик — стандартный паттерн StAX. Каждый специализированный парсер читает ровно «своё поддерево» и возвращает курсор на закрывающий тег.
+- **Точка расширения**: новый тип XML-узла → добавить ещё один класс `XxxParser`, зарегистрировать в `XmlModelParser.parse()`. Остальные парсеры менять не нужно.
 
 ---
 
@@ -374,18 +400,362 @@ MainController.onShowHistory()
 
 ---
 
-## 10. Замечания для проектирования новых диаграмм
+## 10. Диаграммы взаимодействия
+
+Раздел показывает, **кто кого вызывает по времени** в трёх сценариях: нормальный поток, прерывание пользователем, прерывание системой. Стрелка `─►` — синхронный вызов, `◄─` — возврат, `╳` — гибель сценария, `⚠` — точка ошибки.
+
+### 10.1. Нормальный сценарий: «Парсинг → Генерация → Запуск → Отчёт»
+
+```
+Пользователь  MainController     XmlModelParser      TestGenerator     TestRunner       ReportDao    SQLite
+     │              │                  │                   │                │              │           │
+  click            │                  │                   │                │              │           │
+"Разобрать XML"     │                  │                   │                │              │           │
+     ├─────────────►│                  │                   │                │              │           │
+     │              │  parse(file)     │                   │                │              │           │
+     │              ├─────────────────►│                   │                │              │           │
+     │              │                  │ (EntityParser /                    │              │           │
+     │              │                  │  SearchParser     │                │              │           │
+     │              │                  │  делегирование)   │                │              │           │
+     │              │   AppModel       │                   │                │              │           │
+     │              │◄─────────────────┤                   │                │              │           │
+     │ список       │                  │                   │                │              │           │
+     │ сущностей    │                  │                   │                │              │           │
+     │◄─────────────┤                  │                   │                │              │           │
+     │              │                  │                   │                │              │           │
+  click             │                  │                   │                │              │           │
+"Сгенерировать"     │                  │                   │                │              │           │
+     ├─────────────►│                  │                   │                │              │           │
+     │              │  generate(model) │                   │                │              │           │
+     │              ├──────────────────────────────────────►│                │              │           │
+     │              │     pom.xml, BaseTest.java, *Test.java записаны        │              │           │
+     │              │◄──────────────────────────────────────┤                │              │           │
+     │  "Тесты      │                  │                   │                │              │           │
+     │  сгенерены"  │                  │                   │                │              │           │
+     │◄─────────────┤                  │                   │                │              │           │
+     │              │                  │                   │                │              │           │
+  click             │                  │                   │                │              │           │
+"Запустить тесты"   │                  │                   │                │              │           │
+     ├─────────────►│                  │                   │                │              │           │
+     │              │  Task.start()    │                   │                │              │           │
+     │              ├───── (fork JavaFX thread) ────────────────────────────►│              │           │
+     │              │                  │                   │                │              │           │
+     │              │                  │                   │   ProcessBuilder("mvn test")  │           │
+     │              │                  │                   │   читает stdout построчно     │           │
+     │              │                  │                   │   парсит surefire-reports/*.xml           │
+     │              │                  │                   │                │              │           │
+     │              │  onSucceeded(result)                 │                │              │           │
+     │              │◄─── (Platform.runLater) ─────────────────────────────┤              │           │
+     │              │                  │                   │                │              │           │
+     │              │  saveRun(result) │                   │                │              │           │
+     │              ├───────────────────────────────────────────────────────────────────►│           │
+     │              │                  │                   │                │              │ INSERT    │
+     │              │                  │                   │                │              ├──────────►│
+     │              │                  │                   │                │              │◄──────────┤
+     │              │◄──────────────────────────────────────────────────────────────────────┤           │
+     │  таблица     │                  │                   │                │              │           │
+     │  + лог       │                  │                   │                │              │           │
+     │◄─────────────┤                  │                   │                │              │           │
+```
+
+### 10.2. Прерывание пользователем
+
+#### 10.2.1. Отмена в диалоге выбора файла
+
+```
+Пользователь          MainController            FileChooser
+     │                       │                       │
+  click "Обзор..."           │                       │
+     ├──────────────────────►│                       │
+     │                       │  showOpenDialog()     │
+     │                       ├──────────────────────►│
+     │   "Отмена" / Esc      │                       │
+     ├───────────────────────────────────────────────►│
+     │                       │   null                │
+     │                       │◄──────────────────────┤
+     │                       │                       │
+     │                       │  if (file != null) ╳  │   ← путь не подставляется,
+     │                       │  return без действия  │     поле xmlPathField остаётся пустым
+     │                       │                       │
+     │  ничего не            │                       │
+     │  поменялось           │                       │
+     │◄──────────────────────┤                       │
+```
+
+#### 10.2.2. Отмена в диалоге «Выбрать тесты…»
+
+```
+Пользователь    MainController     Dialog<ButtonType>
+     │                │                    │
+  click             │                    │
+"Выбрать тесты..."   │                    │
+     ├───────────────►│                    │
+     │                │  showAndWait()     │
+     │                ├───────────────────►│
+     │  чекбоксы +    │                    │
+     │  превью        │                    │
+     │◄───────────────┼────────────────────┤
+     │                │                    │
+  click "Cancel"      │                    │
+     ├────────────────────────────────────►│
+     │                │  Optional.of(CANCEL) (или пусто)
+     │                │◄───────────────────┤
+     │                │                    │
+     │                │  if (res != runBtn) ╳   ← launchRun НЕ вызывается,
+     │                │  return            │      ничего не запускается
+     │                │                    │
+     │  без изменений │                    │
+     │◄───────────────┤                    │
+```
+
+#### 10.2.3. Закрытие окна программы во время прогона тестов
+
+> Сценарий **проблемный**: окно JavaFX закрывается, но `Task` в фоновом потоке продолжает работать вместе с дочерним процессом `mvn`. На текущий момент graceful-shutdown НЕ реализован.
+
+```
+Пользователь    MainController      Task<TestRunResult>      mvn (Process)     Chrome
+     │                │                      │                      │              │
+  click "Запустить"  │                      │                      │              │
+     ├───────────────►│                      │                      │              │
+     │                │  new Thread(task).start()                   │              │
+     │                ├─────────────────────►│                      │              │
+     │                │                      │  ProcessBuilder.start()             │
+     │                │                      ├─────────────────────►│              │
+     │                │                      │                      │ launch Chrome│
+     │                │                      │                      ├─────────────►│
+     │                │                      │                      │  Selenium UI │
+     │                │                      │                      │◄─────────────┤
+     │                │                      │                      │              │
+  click ✕ (закрыть)  │                      │                      │              │
+     ├───────────────►│                      │                      │              │
+     │                │  окно JavaFX         │                      │              │
+     │                │  закрывается         │                      │              │
+     │                ╳                      │                      │              │
+     │                                       │                      │              │
+     │                                       │  task продолжает выполняться        │
+     │                                       │  mvn-процесс жив, Chrome жив        │
+     │                                       │  Platform.runLater → NPE (JFX off)  │
+     │                                       │                      │              │
+     │  ⚠ процесс mvn остаётся в фоне        │                      │              │
+     │    Chrome остаётся открытым           │                      │              │
+     │    задачу надо снимать руками         │                      │              │
+     │    через Диспетчер задач              │                      │              │
+```
+
+> **Точка расширения** (раздел 11): добавить `primaryStage.setOnCloseRequest(e -> { task.cancel(true); process.destroyForcibly(); })`.
+
+#### 10.2.4. Попытка генерации без разбора XML
+
+```
+Пользователь    MainController
+     │                │
+  click             │
+"Сгенерировать"     │
+     ├───────────────►│
+     │                │  if (currentModel == null) ⚠
+     │                │     ↓
+     │                │  showAlert("Ошибка",
+     │                │   "Сначала разберите XML-файл.")
+     │  Alert         │
+     │◄───────────────┤
+     │  click OK      │
+     ├───────────────►│
+     │                │  return без действия ╳
+```
+
+### 10.3. Прерывание системой
+
+#### 10.3.1. Невалидный / повреждённый XML-файл
+
+```
+Пользователь  MainController    XmlModelParser   EntityParser   StAX reader
+     │              │                  │                │              │
+  click             │                  │                │              │
+"Разобрать XML"     │                  │                │              │
+     ├─────────────►│                  │                │              │
+     │              │  parse(file)     │                │              │
+     │              ├─────────────────►│                │              │
+     │              │                  │  open + create XMLStreamReader│
+     │              │                  ├──────────────────────────────►│
+     │              │                  │  next()...                   │
+     │              │                  ├──────────────────────────────►│
+     │              │                  │                ⚠ XMLStreamException
+     │              │                  │                  (malformed)
+     │              │                  │◄──────────────────────────────┤
+     │              │                  │  catch → throw ParserException
+     │              │  ParserException │                │              │
+     │              │◄─────────────────┤                │              │
+     │              │  catch в onParse:                 │              │
+     │              │  showAlert("Ошибка парсинга", e.getMessage())   │
+     │  Alert       │                  │                │              │
+     │◄─────────────┤                  │                │              │
+     │              │  log("Ошибка парсинга: ...")     │              │
+     │              │  btnGenerate остаётся disabled    │              │
+```
+
+#### 10.3.2. Файл не найден (введён вручную)
+
+```
+Пользователь  MainController       java.io.File
+     │              │                    │
+  click             │                    │
+"Разобрать XML"     │                    │
+     ├─────────────►│                    │
+     │              │  new File(path)    │
+     │              ├───────────────────►│
+     │              │  exists()          │
+     │              ├───────────────────►│
+     │              │   false ⚠          │
+     │              │◄───────────────────┤
+     │              │  showAlert("Ошибка",
+     │              │   "Файл не найден: " + path)
+     │  Alert       │                    │
+     │◄─────────────┤                    │
+     │              │  return ╳          │
+```
+
+#### 10.3.3. Maven не установлен / нет в PATH
+
+```
+Пользователь  MainController   Task     TestRunner    ProcessBuilder
+     │              │           │            │              │
+  click             │           │            │              │
+"Запустить тесты"   │           │            │              │
+     ├─────────────►│           │            │              │
+     │              │  Task.start()           │              │
+     │              ├──────────►│            │              │
+     │              │           │  run(...)  │              │
+     │              │           ├───────────►│              │
+     │              │           │            │  start("mvn",...)
+     │              │           │            ├─────────────►│
+     │              │           │            │  ⚠ IOException│
+     │              │           │            │   "mvn not found"
+     │              │           │            │◄─────────────┤
+     │              │           │  throws    │              │
+     │              │           │◄───────────┤              │
+     │              │  onFailed(throwable)   │              │
+     │              │◄──────────┤            │              │
+     │              │  showAlert("Ошибка", t.getMessage()) │
+     │  Alert       │                                       │
+     │◄─────────────┤                                       │
+     │              │  progressBar скрыт,                   │
+     │              │  кнопки снова active                  │
+```
+
+#### 10.3.4. Chrome / ChromeDriver недоступен (падение в Selenium-тесте)
+
+> Это **не** прерывание программы — это падение внутри сгенерированного теста. Программа продолжает работу, тест помечается FAIL и попадает в отчёт.
+
+```
+mvn (forked JVM)    JUnit       сгенерированный Test    WebDriverManager   Chrome
+     │                │                  │                       │              │
+     │  Surefire fork │                  │                       │              │
+     ├───────────────►│                  │                       │              │
+     │                │  @BeforeAll setup()                      │              │
+     │                ├─────────────────►│                       │              │
+     │                │                  │ WebDriverManager.chromedriver().setup()
+     │                │                  ├──────────────────────►│              │
+     │                │                  │                       │  ⚠ нет инета │
+     │                │                  │                       │  или версия  │
+     │                │                  │                       │  Chrome ≠    │
+     │                │                  │                       │  драйвера    │
+     │                │                  │  throws WebDriverException           │
+     │                │                  │◄──────────────────────┤              │
+     │                │  test FAILED     │                       │              │
+     │                │◄─────────────────┤                       │              │
+     │  XML-репорт с │                  │                       │              │
+     │  <failure/>   │                  │                       │              │
+     │◄───────────────┤                  │                       │              │
+     │                │                  │                       │              │
+     ┴ (мvn возвращает exit-code ≠ 0, но Surefire-XML создан)                  │
+
+     ↓ далее TestRunner парсит XML и помещает FAIL в TestRunResult,
+       программа отображает красную строку в таблице — НЕ падает.
+```
+
+#### 10.3.5. Сбой записи в SQLite (диск переполнен / БД залочена)
+
+```
+MainController    ReportDao        SQLite (JDBC)
+     │                │                  │
+     │ saveRun(result)│                  │
+     ├───────────────►│                  │
+     │                │  setAutoCommit(false)
+     │                ├─────────────────►│
+     │                │  INSERT test_run │
+     │                ├─────────────────►│
+     │                │   ⚠ SQLException │
+     │                │   "database is locked" / "disk full"
+     │                │◄─────────────────┤
+     │                │  catch → log в stderr,
+     │                │  НЕ пробрасывает дальше
+     │                │  (graceful degradation)
+     │   void         │                  │
+     │◄───────────────┤                  │
+     │                                   │
+     │ ⚠ результаты прогона ОТОБРАЖЕНЫ в UI,
+     │   но не сохранены в историю.
+     │   В логе появится "Failed to save test run: ..."
+```
+
+#### 10.3.6. Каталог вывода защищён от записи (permission denied)
+
+```
+Пользователь  MainController    TestGenerator    JavaFileWriter    Files.write()
+     │              │                  │                │                  │
+  click             │                  │                │                  │
+"Сгенерировать"     │                  │                │                  │
+     ├─────────────►│                  │                │                  │
+     │              │  generate(model) │                │                  │
+     │              ├─────────────────►│                │                  │
+     │              │                  │  writeToFile()                    │
+     │              │                  ├───────────────►│                  │
+     │              │                  │                │  Files.write(...)│
+     │              │                  │                ├─────────────────►│
+     │              │                  │                │   ⚠ AccessDeniedException
+     │              │                  │                │◄─────────────────┤
+     │              │                  │   IOException  │                  │
+     │              │                  │◄───────────────┤                  │
+     │              │   Exception      │                │                  │
+     │              │◄─────────────────┤                │                  │
+     │              │  showAlert("Ошибка генерации", e.getMessage())      │
+     │  Alert       │                  │                │                  │
+     │◄─────────────┤                  │                │                  │
+     │              │  кнопки RunTests остаются disabled,                 │
+     │              │  частично записанные файлы могут остаться           │
+```
+
+### 10.4. Сводная таблица обработки прерываний
+
+| Источник                  | Где обнаруживается              | Реакция программы                                     | Восстановление |
+| ------------------------- | ------------------------------- | ----------------------------------------------------- | -------------- |
+| Отмена FileChooser        | `MainController.onSelectXml`    | `if (file != null)` — silent return                   | Полное          |
+| Cancel в диалоге выбора тестов | `MainController.onRunSelected` | `if (res != runBtn)` — silent return                  | Полное          |
+| Закрытие окна при прогоне | (не обработано)                 | Task + mvn остаются в фоне                            | **Нет** ⚠       |
+| Generate без parse        | `MainController.onGenerate`     | `showAlert` + return                                  | Полное          |
+| Невалидный XML            | `XmlModelParser.parse`          | `throw ParserException` → `showAlert` в `onParse`     | Полное          |
+| Файл не найден            | `MainController.onParse`        | `showAlert` + return                                  | Полное          |
+| Нет Maven                 | `TestRunner.run`                | `IOException` → `Task.onFailed` → `showAlert`         | Полное          |
+| Падение Chrome            | внутри сгенерированного теста   | Помечается FAIL, попадает в `TestRunResult`           | Полное          |
+| Сбой SQLite               | `ReportDao.saveRun`             | `catch SQLException` + `log в stderr`                 | Частичное      |
+| Permission denied на запись | `TestGenerator.generate`      | `IOException` → `showAlert`                           | Частичное (могут остаться полу-файлы) |
+
+---
+
+## 11. Замечания для проектирования новых диаграмм
 
 - **Диаграмма пакетов**: 6 пакетов, направление зависимостей — сверху вниз (`ui → generator/parser/data → model/common`).
 - **Class diagram domain-слоя**: центр — `AppModel`, ниже композиции `EntityObject → PropertyGroup → Property`, отдельной веткой `Search → SearchParam/SearchResult`.
 - **Class diagram UI-слоя**: `App ⇒ MainController` (loaded by FXML), `MainController` агрегирует `AppModel`, `ReportDao`, использует фасады `XmlModelParser`, `TestGenerator`, `TestRunner`.
-- **Sequence diagram «Полный цикл»**: GUI → Parser → Generator → mvn → Runner → DAO → GUI (5 коробок, 8 стрелок).
+- **Sequence diagram «Полный цикл»**: GUI → Parser → Generator → mvn → Runner → DAO → GUI (5 коробок, 8 стрелок). См. раздел 10.1.
+- **Sequence diagram прерываний пользователем** (раздел 10.2): отмена FileChooser, отмена диалога выбора тестов, закрытие окна при прогоне, попытка генерации без парсинга.
+- **Sequence diagram прерываний системой** (раздел 10.3): невалидный XML, файл не найден, отсутствие Maven, падение Chrome, сбой SQLite, permission denied.
 - **Component diagram**: видны два «конечных продукта» — окно JavaFX и сгенерированный Maven-проект (внешний артефакт-каталог `generated-tests/`).
 - **State diagram GUI**: состояния кнопок (`btnGenerate/btnRunTests/btnRunSelected` disabled/enabled) переключаются по событиям onParse → onGenerate → onRun*.
 
 ---
 
-## 11. Точки расширения
+## 12. Точки расширения
 
 | Где                          | Идея                                                                       |
 | ---------------------------- | -------------------------------------------------------------------------- |
