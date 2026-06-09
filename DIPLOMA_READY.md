@@ -596,14 +596,77 @@
 ##### Детальная диаграмма классов
 ![](diagrams/cls-data-detail.png)
 
-**Таблица. Описание полей классов пакета «Data»**
+**Таблица. Описание полей класса «DatabaseConnection»**
 
 | Название      | Тип                  | Описание                                                                 |
 | ------------- | -------------------- | ------------------------------------------------------------------------ |
 | `DEFAULT_URL` | `static final String`| Стандартный JDBC-URL `"jdbc:sqlite:autotestgen.db"`.                     |
 | `url`         | `final String`       | Фактический URL, может быть переопределён через DI-конструктор.          |
 
-**Таблица. Описание методов классов пакета «Data»**
+**Таблица. Описание методов класса «DatabaseConnection»**
+
+| Название              | Параметры        | Возвращаемое значение | Описание                                                                                   |
+| --------------------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| `DatabaseConnection`  | —                | конструктор           | Использует `DEFAULT_URL = "jdbc:sqlite:autotestgen.db"`.                                  |
+| `DatabaseConnection`  | `url: String`    | конструктор           | DI-конструктор с произвольным JDBC-URL (для тестов или резервных БД).                     |
+| `open`                | —                | `Connection` throws `SQLException` | `DriverManager.getConnection(url)`.                                            |
+| `getUrl`              | —                | `String`              | Возвращает текущий URL.                                                                    |
+
+**Таблица. Описание полей класса «SchemaInitializer»**
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `connection`   | `final DatabaseConnection`| Источник соединения для выполнения DDL.                        |
+
+**Таблица. Описание методов класса «SchemaInitializer»**
+
+| Название              | Параметры                                  | Возвращаемое значение | Описание                                                                          |
+| --------------------- | ------------------------------------------ | --------------------- | --------------------------------------------------------------------------------- |
+| `SchemaInitializer`   | `connection: DatabaseConnection`           | конструктор           | Сохраняет источник соединения.                                                    |
+| `initialize`          | —                                          | `void`                | Открывает соединение и вызывает оба `createXxxTable`. Ошибки логируются в `stderr`.|
+| `createTestRunTable`  | `stmt: Statement`                          | `private void` throws `SQLException` | DDL: `CREATE TABLE IF NOT EXISTS test_run (...)`.                          |
+| `createTestCaseTable` | `stmt: Statement`                          | `private void` throws `SQLException` | DDL: `CREATE TABLE IF NOT EXISTS test_case (...)` с FK на `test_run`.      |
+
+**Таблица. Описание полей класса «TestRunDao»**
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `DT_FORMAT`    | `static final DateTimeFormatter` (package-private) | Формат сериализации даты `ISO_LOCAL_DATE_TIME`. |
+| `INSERT_SQL`   | `private static final String` | Параметризованный SQL-INSERT для `test_run`.               |
+| `SELECT_ALL_SQL` | `private static final String` | SQL для выборки всех прогонов в порядке убывания `id`.   |
+| `connection`   | `final DatabaseConnection`| Источник соединения.                                           |
+
+**Таблица. Описание методов класса «TestRunDao»**
+
+| Название    | Параметры                                                  | Возвращаемое значение | Описание                                                                                |
+| ----------- | ---------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
+| `TestRunDao`| `connection: DatabaseConnection`                           | конструктор           | Сохраняет источник соединения.                                                          |
+| `insert`    | `conn: Connection, result: TestRunResult`                  | `long` throws `SQLException` | INSERT в `test_run`, возвращает сгенерированный `id` через `RETURN_GENERATED_KEYS`. |
+| `selectAll` | `conn: Connection`                                         | `List<RunRow>` throws `SQLException` | `SELECT * FROM test_run ORDER BY id DESC`. Возвращает пары (id, заполненный `TestRunResult` без `results`). |
+
+**Таблица. Описание полей класса «TestCaseDao»**
+
+| Название            | Тип                       | Описание                                                       |
+| ------------------- | ------------------------- | -------------------------------------------------------------- |
+| `INSERT_SQL`        | `private static final String` | Параметризованный SQL-INSERT для `test_case`.              |
+| `SELECT_BY_RUN_SQL` | `private static final String` | SQL для выборки кейсов конкретного прогона по `run_id`.    |
+
+**Таблица. Описание методов класса «TestCaseDao»**
+
+| Название         | Параметры                                                            | Возвращаемое значение | Описание                                                                |
+| ---------------- | -------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `insertBatch`    | `conn: Connection, runId: long, cases: List<TestCaseResult>`         | `void` throws `SQLException` | Batch-INSERT в `test_case` по уже известному `run_id`.            |
+| `selectByRunId`  | `conn: Connection, runId: long`                                      | `List<TestCaseResult>` throws `SQLException` | `SELECT * FROM test_case WHERE run_id = ? ORDER BY id`.        |
+
+**Таблица. Описание полей класса «ReportDao»**
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `connection`   | `final DatabaseConnection`| Композирует — источник соединения для всех операций.           |
+| `testRunDao`   | `final TestRunDao`        | Композирует — DAO таблицы `test_run`.                          |
+| `testCaseDao`  | `final TestCaseDao`       | Композирует — DAO таблицы `test_case`.                         |
+
+**Таблица. Описание методов класса «ReportDao»**
 
 | Название           | Параметры                                                                                  | Возвращаемое значение | Описание                                                                                   |
 | ------------------ | ------------------------------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------------ |

@@ -23,26 +23,36 @@ def render(filename, objects, messages):
     n = len(objects)
     obj_spacing = 2.7
     fig_w = max(11, n * obj_spacing + 2)
-    fig_h = max(4.5, len(messages) * 0.55 + 2)
+
+    # Высоту фигуры считаем от РЕАЛЬНОГО числа сообщений + отступы под боксы
+    BOX_H = 0.75
+    HEADER = 0.6   # отступ от низа боксов до первого сообщения
+    FOOTER = 0.4   # отступ от последнего сообщения до низа линий жизни
+    STEP   = 0.55  # шаг между сообщениями
+    # Y-координаты в единицах сетки:
+    #   box_top  = msg_count * STEP + HEADER + FOOTER + BOX_H
+    msg_count = max(len(messages), 1)
+    canvas_h = msg_count * STEP + HEADER + FOOTER + BOX_H + 0.2
+    fig_h = max(3.0, canvas_h * 0.55)
 
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=140)
     canvas_w = (n + 1) * obj_spacing
     ax.set_xlim(0, canvas_w)
-    ax.set_ylim(0, 10)
+    ax.set_ylim(0, canvas_h)
     ax.axis('off')
 
     x_pos = {obj: (i + 1) * obj_spacing for i, obj in enumerate(objects)}
 
     box_w = 2.0
-    box_h = 0.75
-    box_top_y = 9.8
+    box_h = BOX_H
+    box_top_y = canvas_h - 0.1
     box_bot_y = box_top_y - box_h
-    life_bottom = 0.5
+    life_bottom = FOOTER  # низ линий жизни — сразу под последним сообщением
 
-    msg_top_y = box_bot_y - 0.6
-    msg_bottom_y = life_bottom + 0.5
+    msg_top_y = box_bot_y - HEADER
+    msg_bottom_y = life_bottom + 0.1
     if messages:
-        y_step = (msg_top_y - msg_bottom_y) / max(len(messages), 1)
+        y_step = STEP
         msg_y = [msg_top_y - i * y_step for i in range(len(messages))]
     else:
         msg_y = []
