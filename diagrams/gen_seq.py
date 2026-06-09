@@ -364,17 +364,17 @@ render("seq-generator-system-interrupt.png",
 # ===================== DATA =====================
 print("Data:")
 render("seq-data-normal.png",
-    [":MainController", ":ReportDao", ":TestRunDao", ":TestCaseDao", ":autotestgen.db"],
+    [":MainController", ":ReportDao", ":TestRunDao", ":TestCaseDao"],
     [
         {"from": ":MainController", "to": ":ReportDao", "label": "1: saveRun(result)"},
-        {"from": ":ReportDao", "to": ":ReportDao", "label": "2: conn = open()", "kind": "self"},
+        {"from": ":ReportDao", "to": ":ReportDao", "label": "2: open() + setAutoCommit(false)", "kind": "self"},
         {"from": ":ReportDao", "to": ":TestRunDao", "label": "3: insert(conn, result)"},
-        {"from": ":TestRunDao", "to": ":autotestgen.db", "label": "4: INSERT test_run"},
-        {"from": ":autotestgen.db", "to": ":TestRunDao", "label": "5: runId", "kind": "return"},
-        {"from": ":TestRunDao", "to": ":ReportDao", "label": "6: runId", "kind": "return"},
-        {"from": ":ReportDao", "to": ":TestCaseDao", "label": "7: insertBatch(conn, runId, cases)"},
-        {"from": ":TestCaseDao", "to": ":autotestgen.db", "label": "8: batch INSERT test_case"},
-        {"from": ":ReportDao", "to": ":autotestgen.db", "label": "9: commit()"},
+        {"from": ":TestRunDao", "to": ":TestRunDao", "label": "4: INSERT test_run\nRETURN_GENERATED_KEYS", "kind": "self"},
+        {"from": ":TestRunDao", "to": ":ReportDao", "label": "5: runId", "kind": "return"},
+        {"from": ":ReportDao", "to": ":TestCaseDao", "label": "6: insertBatch(conn, runId, cases)"},
+        {"from": ":TestCaseDao", "to": ":TestCaseDao", "label": "7: batch INSERT test_case", "kind": "self"},
+        {"from": ":TestCaseDao", "to": ":ReportDao", "label": "8: void", "kind": "return"},
+        {"from": ":ReportDao", "to": ":ReportDao", "label": "9: commit()", "kind": "self"},
         {"from": ":ReportDao", "to": ":MainController", "label": "10: void", "kind": "return"},
     ])
 
@@ -389,22 +389,21 @@ render("seq-data-user-interrupt.png",
     ])
 
 render("seq-data-system-interrupt.png",
-    [":MainController", ":ReportDao", ":TestRunDao", ":autotestgen.db"],
+    [":MainController", ":ReportDao", ":TestRunDao"],
     [
         {"from": ":MainController", "to": ":ReportDao", "label": "1: saveRun(result)"},
-        {"from": ":ReportDao", "to": ":ReportDao", "label": "2: open + setAutoCommit(false)", "kind": "self"},
+        {"from": ":ReportDao", "to": ":ReportDao", "label": "2: open() + setAutoCommit(false)", "kind": "self"},
         {"from": ":ReportDao", "to": ":TestRunDao", "label": "3: insert(conn, result)"},
-        {"from": ":TestRunDao", "to": ":autotestgen.db", "label": "4: INSERT (диск переполнен)"},
-        {"from": ":autotestgen.db", "to": ":TestRunDao", "label": "5: SQLException", "kind": "return"},
-        {"from": ":TestRunDao", "to": ":ReportDao", "label": "6: throw наверх", "kind": "return"},
-        {"from": ":ReportDao", "to": ":ReportDao", "label": "7: catch → stderr log", "kind": "self"},
-        {"from": ":ReportDao", "to": ":MainController", "label": "8: void (graceful)", "kind": "return"},
+        {"from": ":TestRunDao", "to": ":TestRunDao", "label": "4: INSERT → SQLException\n(диск переполнен)", "kind": "self"},
+        {"from": ":TestRunDao", "to": ":ReportDao", "label": "5: throw наверх", "kind": "return"},
+        {"from": ":ReportDao", "to": ":ReportDao", "label": "6: catch → stderr log", "kind": "self"},
+        {"from": ":ReportDao", "to": ":MainController", "label": "7: void (graceful)", "kind": "return"},
     ])
 
 # ===================== COMMON =====================
 print("Common:")
 render("seq-common-normal.png",
-    [":PageObjectWriter", ":Transliterator", ":JavaFileWriter", ":Files"],
+    [":PageObjectWriter", ":Transliterator", ":JavaFileWriter"],
     [
         {"from": ":PageObjectWriter", "to": ":Transliterator", "label": "1: toClassName(name)"},
         {"from": ":Transliterator", "to": ":PageObjectWriter", "label": "2: 'GskOgsk'", "kind": "return"},
@@ -413,9 +412,8 @@ render("seq-common-normal.png",
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "5: writeLine(...) [цикл]"},
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "6: closeBlock()"},
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "7: writeToFile(dir, name)"},
-        {"from": ":JavaFileWriter", "to": ":Files", "label": "8: Files.write(path, UTF-8)"},
-        {"from": ":Files", "to": ":JavaFileWriter", "label": "9: OK", "kind": "return"},
-        {"from": ":JavaFileWriter", "to": ":PageObjectWriter", "label": "10: void", "kind": "return"},
+        {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "8: Files.write(path, UTF-8)", "kind": "self"},
+        {"from": ":JavaFileWriter", "to": ":PageObjectWriter", "label": "9: void", "kind": "return"},
     ])
 
 render("seq-common-user-interrupt.png",
@@ -429,13 +427,12 @@ render("seq-common-user-interrupt.png",
     ])
 
 render("seq-common-system-interrupt.png",
-    [":PageObjectWriter", ":JavaFileWriter", ":Files"],
+    [":PageObjectWriter", ":JavaFileWriter"],
     [
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "1: writeToFile(dir, name)"},
-        {"from": ":JavaFileWriter", "to": ":Files", "label": "2: createDirectories(dir)"},
-        {"from": ":Files", "to": ":JavaFileWriter", "label": "3: AccessDeniedException", "kind": "return"},
-        {"from": ":JavaFileWriter", "to": ":PageObjectWriter", "label": "4: IOException", "kind": "return"},
-        {"from": ":PageObjectWriter", "to": ":PageObjectWriter", "label": "5: throw наверх в TestGenerator", "kind": "self"},
+        {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: Files.createDirectories(dir)\n→ AccessDeniedException", "kind": "self"},
+        {"from": ":JavaFileWriter", "to": ":PageObjectWriter", "label": "3: IOException", "kind": "return"},
+        {"from": ":PageObjectWriter", "to": ":PageObjectWriter", "label": "4: throw наверх в TestGenerator", "kind": "self"},
     ])
 
 print("\nГотово.")
