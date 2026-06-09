@@ -14,14 +14,9 @@ digraph ClsUIRefined {
     MainController [fillcolor="#FFE4B5", label=<<I>«control»</I><BR/><B>MainController</B>>];
     TestCaseRow    [fillcolor="#FFE4B5", label=<<I>«entity»</I><BR/><B>TestCaseRow</B>>];
 
-    JavaFXApp      [fillcolor="#E8E8E8", label=<<I>«framework»</I><BR/><B>javafx.application.Application</B>>];
+    // Ассоциация → (создание контроллера через FXMLLoader)
+    App -> MainController [label="«create»\n(через FXML)", style=dashed, fontsize=9];
 
-    // Обобщение (наследование) — пустой треугольник
-    App -> JavaFXApp [arrowhead=empty, label="extends", fontsize=9];
-
-    // Ассоциация — обычная стрелка (создание через FXML)
-    App -> MainController [label="«create»\n(FXML)", style=dashed, fontsize=9];
-
-    // Композиция ♦ — закрашенный ромб (inner static class)
+    // Композиция ♦ — TestCaseRow живёт только внутри MainController
     MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*", fontsize=10];
 }

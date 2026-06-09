@@ -519,8 +519,8 @@ public static void main(String[] args) {
 
 #### Что нужно проверить
 
-- **Табл. 80** (классы пакета «Data») — должен быть один `ReportDao`. Если в дипломе перечислены `ReportService`, `ReportDao`, `TestRunResult`, `TestCaseResult` — оставить только `ReportDao` и сказать «DTO-классы `TestRunResult` / `TestCaseResult` живут в пакете `model`, см. табл. 46».
-- **Табл. 81–82** (поля/методы `ReportDao`) — соответствуют коду. Поля: `DB_URL, DT_FORMAT`. Методы: `ReportDao(), initDatabase, saveRun, getAllRuns, getCaseResults, getConnection`. См. `TABLES_vers2.md` §2.19 и §3.22.
+- **Табл. 80** (классы пакета «Data») — **УСТАРЕЛО**. После декомпозиции в пакете **5 классов**: `ReportDao` (фасад), `DatabaseConnection`, `SchemaInitializer`, `TestRunDao`, `TestCaseDao`. Если в дипломе перечислены `ReportService`, `ReportDao` и т.п. — полностью заменить. DTO `TestRunResult` / `TestCaseResult` остаются в пакете `model` (см. табл. 46). См. актуальную таблицу классов в `TABLES_vers2.md` §1.5.
+- **Табл. 81–82** (поля/методы `ReportDao`) — **УСТАРЕЛО**. После рефакторинга на 5 классов нужно переписать как **отдельный набор таблиц на каждый из 5 классов**: поля (DEFAULT_URL/url, connection и т.д.) — формат «Название \| Тип \| Описание», методы — формат «Название \| Параметры \| Возвращаемое значение \| Описание». Готовые таблицы см. в `TABLES_vers2.md` §2.19 (5 таблиц полей) и §3.22 (5 таблиц методов).
 - **Табл. 83–84** (`TestRunResult` / `TestCaseResult`) — можно оставить здесь же (как DTO для пакета data), но **лучше пометить, что физически класс лежит в `model`**.
 
 #### Действия для пакета «Data»

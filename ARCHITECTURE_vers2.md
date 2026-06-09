@@ -1239,18 +1239,39 @@ TestClassWriter   JavaFileWriter   Files.write
 
 ## 7. Пакет `ru.autotestgen.data` — JDBC-DAO
 
+Пакет декомпозирован по принципу единственной ответственности (SRP): фасад `ReportDao` сохраняет публичный API (`saveRun`, `getAllRuns`), а вся реальная работа делегирована четырём специализированным классам.
+
 ### 7.1. Классы
 
-| Класс       | Роль                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `ReportDao` | Доступ к SQLite-базе `autotestgen.db`. Хранит историю прогонов и тест-кейсов.              |
+| Класс                | Роль                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ReportDao`          | **Фасад** пакета. Открывает транзакцию и делегирует операции под-DAO. Публичный API: `saveRun`, `getAllRuns`.       |
+| `DatabaseConnection` | Управление JDBC-соединением. Хранит URL (`DEFAULT_URL = "jdbc:sqlite:autotestgen.db"`), метод `open(): Connection`. |
+| `SchemaInitializer`  | DDL: `CREATE TABLE IF NOT EXISTS test_run` и `test_case`. Вызывается из конструктора `ReportDao`.                   |
+| `TestRunDao`         | DAO таблицы `test_run`: `insert(conn, result): long` и `selectAll(conn): List<RunRow>`.                              |
+| `TestCaseDao`        | DAO таблицы `test_case`: `insertBatch(conn, runId, cases)` и `selectByRunId(conn, runId)`.                          |
 
-### 7.2. Связи
+### 7.2. Связи внутри пакета
 
 ```
-ReportDao           -->  TestRunResult         // принимает в saveRun, возвращает из getAllRuns
-ReportDao           -->  TestCaseResult        // вложенные кейсы
-ReportDao           -->  java.sql.* (JDBC)     // SQLite через DriverManager
+ReportDao            ♦--> DatabaseConnection   // композирует, владеет
+ReportDao            ♦--> TestRunDao           // композирует
+ReportDao            ♦--> TestCaseDao          // композирует
+ReportDao            -->  SchemaInitializer    // создаёт на init и сразу выкидывает
+
+TestRunDao           ◇--> DatabaseConnection   // агрегация: ссылается, не владеет (его держит ReportDao)
+SchemaInitializer    ◇--> DatabaseConnection   // агрегация
+
+// TestCaseDao не имеет полей — все методы принимают Connection параметром
+```
+
+### 7.3. Связи с другими пакетами
+
+```
+ReportDao            -->  TestRunResult         // принимает в saveRun, возвращает из getAllRuns
+TestRunDao           -->  TestRunResult         // маппинг ResultSet → POJO
+TestCaseDao          -->  TestCaseResult        // маппинг ResultSet → POJO
+DatabaseConnection   -->  java.sql.*            // JDBC через DriverManager
 ```
 
 ### 7.3. Диаграммы последовательностей пакета `data`
@@ -1258,43 +1279,49 @@ ReportDao           -->  java.sql.* (JDBC)     // SQLite через DriverManage
 #### 7.3.1. Нормальный ход событий — сохранение прогона + выборка истории
 
 ```
-MainController   ReportDao    JDBC Connection    test_run    test_case
-       │             │              │                │            │
-       │ saveRun(result)            │                │            │
-       ├────────────►│              │                │            │
-       │             │ getConnection()              │            │
-       │             ├─────────────►│                │            │
-       │             │ setAutoCommit(false)         │            │
-       │             ├─────────────►│                │            │
-       │             │ INSERT test_run (run_date,...│            │
-       │             │  + RETURN_GENERATED_KEYS)    │            │
-       │             ├──────────────┼───────────────►│            │
-       │             │ runId        │                │            │
-       │             │◄─────────────┼────────────────┤            │
-       │             │ for each TestCaseResult: addBatch INSERT  │
-       │             ├──────────────┼────────────────┼───────────►│
-       │             │ executeBatch │                │            │
-       │             ├──────────────┼────────────────┼───────────►│
-       │             │ commit()     │                │            │
-       │             ├─────────────►│                │            │
-       │  void       │              │                │            │
-       │◄────────────┤              │                │            │
-       │             │              │                │            │
-       │ onShowHistory()            │                │            │
-       │ getAllRuns()│              │                │            │
-       ├────────────►│              │                │            │
-       │             │ SELECT * FROM test_run ORDER BY id DESC  │
-       │             ├──────────────┼───────────────►│            │
-       │             │ ResultSet    │                │            │
-       │             │◄─────────────┼────────────────┤            │
-       │             │ for each run: getCaseResults(conn, runId) │
-       │             │              │                │            │
-       │             │ SELECT * FROM test_case WHERE run_id = ?  │
-       │             ├──────────────┼────────────────┼───────────►│
-       │             │ ResultSet    │                │            │
-       │             │◄─────────────┼────────────────┼────────────┤
-       │ List<TestRunResult>        │                │            │
-       │◄────────────┤              │                │            │
+MainController  ReportDao  DatabaseConnection  TestRunDao  TestCaseDao  test_run  test_case
+       │            │             │                │            │           │          │
+       │ saveRun(result)          │                │            │           │          │
+       ├───────────►│             │                │            │           │          │
+       │            │ open()      │                │            │           │          │
+       │            ├────────────►│                │            │           │          │
+       │            │ setAutoCommit(false)         │            │           │          │
+       │            ├─────────────┴───────────────►│            │           │          │
+       │            │ insert(conn, result)         │            │           │          │
+       │            ├────────────────────────────► │            │           │          │
+       │            │                              │ INSERT test_run + RETURN_GENERATED_KEYS    │
+       │            │                              ├────────────┼──────────►│          │
+       │            │                              │  runId     │           │          │
+       │            │  runId                       │◄───────────┴───────────┤          │
+       │            │◄─────────────────────────────┤            │           │          │
+       │            │ insertBatch(conn, runId, cases)            │           │          │
+       │            ├────────────────────────────────────────► │           │          │
+       │            │                                            │ addBatch + executeBatch          │
+       │            │                                            ├──────────┴──────────────────────►│
+       │            │ commit()                                    │           │          │
+       │            ├─────────────┬──────────────►              │           │          │
+       │  void      │             │                              │           │          │
+       │◄───────────┤             │                              │           │          │
+       │            │                                                                   │
+       │ getAllRuns()                                                                   │
+       ├───────────►│                                                                   │
+       │            │ open()                                                            │
+       │            ├────────────►│                                                     │
+       │            │ selectAll(conn)                                                   │
+       │            ├────────────────────────────► │                                    │
+       │            │                              │ SELECT * FROM test_run ORDER BY id DESC       │
+       │            │                              ├────────────┼──────────►│          │
+       │            │ List<RunRow>                 │            │           │          │
+       │            │◄─────────────────────────────┤            │           │          │
+       │            │ для каждого RunRow:                       │           │          │
+       │            │   selectByRunId(conn, runId)              │           │          │
+       │            ├────────────────────────────────────────► │           │          │
+       │            │                                            │ SELECT * FROM test_case WHERE run_id = ?       │
+       │            │                                            ├──────────┼──────────┼────────►│
+       │            │ List<TestCaseResult>                       │          │          │         │
+       │            │◄───────────────────────────────────────────┤          │          │         │
+       │ List<TestRunResult>                                                            │
+       │◄───────────┤                                                                   │
 ```
 
 #### 7.3.2. Прерывание пользователем
@@ -1326,86 +1353,166 @@ MainController   ReportDao    JDBC Connection
 
 ### 7.4. Диаграмма кооперации пакета `data`
 
-Кооперация мини: 1 актор-DAO + JDBC. Показана типовая транзакция «saveRun».
+После декомпозиции в пакете 5 классов — кооперация показывает типовую транзакцию «saveRun» с делегированием.
 
 ```
    ┌────────────────┐  1: saveRun(result)
    │ MainController │ ───────────────────► ┌────────────┐
    └────────────────┘                       │ ReportDao  │
-                                            └─────┬──────┘
-                                                  │ 2: getConnection()
-                                                  ▼
-                                          ┌──────────────┐
-                                          │  Connection  │
-                                          │   (SQLite)   │
-                                          └──────┬───────┘
-                                                  │ 3: setAutoCommit(false)
-                                                  │ 4: prepareStatement(INSERT test_run)
-                                                  │ 5: executeUpdate()
-                                                  │ 6: getGeneratedKeys() → runId
-                                                  │ 7: prepareStatement(INSERT test_case)
-                                                  │ 8: addBatch * N
-                                                  │ 9: executeBatch()
-                                                  │ 10: commit()
-                                                  ▼
-                                          ┌──────────────┐
-                                          │  SQLite файл │
-                                          │ autotestgen.db│
-                                          └──────────────┘
+                                            └──┬──────┬──┬──┘
+                          2: connection.open() │      │  │  4: testCaseDao.insertBatch(conn, runId, cases)
+                                               ▼      │  │
+                                  ┌──────────────────┐│  │
+                                  │DatabaseConnection││  │
+                                  └────────┬─────────┘│  │
+                                           │ JDBC     │  │
+                                           ▼          │  │
+                                  ┌──────────────┐    │  │
+                                  │  Connection  │    │  │
+                                  │   (SQLite)   │    │  │
+                                  └──────┬───────┘    │  │
+                                         │            │  │
+                          3: testRunDao.insert(conn, result)
+                                         │            │  │
+                                         ▼            ▼  ▼
+                                  ┌──────────────┐  ┌──────────────┐
+                                  │  TestRunDao  │  │ TestCaseDao  │
+                                  └──────┬───────┘  └──────┬───────┘
+                                         │                  │
+                                         │ INSERT test_run  │ batch INSERT test_case
+                                         ▼                  ▼
+                                  ┌──────────────────────────────┐
+                                  │       SQLite файл             │
+                                  │     autotestgen.db            │
+                                  └──────────────────────────────┘
+                                                  ▲
+                                  5: ReportDao вызывает conn.commit()
 ```
 
 ### 7.5. Уточнённая диаграмма классов пакета `data`
 
+> См. также PNG-визуализацию: `diagrams/cls-data-refined.png`.
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  ReportDao                              │
-├─────────────────────────────────────────────────────────┤
-│ — DB_URL:   static final String = "jdbc:sqlite:autotestgen.db"
-│ — DT_FORMAT: static final DateTimeFormatter             │
-└─────────────────────────────────────────────────────────┘
+              «control» «facade»
+            ┌──────────────────┐
+            │    ReportDao     │
+            └────────┬─────────┘
+       ♦      ♦     ♦     ─ ─ ─ ─ ─ ─ ─ ─►   «control»
+       │      │     │          «create at init»  ┌────────────────────┐
+       │      │     │                            │ SchemaInitializer  │
+       │      │     │                            └─────────┬──────────┘
+       │      │     │                                      │ ◇
+       ▼      ▼     ▼                                      ▼
+ ┌──────────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐
+ │  «boundary»      │  │ «control»    │  │ «control»    │  │  «boundary»        │
+ │ DatabaseConnection│  │ TestRunDao   │  │ TestCaseDao  │  │ DatabaseConnection │ ← один и тот же
+ └──────────────────┘  └──────┬───────┘  └──────────────┘  └────────────────────┘
+                              │ ◇
+                              ▼
+                     ┌────────────────────┐
+                     │ DatabaseConnection │
+                     └────────────────────┘
+
+♦ — композиция (ReportDao владеет под-DAO и connection)
+◇ — агрегация (TestRunDao и SchemaInitializer ссылаются на тот же connection,
+    но не владеют — его жизнью управляет ReportDao)
 ```
 
 ### 7.6. Детальная диаграмма классов пакета `data`
 
+> См. также PNG-визуализацию: `diagrams/cls-data-detail.png`.
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  ReportDao                              │
-├─────────────────────────────────────────────────────────┤
-│ — DB_URL: static final String                           │
-│ — DT_FORMAT: static final DateTimeFormatter             │
-├─────────────────────────────────────────────────────────┤
-│ + ReportDao()                                           │
-│ — initDatabase(): void                                  │
-│ + saveRun(result: TestRunResult): void                  │
-│ + getAllRuns(): List<TestRunResult>                     │
-│ — getCaseResults(conn: Connection, runId: long):        │
-│           List<TestCaseResult>  throws SQLException     │
-│ — getConnection(): Connection  throws SQLException      │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│  «control» «facade»                                       │
+│                  ReportDao                                │
+├───────────────────────────────────────────────────────────┤
+│ — connection:  final DatabaseConnection                   │
+│ — testRunDao:  final TestRunDao                           │
+│ — testCaseDao: final TestCaseDao                          │
+├───────────────────────────────────────────────────────────┤
+│ + ReportDao()                                             │
+│ + ReportDao(connection: DatabaseConnection)               │
+│ + ReportDao(connection, testRunDao, testCaseDao)          │
+│ + saveRun(result: TestRunResult): void                    │
+│ + getAllRuns(): List<TestRunResult>                       │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│  «boundary»  DatabaseConnection                            │
+├───────────────────────────────────────────────────────────┤
+│ + DEFAULT_URL: static final String                        │
+│ — url: final String                                       │
+├───────────────────────────────────────────────────────────┤
+│ + DatabaseConnection()                                    │
+│ + DatabaseConnection(url: String)                         │
+│ + open(): Connection throws SQLException                  │
+│ + getUrl(): String                                        │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│  «control»   SchemaInitializer                             │
+├───────────────────────────────────────────────────────────┤
+│ — connection: final DatabaseConnection                    │
+├───────────────────────────────────────────────────────────┤
+│ + SchemaInitializer(connection)                           │
+│ + initialize(): void                                      │
+│ — createTestRunTable(stmt: Statement): void               │
+│ — createTestCaseTable(stmt: Statement): void              │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│  «control»   TestRunDao                                    │
+├───────────────────────────────────────────────────────────┤
+│   DT_FORMAT: static final DateTimeFormatter (package)     │
+│ — INSERT_SQL, SELECT_ALL_SQL: private static final String │
+│ — connection: final DatabaseConnection                    │
+├───────────────────────────────────────────────────────────┤
+│ + TestRunDao(connection: DatabaseConnection)              │
+│ + insert(conn, result): long  throws SQLException         │
+│ + selectAll(conn): List<RunRow>  throws SQLException      │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│  «control»   TestCaseDao                                   │
+├───────────────────────────────────────────────────────────┤
+│ — INSERT_SQL, SELECT_BY_RUN_SQL: private static final     │
+├───────────────────────────────────────────────────────────┤
+│ + insertBatch(conn, runId, cases): void                   │
+│ + selectByRunId(conn, runId): List<TestCaseResult>        │
+└───────────────────────────────────────────────────────────┘
 ```
 
 #### Описание методов пакета `data`
 
-| Метод                                  | Описание                                                                                  |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `ReportDao()` (конструктор)            | Вызывает `initDatabase()` — DDL создаёт таблицы, если их нет.                              |
-| `initDatabase()`                       | `CREATE TABLE IF NOT EXISTS test_run` и `test_case`. Ошибки логируются в `stderr`, не пробрасываются. |
-| `saveRun(result)`                      | Транзакция: INSERT в `test_run` (с `RETURN_GENERATED_KEYS`), затем batch INSERT в `test_case`. `commit()` в конце. `SQLException` ловится — пишется в `stderr`. |
-| `getAllRuns()`                         | `SELECT * FROM test_run ORDER BY id DESC`, для каждого вызывает `getCaseResults` (классический N+1). |
-| `getCaseResults(conn, runId)`          | `SELECT * FROM test_case WHERE run_id = ? ORDER BY id`. Маппинг в `TestCaseResult`.       |
-| `getConnection()`                      | `DriverManager.getConnection(DB_URL)`. JDBC создаёт `autotestgen.db` рядом с .jar.        |
+| Класс                | Метод                                         | Описание                                                                                       |
+| -------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ReportDao`          | `ReportDao()`                                 | Создаёт DAO со стандартным `DatabaseConnection`, под-DAO и вызывает `SchemaInitializer.initialize`. |
+| `ReportDao`          | `ReportDao(DatabaseConnection)`               | DI-конструктор: подменяет соединение, остальные зависимости — по умолчанию.                    |
+| `ReportDao`          | `ReportDao(conn, testRunDao, testCaseDao)`    | Полный DI-конструктор для тестов.                                                              |
+| `ReportDao`          | `saveRun(result)`                             | Открывает соединение, начинает транзакцию, делегирует insert и insertBatch, commit-ит.         |
+| `ReportDao`          | `getAllRuns()`                                | Одно соединение для всех запросов: для каждого run вызывает `testCaseDao.selectByRunId`.        |
+| `DatabaseConnection` | `open()`                                      | `DriverManager.getConnection(url)`.                                                            |
+| `DatabaseConnection` | `getUrl()`                                    | Возвращает текущий URL (для логов/диагностики).                                                |
+| `SchemaInitializer`  | `initialize()`                                | DDL: создаёт обе таблицы. `SQLException` логируется в `stderr`.                                 |
+| `TestRunDao`         | `insert(conn, result)`                        | INSERT в `test_run`. Возвращает сгенерированный `id`.                                          |
+| `TestRunDao`         | `selectAll(conn)`                             | `SELECT * FROM test_run ORDER BY id DESC` → список пар (id, run без `results`).                |
+| `TestCaseDao`        | `insertBatch(conn, runId, cases)`             | Batch-INSERT всех кейсов одного прогона.                                                       |
+| `TestCaseDao`        | `selectByRunId(conn, runId)`                  | `SELECT * FROM test_case WHERE run_id = ? ORDER BY id`.                                        |
 
 ### 7.7. Особенности
 
-- **Init-on-construct**: `initDatabase()` создаёт таблицы при необходимости — DAO самодостаточен.
-- **Транзакция на запись прогона**: `setAutoCommit(false)` + `commit()` — все кейсы пишутся атомарно.
-- **Graceful degradation при сбое**: `SQLException` ловится и логируется в `stderr`, программа продолжает работу. Пользователь увидит результаты, но в истории прогона не будет.
+- **Init-on-construct**: конструктор `ReportDao` вызывает `SchemaInitializer.initialize()` — DAO самодостаточен, отдельной инициализации схемы извне не требуется.
+- **Транзакция на запись прогона**: `setAutoCommit(false)` + `commit()` в `ReportDao.saveRun` — все кейсы пишутся атомарно, INSERT в две таблицы — один rollback при ошибке.
+- **DI-конструкторы для тестов**: у `ReportDao` есть три конструктора (по умолчанию + два DI), что позволяет подменить URL базы или сами DAO в unit-тестах.
+- **Graceful degradation при сбое**: `SQLException` ловится в `ReportDao` и `SchemaInitializer` и логируется в `stderr`, программа продолжает работу. Пользователь увидит результаты, но в истории прогона не будет.
 - **Схема**:
   ```sql
   test_run (id PK, run_date, xml_file, base_url, total, passed, failed, skipped, duration_ms)
   test_case (id PK, run_id → test_run.id, class_name, method_name, passed, failure_msg, duration_ms)
   ```
-- **N+1 при выборке истории**: `getAllRuns()` → для каждого run отдельный `getCaseResults()`. Это известное место для оптимизации (JOIN).
+- **N+1 при выборке истории**: `getAllRuns()` → для каждого run отдельный `testCaseDao.selectByRunId()`. Это известное место для оптимизации (JOIN).
 
 ---
 

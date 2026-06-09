@@ -67,11 +67,17 @@
 | `JavaFileWriter`  | Fluent-билдер исходного Java-файла с управлением отступом: `writeLine`, `openBlock`, `closeBlock`, `writeToFile`.       |
 | `ParserException` | Доменное checked-исключение для оборачивания технических ошибок парсинга XML.                                            |
 
-### 1.5. Пакет «Data» (1 класс)
+### 1.5. Пакет «Data» (5 классов)
 
-| Класс       | Описание                                                                                                                |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `ReportDao` | JDBC-DAO для SQLite-базы `autotestgen.db`. Сохраняет результаты прогона и читает историю.                                |
+Пакет декомпозирован по принципу единственной ответственности (SRP). Раньше в нём был один класс `ReportDao` на ≈150 строк — теперь это фасад с тремя специализированными DAO и отдельным управлением соединением и DDL.
+
+| Класс                | Описание                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ReportDao`          | **Фасад** над пакетом. Публичный API: `saveRun(result)` и `getAllRuns()`. Композирует connection, DAO и инициализатор схемы. |
+| `DatabaseConnection` | Управление JDBC-соединением. Хранит URL (`jdbc:sqlite:autotestgen.db`), метод `open()` возвращает новое `Connection`.    |
+| `SchemaInitializer`  | DDL: создаёт таблицы `test_run` и `test_case` через `CREATE TABLE IF NOT EXISTS`. Вызывается из конструктора `ReportDao`.|
+| `TestRunDao`         | DAO таблицы `test_run`. Методы `insert(conn, result): long` (возвращает сгенерированный `id`) и `selectAll(conn)`.       |
+| `TestCaseDao`        | DAO таблицы `test_case`. Методы `insertBatch(conn, runId, cases)` и `selectByRunId(conn, runId)`.                       |
 
 ### 1.6. Пакет «Generator» (7 классов)
 
@@ -318,12 +324,44 @@
 | `indentLevel`   | `int`                     | Текущий уровень отступа (4 пробела на уровень).           |
 | `INDENT`        | `static final String`     | Префикс отступа `"    "` (4 пробела).                     |
 
-### 2.19. `ReportDao`  *(пакет Data)*
+### 2.19. Классы пакета `data`
 
-| Название      | Тип                          | Описание                                                |
-| ------------- | ---------------------------- | ------------------------------------------------------- |
-| `DB_URL`      | `static final String`        | JDBC-URL `"jdbc:sqlite:autotestgen.db"`.                |
-| `DT_FORMAT`   | `static final DateTimeFormatter` | Формат сериализации даты (ISO_LOCAL_DATE_TIME).      |
+**`DatabaseConnection`**
+
+| Название      | Тип                  | Описание                                                                 |
+| ------------- | -------------------- | ------------------------------------------------------------------------ |
+| `DEFAULT_URL` | `static final String`| Стандартный JDBC-URL `"jdbc:sqlite:autotestgen.db"`.                     |
+| `url`         | `final String`       | Фактический URL, может быть переопределён через DI-конструктор.          |
+
+**`SchemaInitializer`**
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `connection`   | `final DatabaseConnection`| Источник соединения для выполнения DDL.                        |
+
+**`TestRunDao`**
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `DT_FORMAT`    | `static final DateTimeFormatter` (package-private) | Формат сериализации даты `ISO_LOCAL_DATE_TIME`. |
+| `INSERT_SQL`   | `private static final String` | Параметризованный SQL-INSERT для `test_run`.               |
+| `SELECT_ALL_SQL` | `private static final String` | SQL для выборки всех прогонов в порядке убывания `id`.   |
+| `connection`   | `final DatabaseConnection`| Источник соединения.                                           |
+
+**`TestCaseDao`**
+
+| Название            | Тип                       | Описание                                                       |
+| ------------------- | ------------------------- | -------------------------------------------------------------- |
+| `INSERT_SQL`        | `private static final String` | Параметризованный SQL-INSERT для `test_case`.              |
+| `SELECT_BY_RUN_SQL` | `private static final String` | SQL для выборки кейсов конкретного прогона по `run_id`.    |
+
+**`ReportDao`** *(фасад)*
+
+| Название       | Тип                       | Описание                                                       |
+| -------------- | ------------------------- | -------------------------------------------------------------- |
+| `connection`   | `final DatabaseConnection`| Композирует — источник соединения для всех операций.           |
+| `testRunDao`   | `final TestRunDao`        | Композирует — DAO таблицы `test_run`.                          |
+| `testCaseDao`  | `final TestCaseDao`       | Композирует — DAO таблицы `test_case`.                         |
 
 ### 2.20. `TestConfig`  *(пакет Generator)*
 
@@ -539,14 +577,48 @@
 
 ### 3.22. `ReportDao`  *(пакет Data)*
 
-| Название           | Параметры                              | Возвращаемое значение | Описание                                                                                   |
-| ------------------ | -------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| `ReportDao`        | —                                      | конструктор           | Создаёт DAO и вызывает `initDatabase()`.                                                   |
-| `initDatabase`     | —                                      | `private void`        | Создаёт таблицы `test_run` и `test_case` через `CREATE TABLE IF NOT EXISTS`.               |
-| `saveRun`          | `result: TestRunResult`                | `void`                | Транзакция: INSERT в `test_run` + batch INSERT в `test_case`. `SQLException` логируется.   |
-| `getAllRuns`       | —                                      | `List<TestRunResult>` | `SELECT * FROM test_run ORDER BY id DESC`; для каждого — `getCaseResults` (классический N+1). |
-| `getCaseResults`   | `conn: Connection, runId: long`        | `private List<TestCaseResult>` throws `SQLException` | `SELECT * FROM test_case WHERE run_id = ?`.                            |
-| `getConnection`    | —                                      | `private Connection` throws `SQLException` | `DriverManager.getConnection(DB_URL)`.                                              |
+**Класс `ReportDao`** *(фасад)*
+
+| Название           | Параметры                                                                                  | Возвращаемое значение | Описание                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------------ |
+| `ReportDao`        | —                                                                                          | конструктор           | Создаёт DAO со стандартным `DatabaseConnection` и вызывает `SchemaInitializer.initialize`. |
+| `ReportDao`        | `connection: DatabaseConnection`                                                            | конструктор           | DI-конструктор для подмены источника соединения в тестах.                                  |
+| `ReportDao`        | `connection: DatabaseConnection, testRunDao: TestRunDao, testCaseDao: TestCaseDao`         | конструктор           | Полный DI-конструктор.                                                                     |
+| `saveRun`          | `result: TestRunResult`                                                                    | `void`                | Транзакция: `setAutoCommit(false)` → `testRunDao.insert` → `testCaseDao.insertBatch` → `commit`. `SQLException` логируется. |
+| `getAllRuns`       | —                                                                                          | `List<TestRunResult>` | Открывает одно соединение, через `testRunDao.selectAll` получает заголовки, для каждого вызывает `testCaseDao.selectByRunId`. |
+
+**Класс `DatabaseConnection`**
+
+| Название              | Параметры        | Возвращаемое значение | Описание                                                                                   |
+| --------------------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| `DatabaseConnection`  | —                | конструктор           | Использует `DEFAULT_URL = "jdbc:sqlite:autotestgen.db"`.                                  |
+| `DatabaseConnection`  | `url: String`    | конструктор           | DI-конструктор с произвольным JDBC-URL (для тестов или резервных БД).                     |
+| `open`                | —                | `Connection` throws `SQLException` | `DriverManager.getConnection(url)`.                                            |
+| `getUrl`              | —                | `String`              | Возвращает текущий URL.                                                                    |
+
+**Класс `SchemaInitializer`**
+
+| Название              | Параметры                                  | Возвращаемое значение | Описание                                                                          |
+| --------------------- | ------------------------------------------ | --------------------- | --------------------------------------------------------------------------------- |
+| `SchemaInitializer`   | `connection: DatabaseConnection`           | конструктор           | Сохраняет источник соединения.                                                    |
+| `initialize`          | —                                          | `void`                | Открывает соединение и вызывает оба `createXxxTable`. Ошибки логируются в `stderr`.|
+| `createTestRunTable`  | `stmt: Statement`                          | `private void` throws `SQLException` | DDL: `CREATE TABLE IF NOT EXISTS test_run (...)`.                          |
+| `createTestCaseTable` | `stmt: Statement`                          | `private void` throws `SQLException` | DDL: `CREATE TABLE IF NOT EXISTS test_case (...)` с FK на `test_run`.      |
+
+**Класс `TestRunDao`**
+
+| Название    | Параметры                                                  | Возвращаемое значение | Описание                                                                                |
+| ----------- | ---------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
+| `TestRunDao`| `connection: DatabaseConnection`                           | конструктор           | Сохраняет источник соединения.                                                          |
+| `insert`    | `conn: Connection, result: TestRunResult`                  | `long` throws `SQLException` | INSERT в `test_run`, возвращает сгенерированный `id` через `RETURN_GENERATED_KEYS`. |
+| `selectAll` | `conn: Connection`                                         | `List<RunRow>` throws `SQLException` | `SELECT * FROM test_run ORDER BY id DESC`. Возвращает пары (id, заполненный `TestRunResult` без `results`). |
+
+**Класс `TestCaseDao`**
+
+| Название         | Параметры                                                            | Возвращаемое значение | Описание                                                                |
+| ---------------- | -------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `insertBatch`    | `conn: Connection, runId: long, cases: List<TestCaseResult>`         | `void` throws `SQLException` | Batch-INSERT в `test_case` по уже известному `run_id`.            |
+| `selectByRunId`  | `conn: Connection, runId: long`                                      | `List<TestCaseResult>` throws `SQLException` | `SELECT * FROM test_case WHERE run_id = ? ORDER BY id`.        |
 
 ### 3.23. `TestConfig`  *(пакет Generator)*
 
@@ -742,7 +814,11 @@
 | `Transliterator.java`        | русское имя                                                | Java-идентификатор                              | Транслитерация имён сущностей в имена классов/методов.                                   |
 | `JavaFileWriter.java`        | строки кода                                                | файл `.java`                                    | Билдер форматированного Java-исходника.                                                  |
 | `ParserException.java`       | сообщение, причина                                         | объект-исключение                               | Доменное исключение для ошибок парсинга.                                                 |
-| `ReportDao.java`             | `TestRunResult` (для записи); ID прогона (для чтения)      | `void` или `List<TestRunResult>`                | DAO для SQLite-базы истории прогонов.                                                    |
+| `ReportDao.java`             | `TestRunResult` (для записи); — (для чтения)               | `void` или `List<TestRunResult>`                | Фасад над пакетом data. Транзакционно записывает прогон и читает историю.                |
+| `DatabaseConnection.java`    | URL (опционально)                                          | `java.sql.Connection`                           | Открытие JDBC-соединения, единый источник правды для URL.                                 |
+| `SchemaInitializer.java`     | `DatabaseConnection`                                       | `void` (создаёт таблицы)                        | DDL: `CREATE TABLE IF NOT EXISTS` для `test_run` и `test_case`.                          |
+| `TestRunDao.java`            | `Connection`, `TestRunResult`                              | `long` (id) или `List<RunRow>`                  | INSERT/SELECT для таблицы `test_run`.                                                     |
+| `TestCaseDao.java`           | `Connection`, `runId`, `List<TestCaseResult>`              | `void` или `List<TestCaseResult>`               | Batch-INSERT и выборка кейсов конкретного прогона из `test_case`.                         |
 | `TestConfig.java`            | URL, логин, пароль, каталог, уровень тестов                | объект-настройки                                | Контейнер параметров генерации.                                                          |
 | `TestGenerator.java`         | `AppModel`, `TestConfig`                                   | каталог `generated-tests/` с проектом           | Дирижёр генерации тестового проекта.                                                     |
 | `PageObjectWriter.java`      | `EntityObject`, `TestConfig`                               | `.java` Page Object                             | Генератор Page Object Java-классов.                                                      |
