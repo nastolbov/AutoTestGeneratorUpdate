@@ -1,0 +1,24 @@
+digraph PII {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 20. Исходная диаграмма классов пакета «Parser»"; labelloc=b;
+    nodesep=0.5; ranksep=0.7;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+
+    XMP [label="XmlModelParser"];
+    EP  [label="EntityParser"];
+    PGP [label="PropertyGroupParser"];
+    SP  [label="SearchParser"];
+    SU  [label="StaxUtils"];
+    XN  [label="XmlNamespaces"];
+
+    XMP -> EP  [label="делегирует", taillabel="1", headlabel="1"];
+    XMP -> SP  [label="делегирует", taillabel="1", headlabel="1"];
+    EP  -> PGP [label="делегирует", taillabel="1", headlabel="1"];
+    EP  -> SU  [label="использует"];
+    PGP -> SU  [label="использует"];
+    SP  -> SU  [label="использует"];
+    EP  -> XN  [label="использует"];
+    PGP -> XN  [label="использует"];
+    SP  -> XN  [label="использует"];
+}

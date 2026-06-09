@@ -4,18 +4,19 @@ digraph DD {
     nodesep=0.5;
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    ReportDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>ReportDao  «фасад»</B></TD></TR>
+    RD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>ReportDao</B></TD></TR>
         <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
             — testRunDao: final TestRunDao<BR/>
             — testCaseDao: final TestCaseDao</TD></TR>
         <TR><TD ALIGN="LEFT">+ ReportDao()<BR/>
-            + ReportDao(DatabaseConnection)<BR/>
-            + ReportDao(conn, testRunDao, testCaseDao)<BR/>
+            + ReportDao(connection: DatabaseConnection)<BR/>
+            + ReportDao(connection, testRunDao,<BR/>
+              testCaseDao)<BR/>
             + saveRun(result: TestRunResult): void<BR/>
             + getAllRuns(): List&lt;TestRunResult&gt;</TD></TR></TABLE>>];
 
-    DbConn [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    DC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>DatabaseConnection</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ DEFAULT_URL: static final String<BR/>
             — url: final String</TD></TR>
@@ -24,32 +25,35 @@ digraph DD {
             + open(): Connection<BR/>
             + getUrl(): String</TD></TR></TABLE>>];
 
-    SchemaInit [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    SI [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>SchemaInitializer</B></TD></TR>
         <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection</TD></TR>
-        <TR><TD ALIGN="LEFT">+ initialize(): void<BR/>
-            — createTestRunTable(Statement): void<BR/>
-            — createTestCaseTable(Statement): void</TD></TR></TABLE>>];
+        <TR><TD ALIGN="LEFT">+ SchemaInitializer(connection)<BR/>
+            + initialize(): void<BR/>
+            — createTestRunTable(stmt): void<BR/>
+            — createTestCaseTable(stmt): void</TD></TR></TABLE>>];
 
-    TestRunDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    TRD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>TestRunDao</B></TD></TR>
         <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
-              DT_FORMAT: static final (package)</TD></TR>
+              DT_FORMAT: static final<BR/>
+              DateTimeFormatter (package)</TD></TR>
         <TR><TD ALIGN="LEFT">+ TestRunDao(DatabaseConnection)<BR/>
             + insert(conn, result): long<BR/>
             + selectAll(conn): List&lt;RunRow&gt;</TD></TR></TABLE>>];
 
-    TestCaseDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    TCD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>TestCaseDao</B></TD></TR>
         <TR><TD ALIGN="LEFT">(нет полей-состояния)</TD></TR>
-        <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId, cases): void<BR/>
+        <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId,<BR/>
+              cases: List&lt;TestCaseResult&gt;): void<BR/>
             + selectByRunId(conn, runId):<BR/>
-            List&lt;TestCaseResult&gt;</TD></TR></TABLE>>];
+              List&lt;TestCaseResult&gt;</TD></TR></TABLE>>];
 
-    ReportDao -> DbConn      [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> TestRunDao  [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> TestCaseDao [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> SchemaInit  [style=dashed, label="«create at init»", fontsize=9];
-    TestRunDao -> DbConn [arrowtail=odiamond, dir=back, label="1"];
-    SchemaInit -> DbConn [arrowtail=odiamond, dir=back, label="1"];
+    RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> TCD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> SI  [taillabel="1", headlabel="1"];
+    TRD -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    SI  -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
 }

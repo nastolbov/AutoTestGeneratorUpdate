@@ -1,30 +1,29 @@
-digraph Parser {
+digraph PR {
     rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
     label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»"; labelloc=b;
-    nodesep=0.5; ranksep=0.8;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor=white];
+    nodesep=0.5; ranksep=0.7;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="DejaVu Sans", fontsize=10];
 
-    XmlModelParser      [label="XmlModelParser\n«фасад»"];
-    EntityParser        [label="EntityParser"];
-    PropertyGroupParser [label="PropertyGroupParser"];
-    SearchParser        [label="SearchParser"];
-    StaxUtils           [peripheries=2, label="StaxUtils\n«utility»"];
-    XmlNamespaces       [peripheries=2, label="XmlNamespaces\n«utility»"];
+    XMP [label="XmlModelParser"];
+    EP  [label="EntityParser"];
+    PGP [label="PropertyGroupParser"];
+    SP  [label="SearchParser"];
+    SU  [label="StaxUtils"];
+    XN  [label="XmlNamespaces"];
 
-    XmlModelParser -> EntityParser        [arrowtail=diamond, dir=back, label="1"];
-    XmlModelParser -> SearchParser        [arrowtail=diamond, dir=back, label="1"];
-    EntityParser   -> PropertyGroupParser [arrowtail=diamond, dir=back, label="1"];
+    XMP -> EP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    XMP -> SP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    EP  -> PGP [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    EP  -> SU  [taillabel="1", headlabel="1"];
+    PGP -> SU  [taillabel="1", headlabel="1"];
+    SP  -> SU  [taillabel="1", headlabel="1"];
+    EP  -> XN  [taillabel="1", headlabel="1"];
+    PGP -> XN  [taillabel="1", headlabel="1"];
+    SP  -> XN  [taillabel="1", headlabel="1"];
 
-    EntityParser        -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
-    PropertyGroupParser -> StaxUtils     [style=dashed];
-    SearchParser        -> StaxUtils     [style=dashed];
-    EntityParser        -> XmlNamespaces [style=dashed];
-    PropertyGroupParser -> XmlNamespaces [style=dashed];
-    SearchParser        -> XmlNamespaces [style=dashed];
-
-    { rank=same; XmlModelParser; }
-    { rank=same; EntityParser; SearchParser; }
-    { rank=same; PropertyGroupParser; }
-    { rank=same; StaxUtils; XmlNamespaces; }
+    { rank=same; XMP; }
+    { rank=same; EP; SP; }
+    { rank=same; PGP; }
+    { rank=same; SU; XN; }
 }

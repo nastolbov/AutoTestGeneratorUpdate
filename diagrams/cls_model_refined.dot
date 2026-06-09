@@ -1,56 +1,46 @@
-digraph Model {
+digraph MR {
     rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
     label="Рис. 30. Уточнённая диаграмма классов пакета «Model»"; labelloc=b;
-    nodesep=0.35; ranksep=0.7;
-    node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor=white];
+    nodesep=0.4; ranksep=0.6;
+    node [fontname="DejaVu Sans", fontsize=10, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="DejaVu Sans", fontsize=9];
 
-    AppModel       [label="AppModel"];
-    EntityObject   [label="EntityObject"];
-    PropertyGroup  [label="PropertyGroup"];
-    Property       [label="Property"];
-    Operation      [label="Operation"];
-    OperationParam [label="OperationParam"];
-    Modifier       [label="Modifier"];
-    Association    [label="Association"];
+    AM  [label="AppModel"];
+    EO  [label="EntityObject"];
+    PG  [label="PropertyGroup"];
+    P   [label="Property"];
+    Op  [label="Operation"];
+    OP  [label="OperationParam"];
+    M   [label="Modifier"];
+    A   [label="Association"];
+    S   [label="Search"];
+    SP  [label="SearchParam"];
+    SR  [label="SearchResult"];
+    SRP [label="SearchResultProperty"];
+    EC  [label="EntityClassifier"];
+    CL  [label="Classification"];
+    TRR [label="TestRunResult"];
+    TCR [label="TestCaseResult"];
 
-    Search                [label="Search"];
-    SearchParam           [label="SearchParam"];
-    SearchResult          [label="SearchResult"];
-    SearchResultProperty  [label="SearchResultProperty"];
+    // Композиция ♦ — иерархия владения
+    AM -> EO   [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
+    AM -> S    [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    EO -> PG   [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
+    EO -> A    [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    PG -> P    [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
+    PG -> Op   [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..1"];
+    Op -> OP   [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    Op -> M    [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    S  -> SP   [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    S  -> SR   [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..1"];
+    SR -> SRP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
+    TRR -> TCR [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
 
-    AttrType   [label="AttrType\n«enumeration»"];
-    ModifyType [label="ModifyType\n«enumeration»"];
-    EntityKind [label="EntityKind\n«enumeration»"];
+    // Ассоциация — create / use
+    EC -> CL [taillabel="1", headlabel="*"];
+    EC -> AM [taillabel="1", headlabel="1"];
 
-    EntityClassifier [peripheries=2, label="EntityClassifier\n«utility»"];
-    Classification   [label="Classification"];
-
-    TestRunResult  [label="TestRunResult"];
-    TestCaseResult [label="TestCaseResult"];
-    StepTiming     [label="StepTiming"];
-
-    AppModel      -> EntityObject  [arrowtail=diamond, dir=back, label="1..*"];
-    AppModel      -> Search        [arrowtail=diamond, dir=back, label="0..*"];
-    EntityObject  -> PropertyGroup [arrowtail=diamond, dir=back, label="1..*"];
-    EntityObject  -> Association   [arrowtail=diamond, dir=back, label="0..*"];
-    PropertyGroup -> Property      [arrowtail=diamond, dir=back, label="1..*"];
-    PropertyGroup -> Operation     [arrowtail=diamond, dir=back, label="0..1"];
-    Operation     -> OperationParam[arrowtail=diamond, dir=back, label="0..*"];
-    Operation     -> Modifier      [arrowtail=diamond, dir=back, label="0..*"];
-    Search        -> SearchParam   [arrowtail=diamond, dir=back, label="0..*"];
-    Search        -> SearchResult  [arrowtail=diamond, dir=back, label="0..1"];
-    SearchResult  -> SearchResultProperty [arrowtail=diamond, dir=back, label="0..*"];
-    TestRunResult -> TestCaseResult[arrowtail=diamond, dir=back, label="0..*"];
-    TestCaseResult-> StepTiming    [arrowtail=diamond, dir=back, label="0..*"];
-
-    Property -> AttrType   [label="«use»", style=dashed];
-    Modifier -> ModifyType [label="«use»", style=dashed];
-
-    EntityClassifier -> AppModel       [style=dashed, label="«use»"];
-    EntityClassifier -> Classification [style=dashed, label="«create»"];
-    Classification   -> EntityKind     [label="«use»", style=dashed];
-
-    Classification -> EntityObject  [arrowtail=odiamond, dir=back, label="0..1\nparent"];
-    Classification -> PropertyGroup [arrowtail=odiamond, dir=back, label="0..1\nparentGrid"];
+    // Агрегация ◇ — Classification ссылается на чужие сущности
+    CL -> EO [arrowtail=odiamond, dir=back, taillabel="0..1", headlabel="0..1"];
+    CL -> PG [arrowtail=odiamond, dir=back, taillabel="0..1", headlabel="0..1"];
 }

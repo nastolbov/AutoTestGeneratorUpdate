@@ -1,0 +1,20 @@
+digraph DII {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 46. Исходная диаграмма классов пакета «Data»"; labelloc=b;
+    nodesep=0.5; ranksep=0.8;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+
+    RD  [label="ReportDao"];
+    DC  [label="DatabaseConnection"];
+    SI  [label="SchemaInitializer"];
+    TRD [label="TestRunDao"];
+    TCD [label="TestCaseDao"];
+
+    RD -> DC  [label="содержит", taillabel="1", headlabel="1"];
+    RD -> TRD [label="содержит", taillabel="1", headlabel="1"];
+    RD -> TCD [label="содержит", taillabel="1", headlabel="1"];
+    RD -> SI  [label="создаёт",  taillabel="1", headlabel="1"];
+    TRD -> DC [label="использует", taillabel="1", headlabel="1"];
+    SI  -> DC [label="использует", taillabel="1", headlabel="1"];
+}

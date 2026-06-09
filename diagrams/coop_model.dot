@@ -1,0 +1,29 @@
+digraph CoopModel {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 29. Диаграмма кооперации пакета «Model»\n(заполнение модели парсером + классификация)"; labelloc=b;
+    nodesep=0.6;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+
+    XMP [label=":XmlModelParser"];
+    AM  [label=":AppModel"];
+    EO  [label=":EntityObject"];
+    PG  [label=":PropertyGroup"];
+    P   [label=":Property"];
+    TG  [label=":TestGenerator"];
+    EC  [label="EntityClassifier"];
+    CL  [label=":Classification"];
+
+    XMP -> AM  [label="1: new AppModel()"];
+    XMP -> EO  [label="2: new EntityObject(...)"];
+    XMP -> PG  [label="3: new PropertyGroup(...)"];
+    XMP -> P   [label="4: new Property(...)"];
+    PG  -> P   [label="4.1: properties.add(p)"];
+    EO  -> PG  [label="3.1: propertyGroups.add(pg)"];
+    AM  -> EO  [label="2.1: entities.add(e)"];
+
+    TG  -> EC  [label="5: classify(entity, model)"];
+    EC  -> AM  [label="5.1: пройти по соседям"];
+    EC  -> CL  [label="5.2: new Classification(kind, reason)"];
+    EC  -> TG  [label="5.99: Classification"];
+}

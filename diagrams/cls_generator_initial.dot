@@ -1,0 +1,22 @@
+digraph GII {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 27. Исходная диаграмма классов пакета «Generator»"; labelloc=b;
+    nodesep=0.5; ranksep=0.8;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+
+    TC  [label="TestConfig"];
+    TG  [label="TestGenerator"];
+    POW [label="PageObjectWriter"];
+    TCW [label="TestClassWriter"];
+    TDF [label="TestDataFactory"];
+    TR  [label="TestRunner"];
+    RRW [label="RunReportWriter"];
+
+    TG -> TC  [label="настраивается", taillabel="1", headlabel="1"];
+    TG -> POW [label="создаёт", taillabel="1", headlabel="*"];
+    TG -> TCW [label="создаёт", taillabel="1", headlabel="*"];
+    TG -> TDF [label="использует"];
+    POW -> TDF [label="использует"];
+    TCW -> TDF [label="использует"];
+}

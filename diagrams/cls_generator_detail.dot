@@ -4,35 +4,39 @@ digraph GD {
     nodesep=0.4;
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    TestConfig [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    TC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>TestConfig</B></TD></TR>
         <TR><TD ALIGN="LEFT">— baseUrl, login, password: String<BR/>
             — outputDir: Path<BR/>
             — browserType, basePackage, siteType,<BR/>
               subsystemName, testLevel: String<BR/>
-            — smokeAllSubsystems: boolean</TD></TR></TABLE>>];
+            — smokeAllSubsystems: boolean</TD></TR>
+        <TR><TD ALIGN="LEFT">+ get/set для 10 полей</TD></TR></TABLE>>];
 
-    TestGenerator [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestGenerator  «дирижёр»</B></TD></TR>
+    TG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>TestGenerator</B></TD></TR>
         <TR><TD ALIGN="LEFT">— config: final TestConfig</TD></TR>
-        <TR><TD ALIGN="LEFT">+ generate(model: AppModel): void<BR/>
+        <TR><TD ALIGN="LEFT">+ TestGenerator(config: TestConfig)<BR/>
+            + generate(model: AppModel): void<BR/>
             — generatePom, generateBaseTest,<BR/>
               generateSharedDriver, generateTestData,<BR/>
-              generateSubsystemsSmokeTest, ...</TD></TR></TABLE>>];
+              generateSubsystemsSmokeTest</TD></TR></TABLE>>];
 
     POW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>PageObjectWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ write(entity, outputDir): void</TD></TR></TABLE>>];
+        <TR><TD ALIGN="LEFT">+ write(entity: EntityObject,<BR/>
+              outputDir: Path): void</TD></TR></TABLE>>];
 
     TCW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>TestClassWriter</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ write(entity, model, outputDir): void<BR/>
             + writeChildTest(...): void</TD></TR></TABLE>>];
 
-    TDF [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestDataFactory  «utility»</B></TD></TR>
+    TDF [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>TestDataFactory</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ generateValue(prop): static String<BR/>
-            + generateSearchParamValue(p): static String<BR/>
+            + generateSearchParamValue(p):<BR/>
+              static String<BR/>
             + generateFromMask(mask): static String</TD></TR></TABLE>>];
 
     TR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
@@ -41,16 +45,16 @@ digraph GD {
         <TR><TD ALIGN="LEFT">+ run(projectDir, xml, url): TestRunResult<BR/>
             + run(..., lineConsumer): TestRunResult<BR/>
             + run(..., testFilter): TestRunResult<BR/>
-            + run(..., testFilter, fastMode): TestRunResult</TD></TR></TABLE>>];
+            + run(..., testFilter, fastMode):<BR/>
+              TestRunResult</TD></TR></TABLE>>];
 
     RRW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD><B>RunReportWriter</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ writeHtml(result, outputDir): void<BR/>
             + writeCsv(result, outputDir): void</TD></TR></TABLE>>];
 
-    TestGenerator -> TestConfig [arrowtail=odiamond, dir=back, label="1"];
-    TestGenerator -> POW [style=dashed, label="«create»\nцикл по сущностям", fontsize=9];
-    TestGenerator -> TCW [style=dashed, label="«create»\nцикл по сущностям", fontsize=9];
-    TestGenerator -> TDF [style=dashed];
-    POW -> TDF [style=dashed]; TCW -> TDF [style=dashed];
+    TG -> TC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    TG -> POW [taillabel="1", headlabel="*"];
+    TG -> TCW [taillabel="1", headlabel="*"];
+    TG -> TDF; POW -> TDF; TCW -> TDF;
 }

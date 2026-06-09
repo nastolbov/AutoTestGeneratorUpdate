@@ -1,0 +1,23 @@
+digraph CoopParser {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 24. Диаграмма кооперации пакета «Parser»\n(1.x — нормальный ход, 1.x.Ex — XMLStreamException)"; labelloc=b;
+    nodesep=0.7;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+
+    MC   [label=":MainController"];
+    XMP  [label=":XmlModelParser"];
+    EP   [label=":EntityParser"];
+    PGP  [label=":PropertyGroupParser"];
+    SP   [label=":SearchParser"];
+    SU   [label="StaxUtils"];
+
+    MC  -> XMP [label="1: parse(file)\n1.Ex: throw ParserException"];
+    XMP -> EP  [label="1.1: parseObject(reader)"];
+    XMP -> SP  [label="1.2: parseSearches(reader)"];
+    EP  -> PGP [label="1.1.1: parsePropertyGroup(reader)"];
+    EP  -> SU  [label="1.1.2: attr(reader, name)\n1.1.3: skipToEnd(reader)"];
+    PGP -> SU  [label="1.1.1.1: attr / parseInt"];
+    SP  -> SU  [label="1.2.1: attr / parseInt"];
+    XMP -> MC  [label="1.99: вернуть AppModel"];
+}

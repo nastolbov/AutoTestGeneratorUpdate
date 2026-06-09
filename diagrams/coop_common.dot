@@ -1,0 +1,18 @@
+digraph CoopCommon {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 50. Диаграмма кооперации пакета «Common»\n(использование утилит снаружи)"; labelloc=b;
+    nodesep=0.7;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+
+    Gen [label=":TestGenerator (пакет generator)"];
+    POW [label=":PageObjectWriter"];
+    JW  [label=":JavaFileWriter"];
+    T   [label="Transliterator"];
+    XMP [label=":XmlModelParser"];
+    PE  [label="ParserException"];
+
+    Gen -> T   [label="1: toClassName(name)\n2: toMethodName(name)"];
+    POW -> JW  [label="3: writeLine(line)\n4: openBlock(header)\n5: closeBlock()\n6: writeToFile(dir, fileName)"];
+    XMP -> PE  [label="Ex: throw ParserException(msg, cause)"];
+}

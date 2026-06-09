@@ -4,47 +4,51 @@ digraph UID {
     nodesep=0.5;
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    App [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    App [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>App</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ start(primaryStage: Stage): void<BR/>
-            + main(args: String[]): void</TD></TR>
-        </TABLE>>];
+            + main(args: String[]): void</TD></TR></TABLE>>];
 
-    MainController [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    MainController [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>MainController</B></TD></TR>
         <TR><TD ALIGN="LEFT">— xmlPathField, urlField, loginField,<BR/>
             outputDirField: TextField<BR/>
             — passwordField: PasswordField<BR/>
-            — testLevelCombo, siteTypeCombo: ComboBox&lt;String&gt;<BR/>
-            — smokeAllSubsystemsCheck, fastModeCheck: CheckBox<BR/>
-            — btnSelectXml, btnParse, btnGenerate, btnRunTests,<BR/>
-              btnRunSelected, btnShowHistory: Button<BR/>
+            — testLevelCombo, siteTypeCombo:<BR/>
+              ComboBox&lt;String&gt;<BR/>
+            — smokeAllSubsystemsCheck,<BR/>
+              fastModeCheck: CheckBox<BR/>
+            — btnSelectXml, btnParse, btnGenerate,<BR/>
+              btnRunTests, btnRunSelected,<BR/>
+              btnShowHistory: Button<BR/>
             — entityListView: ListView&lt;String&gt;<BR/>
             — resultsTable: TableView&lt;TestCaseRow&gt;<BR/>
             — currentModel: AppModel<BR/>
             — reportDao: final ReportDao</TD></TR>
         <TR><TD ALIGN="LEFT">+ initialize(): void<BR/>
-            — onParse(): void  — onGenerate(): void<BR/>
-            — onRunTests(): void  — onRunSelected(): void<BR/>
-            — onShowHistory(): void  — launchRun(filter): void<BR/>
-            — displayResults(r): void  — log(msg): void</TD></TR>
-        </TABLE>>];
+            — onParse(): void<BR/>
+            — onGenerate(): void<BR/>
+            — onRunTests(): void<BR/>
+            — onRunSelected(): void<BR/>
+            — launchRun(filter: String): void<BR/>
+            — onShowHistory(): void<BR/>
+            — displayResults(r: TestRunResult): void<BR/>
+            — log(msg: String): void</TD></TR></TABLE>>];
 
-    TestCaseRow [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    TestCaseRow [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>TestCaseRow</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— className, methodName, status,<BR/>
-            duration, message: final String</TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestCaseRow(...)<BR/>
+        <TR><TD ALIGN="LEFT">— className: final String<BR/>
+            — methodName: final String<BR/>
+            — status:     final String<BR/>
+            — duration:   final String<BR/>
+            — message:    final String</TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestCaseRow(...): конструктор<BR/>
             + getClassName(): String<BR/>
             + getMethodName(): String<BR/>
             + getStatus(): String<BR/>
             + getDuration(): String<BR/>
-            + getMessage(): String</TD></TR>
-        </TABLE>>];
+            + getMessage(): String</TD></TR></TABLE>>];
 
-    App -> MainController [label="«create»\n(через FXML)", style=dashed, fontsize=9];
-    MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*"];
+    App -> MainController [taillabel="1", headlabel="1"];
+    MainController -> TestCaseRow [arrowtail=diamond, dir=back, taillabel="1", headlabel="*"];
 }

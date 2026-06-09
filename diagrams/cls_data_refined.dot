@@ -1,25 +1,27 @@
-digraph Data {
+digraph DR {
     rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
     label="Рис. 49. Уточнённая диаграмма классов пакета «Data»"; labelloc=b;
     nodesep=0.5; ranksep=0.9;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor=white];
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="DejaVu Sans", fontsize=10];
 
-    ReportDao          [label="ReportDao\n«фасад»"];
-    DatabaseConnection [label="DatabaseConnection"];
-    SchemaInitializer  [label="SchemaInitializer"];
-    TestRunDao         [label="TestRunDao"];
-    TestCaseDao        [label="TestCaseDao"];
+    RD  [label="ReportDao"];
+    DC  [label="DatabaseConnection"];
+    SI  [label="SchemaInitializer"];
+    TRD [label="TestRunDao"];
+    TCD [label="TestCaseDao"];
 
-    ReportDao -> DatabaseConnection [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> TestRunDao         [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> TestCaseDao        [arrowtail=diamond, dir=back, label="1"];
-    ReportDao -> SchemaInitializer  [style=dashed, label="«create at init»", fontsize=9];
+    // Композиция ♦ — фасад владеет под-DAO и connection
+    RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> TCD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    // Ассоциация — create
+    RD -> SI  [taillabel="1", headlabel="1"];
+    // Агрегация ◇ — общий connection
+    TRD -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    SI  -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
 
-    TestRunDao        -> DatabaseConnection [arrowtail=odiamond, dir=back, label="1"];
-    SchemaInitializer -> DatabaseConnection [arrowtail=odiamond, dir=back, label="1"];
-
-    { rank=same; ReportDao; }
-    { rank=same; SchemaInitializer; TestRunDao; TestCaseDao; }
-    { rank=same; DatabaseConnection; }
+    { rank=same; RD; }
+    { rank=same; SI; TRD; TCD; }
+    { rank=same; DC; }
 }

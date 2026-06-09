@@ -4,26 +4,31 @@ digraph CD {
     nodesep=0.7;
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    Transl [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>Transliterator  «utility»</B></TD></TR>
+    T [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>Transliterator</B></TD></TR>
         <TR><TD ALIGN="LEFT">— MAPPING: static final<BR/>
-            Map&lt;Character, String&gt;</TD></TR>
-        <TR><TD ALIGN="LEFT">+ toClassName(s): static String<BR/>
-            + toMethodName(s): static String<BR/>
-            + toFieldName(s): static String</TD></TR></TABLE>>];
+              Map&lt;Character, String&gt;</TD></TR>
+        <TR><TD ALIGN="LEFT">+ toClassName(s: String): static String<BR/>
+            + toMethodName(s: String): static String<BR/>
+            + toFieldName(s: String): static String<BR/>
+            — transliterate(w: String): static String<BR/>
+            — snakeToCamel(s: String): static String</TD></TR></TABLE>>];
 
-    JFW [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>JavaFileWriter  «utility»</B></TD></TR>
+    JW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>JavaFileWriter</B></TD></TR>
         <TR><TD ALIGN="LEFT">— sb: final StringBuilder<BR/>
             — indentLevel: int<BR/>
             — INDENT: static "    "</TD></TR>
-        <TR><TD ALIGN="LEFT">+ writeLine(line): JavaFileWriter<BR/>
-            + openBlock(header): JavaFileWriter<BR/>
+        <TR><TD ALIGN="LEFT">+ writeLine(line: String): JavaFileWriter<BR/>
+            + writeLine(): JavaFileWriter<BR/>
+            + openBlock(header: String): JavaFileWriter<BR/>
             + closeBlock(): JavaFileWriter<BR/>
-            + writeToFile(dir, fileName)</TD></TR></TABLE>>];
+            + writeToFile(dir: Path, fileName: String): void<BR/>
+            + toString(): String</TD></TR></TABLE>>];
 
     PE [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>ParserException  «exception»</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ ParserException(message)<BR/>
-            + ParserException(message, cause)</TD></TR></TABLE>>];
+        <TR><TD><B>ParserException</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ ParserException(message: String)<BR/>
+            + ParserException(message: String,<BR/>
+              cause: Throwable)</TD></TR></TABLE>>];
 }

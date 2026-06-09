@@ -1,6 +1,6 @@
-digraph UIR {
+digraph UII {
     rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
-    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»"; labelloc=b;
+    label="Рис. 13. Исходная диаграмма классов пакета «UI»"; labelloc=b;
     nodesep=0.6; ranksep=0.9;
     node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="DejaVu Sans", fontsize=10];
@@ -9,6 +9,6 @@ digraph UIR {
     MainController [label="MainController"];
     TestCaseRow    [label="TestCaseRow"];
 
-    App -> MainController [taillabel="1", headlabel="1"];
-    MainController -> TestCaseRow [arrowtail=diamond, dir=back, taillabel="1", headlabel="*"];
+    App -> MainController            [label="загружает", taillabel="1", headlabel="1"];
+    MainController -> TestCaseRow    [label="отображает",  taillabel="1", headlabel="*"];
 }

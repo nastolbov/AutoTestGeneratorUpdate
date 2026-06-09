@@ -1,0 +1,21 @@
+digraph CoopUI {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 17. Диаграмма кооперации пакета «UI»\n(1.x — нормальный ход, 2.x — прерывание пользователем, 1.x.Ex — исключение)"; labelloc=b;
+    nodesep=0.8; ranksep=0.8;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+
+    User    [shape=none, label=<<TABLE BORDER="0"><TR><TD><FONT POINT-SIZE="36">&#9786;</FONT></TD></TR><TR><TD>Пользователь</TD></TR></TABLE>>];
+    App     [label="App"];
+    MC      [label=":MainController"];
+    Task    [label=":Task"];
+    Row     [label=":TestCaseRow"];
+
+    User -> App [label="1: launch()\n2: закрыть окно"];
+    App  -> MC  [label="1.1: load main.fxml"];
+    MC   -> MC  [label="1.2: onParse()\n1.3: onGenerate()\n1.4: onRunTests()\n2.1: stop()"];
+    MC   -> Task [label="1.4.1: start(TestRunner.run)"];
+    Task -> MC  [label="1.4.2: onSucceeded(result)"];
+    MC   -> Row [label="1.4.3: new TestCaseRow(...)\n1.4.4: setItems(rows)"];
+    MC   -> User [label="1.4.5: показать таблицу\n1.Ex: showAlert(ошибка)"];
+}
