@@ -1,27 +1,26 @@
 digraph C {
     rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    ranksep=1.0; nodesep=0.4;
+    ranksep=0.9; nodesep=0.35;
     node [fontname="Liberation Serif", fontsize=11, fillcolor=white, style=filled];
     edge [color=black, fontname="Liberation Serif", fontsize=10];
 
-    // Уровень 1: точка входа
+    // ===== Уровень 1: точка входа =====
     App [shape=box, label="App"];
 
-    // Уровень 2: контроллер
+    // ===== Уровень 2: контроллер =====
     MainController [shape=box, label="MainController"];
 
-    // Уровень 3: фасады
-    XmlModelParser [shape=box, label="XmlModelParser"];
-    TestConfig     [shape=box, label="TestConfig"];
-    TestGenerator  [shape=box, label="TestGenerator"];
-    TestRunner     [shape=box, label="TestRunner"];
-    ReportDao      [shape=box, label="ReportDao"];
+    // ===== Уровень 3: фасады подсистем =====
+    XmlModelParser  [shape=box, label="XmlModelParser"];
+    TestConfig      [shape=box, label="TestConfig"];
+    TestGenerator   [shape=box, label="TestGenerator"];
+    TestRunner      [shape=box, label="TestRunner"];
+    ReportDao       [shape=box, label="ReportDao"];
     RunReportWriter [shape=box, label="RunReportWriter"];
 
-    // Уровень 4: специализированные
+    // ===== Уровень 4: специализированные исполнители =====
     EntityParser        [shape=box, label="EntityParser"];
     SearchParser        [shape=box, label="SearchParser"];
-    PropertyGroupParser [shape=box, label="PropertyGroupParser"];
     PageObjectWriter    [shape=box, label="PageObjectWriter"];
     TestClassWriter     [shape=box, label="TestClassWriter"];
     EntityClassifier    [shape=box, label="EntityClassifier"];
@@ -31,95 +30,69 @@ digraph C {
     TestRunDao          [shape=box, label="TestRunDao"];
     TestCaseDao         [shape=box, label="TestCaseDao"];
 
-    // Уровень 5: библиотеки (utility)
-    StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
-    XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
-    JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
-    Transliterator [shape=box, peripheries=2, label="Transliterator"];
+    // ===== Уровень 5: глубинные парсеры (вложенные) =====
+    PropertyGroupParser [shape=box, label="PropertyGroupParser"];
 
-    // Исключения и enum'ы
-    ParserException [shape=box, label="ParserException"];
+    // ===== Уровень 6: библиотеки/утилиты (double border) =====
+    StaxUtils       [shape=box, peripheries=2, label="StaxUtils"];
+    XmlNamespaces   [shape=box, peripheries=2, label="XmlNamespaces"];
+    JavaFileWriter  [shape=box, peripheries=2, label="JavaFileWriter"];
+    Transliterator  [shape=box, peripheries=2, label="Transliterator"];
+    ParserException [shape=box, peripheries=2, label="ParserException"];
 
-    // POJO model (компактным кластером — все 18 файлов)
-    AppModel       [shape=box, label="AppModel"];
-    EntityObject   [shape=box, label="EntityObject"];
-    PropertyGroup  [shape=box, label="PropertyGroup"];
-    Property       [shape=box, label="Property"];
-    Operation      [shape=box, label="Operation"];
-    OperationParam [shape=box, label="OperationParam"];
-    Modifier       [shape=box, label="Modifier"];
-    ModifyType     [shape=box, label="ModifyType"];
-    Association    [shape=box, label="Association"];
-    Search         [shape=box, label="Search"];
-    SearchParam    [shape=box, label="SearchParam"];
-    SearchResult   [shape=box, label="SearchResult"];
-    SearchResultProperty [shape=box, label="SearchResultProperty"];
-    AttrType       [shape=box, label="AttrType"];
-    EntityKind     [shape=box, label="EntityKind"];
-    TestRunResult  [shape=box, label="TestRunResult"];
-    TestCaseResult [shape=box, label="TestCaseResult"];
-    Classification [shape=box, label="Classification"];
-
-    // Артефакты
+    // ===== Уровень 7: внешние артефакты (овалы) =====
     SQLite   [shape=ellipse, label="autotestgen.db"];
     GenFiles [shape=ellipse, label="generated-tests/"];
 
-    // ===== Вызовы =====
-    App -> MainController [label="1"];
+    // ===== Связи =====
+    App -> MainController [label=" 1 (FXML)"];
 
-    MainController -> XmlModelParser [label="File\nAppModel"];
-    MainController -> TestConfig;
-    MainController -> TestGenerator [label="model"];
-    MainController -> TestRunner    [label="filter"];
-    MainController -> ReportDao     [label="TestRunResult"];
-    MainController -> RunReportWriter [label="result"];
+    MainController -> XmlModelParser   [label="↓ File\n↑ AppModel"];
+    MainController -> TestConfig       [label="↓ setters"];
+    MainController -> TestGenerator    [label="↓ AppModel"];
+    MainController -> TestRunner       [label="↓ filter,\n  ● fastMode"];
+    MainController -> ReportDao        [label="↓ result"];
+    MainController -> RunReportWriter  [label="↓ result"];
 
-    XmlModelParser -> EntityParser [label="reader"];
-    XmlModelParser -> SearchParser [label="reader"];
-    EntityParser -> PropertyGroupParser [label="reader"];
+    XmlModelParser -> EntityParser [label="↓ reader\n↑ EntityObject"];
+    XmlModelParser -> SearchParser [label="↓ reader\n↑ List<Search>"];
+    EntityParser   -> PropertyGroupParser [label="↓ reader\n↑ PG"];
 
-    TestGenerator -> EntityClassifier [label="entity, model"];
-    TestGenerator -> PageObjectWriter [label="entity"];
-    TestGenerator -> TestClassWriter  [label="entity, model"];
-    TestGenerator -> TestDataFactory  [label="property"];
+    TestGenerator -> EntityClassifier [label="цикл по сущностям"];
+    TestGenerator -> PageObjectWriter [label="цикл"];
+    TestGenerator -> TestClassWriter  [label="цикл"];
+    TestGenerator -> TestDataFactory  [label="↓ property"];
 
-    ReportDao -> DatabaseConnection [label="url"];
-    ReportDao -> SchemaInitializer;
-    ReportDao -> TestRunDao  [label="conn, result"];
-    ReportDao -> TestCaseDao [label="conn, runId"];
+    ReportDao -> DatabaseConnection [label="↓ url\n↑ Connection"];
+    ReportDao -> SchemaInitializer  [label="«init»"];
+    ReportDao -> TestRunDao  [label="↓ conn, result\n↑ runId"];
+    ReportDao -> TestCaseDao [label="↓ conn, cases"];
 
-    EntityParser -> StaxUtils [style=dashed];
-    SearchParser -> StaxUtils [style=dashed];
-    PropertyGroupParser -> StaxUtils [style=dashed];
-    EntityParser -> XmlNamespaces [style=dashed];
-    SearchParser -> XmlNamespaces [style=dashed];
+    EntityParser        -> StaxUtils     [style=dashed];
+    PropertyGroupParser -> StaxUtils     [style=dashed];
+    SearchParser        -> StaxUtils     [style=dashed];
+    EntityParser        -> XmlNamespaces [style=dashed];
     PropertyGroupParser -> XmlNamespaces [style=dashed];
-    PageObjectWriter -> JavaFileWriter [style=dashed];
-    TestClassWriter  -> JavaFileWriter [style=dashed];
-    PageObjectWriter -> Transliterator [style=dashed];
-    TestClassWriter  -> Transliterator [style=dashed];
+    SearchParser        -> XmlNamespaces [style=dashed];
+    PageObjectWriter    -> JavaFileWriter [style=dashed];
+    TestClassWriter     -> JavaFileWriter [style=dashed];
+    PageObjectWriter    -> Transliterator [style=dashed];
+    TestClassWriter     -> Transliterator [style=dashed];
 
-    XmlModelParser -> ParserException [label="throw"];
+    XmlModelParser -> ParserException [label="throws"];
 
-    XmlModelParser -> AppModel [label="заполняет"];
-    AppModel -> EntityObject; EntityObject -> PropertyGroup; PropertyGroup -> Property;
-    PropertyGroup -> Operation; Operation -> OperationParam; Operation -> Modifier;
-    Modifier -> ModifyType; EntityObject -> Association;
-    AppModel -> Search; Search -> SearchParam; Search -> SearchResult; SearchResult -> SearchResultProperty;
-    Property -> AttrType;
-    EntityClassifier -> Classification; Classification -> EntityKind;
-    TestRunner -> TestRunResult; TestRunResult -> TestCaseResult;
+    TestGenerator      -> GenFiles [label="генерирует"];
+    TestRunner         -> GenFiles [label="читает\nsurefire-reports/"];
+    DatabaseConnection -> SQLite   [label="JDBC"];
 
-    TestGenerator -> GenFiles [label="*.java"];
-    DatabaseConnection -> SQLite [label="JDBC"];
-
+    // ===== Фиксация УРОВНЕЙ =====
+    { rank=same; App; }
+    { rank=same; MainController; }
     { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; RunReportWriter; }
-    { rank=same; EntityParser; SearchParser; PropertyGroupParser;
-                 PageObjectWriter; TestClassWriter; EntityClassifier; TestDataFactory;
+    { rank=same; EntityParser; SearchParser; PageObjectWriter; TestClassWriter;
+                 EntityClassifier; TestDataFactory;
                  DatabaseConnection; SchemaInitializer; TestRunDao; TestCaseDao; }
+    { rank=same; PropertyGroupParser; }
     { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; ParserException; }
-    { rank=same; AppModel; EntityObject; PropertyGroup; Property; Operation; OperationParam;
-                 Modifier; ModifyType; Association; Search; SearchParam; SearchResult;
-                 SearchResultProperty; AttrType; EntityKind; TestRunResult; TestCaseResult; Classification; }
-    { rank=same; GenFiles; SQLite; }
+    { rank=same; SQLite; GenFiles; }
 }
