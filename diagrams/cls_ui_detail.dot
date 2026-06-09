@@ -1,24 +1,18 @@
-digraph ClsUI {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»";
-    labelloc="b";
-    fontsize=14;
+digraph UID {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 19. Детальная диаграмма классов пакета «UI»"; labelloc=b;
     nodesep=0.5;
-
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
     App [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
-        <TR><TD ALIGN="CENTER"><I>«boundary»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>App</B><BR/><FONT POINT-SIZE="8">extends javafx.application.Application</FONT></TD></TR>
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>App</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ start(primaryStage: Stage): void<BR/>
             + main(args: String[]): void</TD></TR>
         </TABLE>>];
 
     MainController [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
-        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>MainController</B></TD></TR>
         <TR><TD ALIGN="LEFT">— xmlPathField, urlField, loginField,<BR/>
             outputDirField: TextField<BR/>
@@ -26,7 +20,7 @@ digraph ClsUI {
             — testLevelCombo, siteTypeCombo: ComboBox&lt;String&gt;<BR/>
             — smokeAllSubsystemsCheck, fastModeCheck: CheckBox<BR/>
             — btnSelectXml, btnParse, btnGenerate, btnRunTests,<BR/>
-            btnRunSelected, btnShowHistory: Button<BR/>
+              btnRunSelected, btnShowHistory: Button<BR/>
             — entityListView: ListView&lt;String&gt;<BR/>
             — resultsTable: TableView&lt;TestCaseRow&gt;<BR/>
             — currentModel: AppModel<BR/>
@@ -39,9 +33,8 @@ digraph ClsUI {
         </TABLE>>];
 
     TestCaseRow [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
-        <TR><TD ALIGN="CENTER"><I>«entity» «inner static»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>MainController::TestCaseRow</B></TD></TR>
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestCaseRow</B></TD></TR>
         <TR><TD ALIGN="LEFT">— className, methodName, status,<BR/>
             duration, message: final String</TD></TR>
         <TR><TD ALIGN="LEFT">+ TestCaseRow(...)<BR/>
@@ -53,5 +46,5 @@ digraph ClsUI {
         </TABLE>>];
 
     App -> MainController [label="«create»\n(через FXML)", style=dashed, fontsize=9];
-    MainController -> TestCaseRow [label="◆ 1..*", fontsize=10, arrowtail=diamond, dir=back];
+    MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*"];
 }

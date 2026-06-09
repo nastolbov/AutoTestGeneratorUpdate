@@ -1,22 +1,16 @@
-digraph UseCase {
-    rankdir=LR;
-    fontname="DejaVu Sans";
-    label="Рис. 2. Диаграмма вариантов использования";
-    labelloc="b";
-    fontsize=14;
-
+digraph UC {
+    rankdir=LR; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 2. Диаграмма вариантов использования"; labelloc=b;
     node [fontname="DejaVu Sans", fontsize=11];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
 
     Actor [shape=none, label=<<TABLE BORDER="0" CELLBORDER="0">
         <TR><TD><FONT POINT-SIZE="40">&#9786;</FONT></TD></TR>
         <TR><TD><B>Пользователь</B></TD></TR></TABLE>>];
 
-    subgraph cluster_system {
+    subgraph cluster_sys {
         label="Информационная система AutoTestGenerator";
-        style=rounded;
-        labelloc=b;
-        fontsize=12;
-
+        style=rounded; labelloc=b; fontsize=12;
         UC1 [shape=ellipse, label="Подготовить\nпараметры"];
         UC2 [shape=ellipse, label="Разобрать\nметаданные"];
         UC3 [shape=ellipse, label="Сгенерировать\nавтотесты"];
@@ -29,7 +23,6 @@ digraph UseCase {
         UC4 -> UC3 [label="«include»", style=dashed, fontsize=9, dir=back];
         UC5 -> UC4 [label="«include»", style=dashed, fontsize=9, dir=back];
     }
-
     Actor -> UC1 [arrowhead=none];
     Actor -> UC2 [arrowhead=none];
     Actor -> UC3 [arrowhead=none];

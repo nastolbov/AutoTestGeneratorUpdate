@@ -1,16 +1,10 @@
-digraph ClsModel {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 30. Уточнённая диаграмма классов пакета «Model»";
-    labelloc="b";
-    fontsize=14;
-    nodesep=0.3;
-    ranksep=0.5;
-
+digraph MD {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 31. Детальная диаграмма классов пакета «Model»"; labelloc=b;
+    nodesep=0.3; ranksep=0.5;
     node [fontname="DejaVu Sans", fontsize=9, shape=plaintext];
 
-    AppModel [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
-        <TR><TD><I>«entity»</I></TD></TR>
+    AppModel [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>AppModel</B></TD></TR>
         <TR><TD ALIGN="LEFT">— categoryName, guid: String<BR/>
             — entities: List&lt;EntityObject&gt;<BR/>
@@ -18,92 +12,86 @@ digraph ClsModel {
         <TR><TD ALIGN="LEFT">+ findEntityByGuid(guid)<BR/>
             + getSubsystemNameFromCategory()</TD></TR></TABLE>>];
 
-    EntityObject [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
-        <TR><TD><I>«entity»</I></TD></TR>
+    EntityObject [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>EntityObject</B></TD></TR>
         <TR><TD ALIGN="LEFT">— guid, name, keyName,<BR/>
-            featureName, nameValueMethod: String<BR/>
+              featureName, nameValueMethod: String<BR/>
             — associations: List&lt;Association&gt;<BR/>
             — propertyGroups: List&lt;PropertyGroup&gt;</TD></TR>
         <TR><TD ALIGN="LEFT">+ hasCrudOperations(): boolean<BR/>
             + getFormView(): PropertyGroup</TD></TR></TABLE>>];
 
-    PropertyGroup [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
-        <TR><TD><I>«entity»</I></TD></TR>
+    PropertyGroup [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>PropertyGroup</B></TD></TR>
         <TR><TD ALIGN="LEFT">— guid, name, stereoType,<BR/>
-            dmodule, typeLink: String<BR/>
+              dmodule, typeLink: String<BR/>
             — orderNumber: int<BR/>
             — flagDisplay: boolean<BR/>
             — properties: List&lt;Property&gt;<BR/>
             — operation: Operation</TD></TR></TABLE>>];
 
-    Property [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
-        <TR><TD><I>«entity»</I></TD></TR>
+    Property [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>Property</B></TD></TR>
         <TR><TD ALIGN="LEFT">— attrName, tableName,<BR/>
-            mask, comment: String<BR/>
+              mask, comment: String<BR/>
             — attrType: AttrType<BR/>
             — required, flagDisplay: boolean</TD></TR></TABLE>>];
 
-    Operation [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    Operation [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>Operation</B></TD></TR>
         <TR><TD ALIGN="LEFT">— params: List&lt;OperationParam&gt;<BR/>
             — modifiers: List&lt;Modifier&gt;</TD></TR></TABLE>>];
 
-    Association [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    Association [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>Association</B></TD></TR>
         <TR><TD ALIGN="LEFT">— roleA, roleB, featureName,<BR/>
-            associateItemGuid: String<BR/>
+              associateItemGuid: String<BR/>
             — flagDisplay, addFromTree: boolean</TD></TR></TABLE>>];
 
-    Search [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    Search [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>Search</B></TD></TR>
         <TR><TD ALIGN="LEFT">— guid, name, query: String<BR/>
             — params: List&lt;SearchParam&gt;<BR/>
             — result: SearchResult</TD></TR></TABLE>>];
 
-    SearchResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    SearchResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>SearchResult</B></TD></TR>
         <TR><TD ALIGN="LEFT">— idObjectName: String<BR/>
             — properties: List&lt;...Property&gt;</TD></TR></TABLE>>];
 
-    EntityClassifier [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#F0F0F0">
-        <TR><TD><I>«utility» «library»</I></TD></TR>
-        <TR><TD><B>EntityClassifier</B></TD></TR>
+    EntityClassifier [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
+        <TR><TD><B>EntityClassifier  «utility»</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ classify(entity, model):<BR/>
-            static Classification<BR/>
+              static Classification<BR/>
             — findParentGrid, isFkTargetOnly,<BR/>
-            isReferenceDictionary, ...</TD></TR></TABLE>>];
+              isReferenceDictionary, ...</TD></TR></TABLE>>];
 
-    Classification [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    Classification [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>Classification</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ kind: final EntityKind<BR/>
             + reason: final String<BR/>
             + parentEntity: EntityObject<BR/>
             + parentGrid: PropertyGroup</TD></TR></TABLE>>];
 
-    TestRunResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    TestRunResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>TestRunResult</B></TD></TR>
         <TR><TD ALIGN="LEFT">— total, passed, failed, skipped: int<BR/>
             — durationMs: long<BR/>
             — results: List&lt;TestCaseResult&gt;</TD></TR></TABLE>>];
 
-    TestCaseResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#C1E1C1">
+    TestCaseResult [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
         <TR><TD><B>TestCaseResult</B></TD></TR>
         <TR><TD ALIGN="LEFT">— className, methodName: String<BR/>
             — passed, skipped: boolean<BR/>
             — durationMs: long</TD></TR></TABLE>>];
 
-    AppModel      -> EntityObject  [arrowtail=diamond, dir=back, label="◆ 1..*"];
-    AppModel      -> Search        [arrowtail=diamond, dir=back, label="◆ 0..*"];
-    EntityObject  -> PropertyGroup [arrowtail=diamond, dir=back, label="◆ 1..*"];
-    EntityObject  -> Association   [arrowtail=diamond, dir=back, label="◆ 0..*"];
-    PropertyGroup -> Property      [arrowtail=diamond, dir=back, label="◆ 1..*"];
-    PropertyGroup -> Operation     [arrowtail=diamond, dir=back, label="◆ 0..1"];
-    Search        -> SearchResult  [arrowtail=diamond, dir=back, label="◆ 0..1"];
-
+    AppModel      -> EntityObject  [arrowtail=diamond, dir=back, label="1..*"];
+    AppModel      -> Search        [arrowtail=diamond, dir=back, label="0..*"];
+    EntityObject  -> PropertyGroup [arrowtail=diamond, dir=back, label="1..*"];
+    EntityObject  -> Association   [arrowtail=diamond, dir=back, label="0..*"];
+    PropertyGroup -> Property      [arrowtail=diamond, dir=back, label="1..*"];
+    PropertyGroup -> Operation     [arrowtail=diamond, dir=back, label="0..1"];
+    Search        -> SearchResult  [arrowtail=diamond, dir=back, label="0..1"];
     EntityClassifier -> Classification [style=dashed, label="«create»"];
-
-    TestRunResult -> TestCaseResult [arrowtail=diamond, dir=back, label="◆ 0..*"];
+    TestRunResult -> TestCaseResult [arrowtail=diamond, dir=back, label="0..*"];
 }

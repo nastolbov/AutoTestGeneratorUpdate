@@ -1,21 +1,16 @@
 digraph Packages {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 12. Диаграмма пакетов информационной системы";
-    labelloc="b";
-    fontsize=14;
-    nodesep=0.5;
-    ranksep=0.8;
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 12. Диаграмма пакетов информационной системы"; labelloc=b;
+    nodesep=0.5; ranksep=0.8;
+    node [shape=tab, fontname="DejaVu Sans", fontsize=11, style=filled, fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
 
-    node [shape=tab, fontname="DejaVu Sans", fontsize=11, style="filled"];
-    edge [fontname="DejaVu Sans", fontsize=9];
-
-    ui       [label="«presentation»\nui\n(3 класса)",      fillcolor="#FFE4B5"];
-    parser   [label="«business»\nparser\n(6 классов)",      fillcolor="#B0E0E6"];
-    generator[label="«business»\ngenerator\n(7 классов)",   fillcolor="#D8BFD8"];
-    data     [label="«persistence»\ndata\n(5 классов)",     fillcolor="#FFB6C1"];
-    model    [label="«entity» «global»\nmodel\n(20 классов)", fillcolor="#C1E1C1"];
-    common   [label="«utility» «global»\ncommon\n(3 класса)", fillcolor="#F0F0F0"];
+    ui        [label="ui\n(3 класса)"];
+    parser    [label="parser\n(6 классов)"];
+    generator [label="generator\n(7 классов)"];
+    data      [label="data\n(5 классов)"];
+    model     [label="«global»\nmodel\n(20 классов)"];
+    common    [label="«global»\ncommon\n(3 класса)"];
 
     ui -> parser    [label="«use»", style=dashed];
     ui -> generator [label="«use»", style=dashed];

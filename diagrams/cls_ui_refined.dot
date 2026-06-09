@@ -1,22 +1,14 @@
-digraph ClsUIRefined {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»";
-    labelloc="b";
-    fontsize=14;
-    nodesep=0.6;
-    ranksep=0.9;
+digraph UI {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»"; labelloc=b;
+    nodesep=0.6; ranksep=0.9;
+    node [fontname="DejaVu Sans", fontsize=12, shape=box, style="rounded,filled", fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
 
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
-    edge [fontname="DejaVu Sans", fontsize=10];
+    App            [label="App"];
+    MainController [label="MainController"];
+    TestCaseRow    [label="TestCaseRow"];
 
-    App            [fillcolor="#FFE4B5", label=<<I>«boundary»</I><BR/><B>App</B>>];
-    MainController [fillcolor="#FFE4B5", label=<<I>«control»</I><BR/><B>MainController</B>>];
-    TestCaseRow    [fillcolor="#FFE4B5", label=<<I>«entity»</I><BR/><B>TestCaseRow</B>>];
-
-    // Ассоциация → (создание контроллера через FXMLLoader)
     App -> MainController [label="«create»\n(через FXML)", style=dashed, fontsize=9];
-
-    // Композиция ♦ — TestCaseRow живёт только внутри MainController
-    MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*", fontsize=10];
+    MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*"];
 }

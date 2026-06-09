@@ -1,23 +1,19 @@
-digraph ClsCommon {
-    rankdir=LR;
-    fontname="DejaVu Sans";
-    label="Рис. 52. Уточнённая диаграмма классов пакета «Common»";
-    labelloc="b";
-    fontsize=14;
-
+digraph CD {
+    rankdir=LR; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 53. Детальная диаграмма классов пакета «Common»"; labelloc=b;
+    nodesep=0.7;
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    Transliterator [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
-        <TR><TD><I>«utility» «library»</I></TD></TR>
-        <TR><TD><B>Transliterator</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— MAPPING: static final Map&lt;Character, String&gt;</TD></TR>
+    Transl [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>Transliterator  «utility»</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— MAPPING: static final<BR/>
+            Map&lt;Character, String&gt;</TD></TR>
         <TR><TD ALIGN="LEFT">+ toClassName(s): static String<BR/>
             + toMethodName(s): static String<BR/>
             + toFieldName(s): static String</TD></TR></TABLE>>];
 
-    JavaFileWriter [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
-        <TR><TD><I>«utility»</I></TD></TR>
-        <TR><TD><B>JavaFileWriter</B></TD></TR>
+    JFW [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>JavaFileWriter  «utility»</B></TD></TR>
         <TR><TD ALIGN="LEFT">— sb: final StringBuilder<BR/>
             — indentLevel: int<BR/>
             — INDENT: static "    "</TD></TR>
@@ -26,10 +22,8 @@ digraph ClsCommon {
             + closeBlock(): JavaFileWriter<BR/>
             + writeToFile(dir, fileName)</TD></TR></TABLE>>];
 
-    ParserException [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFCDD2">
-        <TR><TD><I>«exception»</I></TD></TR>
-        <TR><TD><B>ParserException</B></TD></TR>
-        <TR><TD ALIGN="LEFT">extends java.lang.Exception</TD></TR>
+    PE [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>ParserException  «exception»</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ ParserException(message)<BR/>
             + ParserException(message, cause)</TD></TR></TABLE>>];
 }

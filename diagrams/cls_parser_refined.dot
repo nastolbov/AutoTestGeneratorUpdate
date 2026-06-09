@@ -1,34 +1,27 @@
-digraph ClsParserRefined {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»";
-    labelloc="b";
-    fontsize=14;
-    nodesep=0.5;
-    ranksep=0.8;
+digraph Parser {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»"; labelloc=b;
+    nodesep=0.5; ranksep=0.8;
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=10];
 
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
-    edge [fontname="DejaVu Sans", fontsize=10];
+    XmlModelParser      [label="XmlModelParser\n«фасад»"];
+    EntityParser        [label="EntityParser"];
+    PropertyGroupParser [label="PropertyGroupParser"];
+    SearchParser        [label="SearchParser"];
+    StaxUtils           [peripheries=2, label="StaxUtils\n«utility»"];
+    XmlNamespaces       [peripheries=2, label="XmlNamespaces\n«utility»"];
 
-    XmlModelParser      [fillcolor="#B0E0E6", label=<<I>«control» «facade»</I><BR/><B>XmlModelParser</B>>];
-    EntityParser        [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>EntityParser</B>>];
-    PropertyGroupParser [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>PropertyGroupParser</B>>];
-    SearchParser        [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>SearchParser</B>>];
-    StaxUtils           [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>StaxUtils</B>>];
-    XmlNamespaces       [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>XmlNamespaces</B>>];
+    XmlModelParser -> EntityParser        [arrowtail=diamond, dir=back, label="1"];
+    XmlModelParser -> SearchParser        [arrowtail=diamond, dir=back, label="1"];
+    EntityParser   -> PropertyGroupParser [arrowtail=diamond, dir=back, label="1"];
 
-    // Композиция ♦
-    XmlModelParser -> EntityParser        [arrowtail=diamond, dir=back, label="1", fontsize=10];
-    XmlModelParser -> SearchParser        [arrowtail=diamond, dir=back, label="1", fontsize=10];
-    EntityParser   -> PropertyGroupParser [arrowtail=diamond, dir=back, label="1", fontsize=10];
-
-    // Ассоциация (use) — пунктир с обычной стрелкой
     EntityParser        -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
-    PropertyGroupParser -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
-    SearchParser        -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
-    EntityParser        -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
-    PropertyGroupParser -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
-    SearchParser        -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
+    PropertyGroupParser -> StaxUtils     [style=dashed];
+    SearchParser        -> StaxUtils     [style=dashed];
+    EntityParser        -> XmlNamespaces [style=dashed];
+    PropertyGroupParser -> XmlNamespaces [style=dashed];
+    SearchParser        -> XmlNamespaces [style=dashed];
 
     { rank=same; XmlModelParser; }
     { rank=same; EntityParser; SearchParser; }

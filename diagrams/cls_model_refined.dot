@@ -1,46 +1,35 @@
-digraph ClsModelRefined {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 30. Уточнённая диаграмма классов пакета «Model»";
-    labelloc="b";
-    fontsize=14;
-    nodesep=0.35;
-    ranksep=0.7;
+digraph Model {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 30. Уточнённая диаграмма классов пакета «Model»"; labelloc=b;
+    nodesep=0.35; ranksep=0.7;
+    node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor=white];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
 
-    node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled"];
-    edge [fontname="DejaVu Sans", fontsize=9];
+    AppModel       [label="AppModel"];
+    EntityObject   [label="EntityObject"];
+    PropertyGroup  [label="PropertyGroup"];
+    Property       [label="Property"];
+    Operation      [label="Operation"];
+    OperationParam [label="OperationParam"];
+    Modifier       [label="Modifier"];
+    Association    [label="Association"];
 
-    // === Корневая модель и иерархия сущностей ===
-    AppModel       [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>AppModel</B>>];
-    EntityObject   [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>EntityObject</B>>];
-    PropertyGroup  [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>PropertyGroup</B>>];
-    Property       [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Property</B>>];
-    Operation      [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Operation</B>>];
-    OperationParam [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>OperationParam</B>>];
-    Modifier       [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Modifier</B>>];
-    Association    [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Association</B>>];
+    Search                [label="Search"];
+    SearchParam           [label="SearchParam"];
+    SearchResult          [label="SearchResult"];
+    SearchResultProperty  [label="SearchResultProperty"];
 
-    // === Поиск ===
-    Search                [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Search</B>>];
-    SearchParam           [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>SearchParam</B>>];
-    SearchResult          [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>SearchResult</B>>];
-    SearchResultProperty  [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>SearchResultProperty</B>>];
+    AttrType   [label="AttrType\n«enumeration»"];
+    ModifyType [label="ModifyType\n«enumeration»"];
+    EntityKind [label="EntityKind\n«enumeration»"];
 
-    // === Перечисления ===
-    AttrType   [fillcolor="#FFFACD", label=<<I>«enumeration»</I><BR/><B>AttrType</B>>];
-    ModifyType [fillcolor="#FFFACD", label=<<I>«enumeration»</I><BR/><B>ModifyType</B>>];
-    EntityKind [fillcolor="#FFFACD", label=<<I>«enumeration»</I><BR/><B>EntityKind</B>>];
+    EntityClassifier [peripheries=2, label="EntityClassifier\n«utility»"];
+    Classification   [label="Classification"];
 
-    // === Классификация ===
-    EntityClassifier [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>EntityClassifier</B>>];
-    Classification   [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>Classification</B>>];
+    TestRunResult  [label="TestRunResult"];
+    TestCaseResult [label="TestCaseResult"];
+    StepTiming     [label="StepTiming"];
 
-    // === Результаты прогона ===
-    TestRunResult  [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>TestRunResult</B>>];
-    TestCaseResult [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>TestCaseResult</B>>];
-    StepTiming     [fillcolor="#C1E1C1", label=<<I>«entity»</I><BR/><B>StepTiming</B>>];
-
-    // === Композиция ♦ (иерархия владения) ===
     AppModel      -> EntityObject  [arrowtail=diamond, dir=back, label="1..*"];
     AppModel      -> Search        [arrowtail=diamond, dir=back, label="0..*"];
     EntityObject  -> PropertyGroup [arrowtail=diamond, dir=back, label="1..*"];
@@ -55,16 +44,13 @@ digraph ClsModelRefined {
     TestRunResult -> TestCaseResult[arrowtail=diamond, dir=back, label="0..*"];
     TestCaseResult-> StepTiming    [arrowtail=diamond, dir=back, label="0..*"];
 
-    // === Ассоциация → (использование enum) ===
     Property -> AttrType   [label="«use»", style=dashed];
     Modifier -> ModifyType [label="«use»", style=dashed];
 
-    // === Ассоциация (классификатор использует модель) ===
     EntityClassifier -> AppModel       [style=dashed, label="«use»"];
     EntityClassifier -> Classification [style=dashed, label="«create»"];
     Classification   -> EntityKind     [label="«use»", style=dashed];
 
-    // === Агрегация ◇ (Classification ссылается на parentEntity/parentGrid, не владея) ===
-    Classification -> EntityObject  [arrowtail=odiamond, dir=back, label="0..1\nparent", fontsize=9];
-    Classification -> PropertyGroup [arrowtail=odiamond, dir=back, label="0..1\nparentGrid", fontsize=9];
+    Classification -> EntityObject  [arrowtail=odiamond, dir=back, label="0..1\nparent"];
+    Classification -> PropertyGroup [arrowtail=odiamond, dir=back, label="0..1\nparentGrid"];
 }

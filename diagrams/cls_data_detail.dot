@@ -1,71 +1,55 @@
-digraph ClsData {
-    rankdir=TB;
-    fontname="DejaVu Sans";
-    label="Рис. 49. Уточнённая диаграмма классов пакета «Data» (после декомпозиции)";
-    labelloc="b";
-    fontsize=14;
+digraph DD {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    label="Рис. 50. Детальная диаграмма классов пакета «Data»"; labelloc=b;
     nodesep=0.5;
-
     node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
 
-    ReportDao [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFB6C1">
-        <TR><TD ALIGN="CENTER"><I>«control» «facade»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>ReportDao</B></TD></TR>
+    ReportDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>ReportDao  «фасад»</B></TD></TR>
         <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
             — testRunDao: final TestRunDao<BR/>
             — testCaseDao: final TestCaseDao</TD></TR>
         <TR><TD ALIGN="LEFT">+ ReportDao()<BR/>
             + ReportDao(DatabaseConnection)<BR/>
+            + ReportDao(conn, testRunDao, testCaseDao)<BR/>
             + saveRun(result: TestRunResult): void<BR/>
-            + getAllRuns(): List&lt;TestRunResult&gt;</TD></TR>
-        </TABLE>>];
+            + getAllRuns(): List&lt;TestRunResult&gt;</TD></TR></TABLE>>];
 
-    DbConn [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFB6C1">
-        <TR><TD ALIGN="CENTER"><I>«boundary»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>DatabaseConnection</B></TD></TR>
+    DbConn [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>DatabaseConnection</B></TD></TR>
         <TR><TD ALIGN="LEFT">+ DEFAULT_URL: static final String<BR/>
             — url: final String</TD></TR>
         <TR><TD ALIGN="LEFT">+ DatabaseConnection()<BR/>
             + DatabaseConnection(url: String)<BR/>
-            + open(): Connection throws SQLException<BR/>
-            + getUrl(): String</TD></TR>
-        </TABLE>>];
+            + open(): Connection<BR/>
+            + getUrl(): String</TD></TR></TABLE>>];
 
-    SchemaInit [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFB6C1">
-        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>SchemaInitializer</B></TD></TR>
+    SchemaInit [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>SchemaInitializer</B></TD></TR>
         <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection</TD></TR>
         <TR><TD ALIGN="LEFT">+ initialize(): void<BR/>
-            — createTestRunTable(Statement)<BR/>
-            — createTestCaseTable(Statement)</TD></TR>
-        </TABLE>>];
+            — createTestRunTable(Statement): void<BR/>
+            — createTestCaseTable(Statement): void</TD></TR></TABLE>>];
 
-    TestRunDao [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFB6C1">
-        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>TestRunDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection</TD></TR>
-        <TR><TD ALIGN="LEFT">+ insert(conn, result): long<BR/>
-            + selectAll(conn): List&lt;RunRow&gt;</TD></TR>
-        </TABLE>>];
+    TestRunDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>TestRunDao</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
+              DT_FORMAT: static final (package)</TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestRunDao(DatabaseConnection)<BR/>
+            + insert(conn, result): long<BR/>
+            + selectAll(conn): List&lt;RunRow&gt;</TD></TR></TABLE>>];
 
-    TestCaseDao [label=<
-        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFB6C1">
-        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
-        <TR><TD ALIGN="CENTER"><B>TestCaseDao</B></TD></TR>
+    TestCaseDao [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD><B>TestCaseDao</B></TD></TR>
+        <TR><TD ALIGN="LEFT">(нет полей-состояния)</TD></TR>
         <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId, cases): void<BR/>
             + selectByRunId(conn, runId):<BR/>
-            List&lt;TestCaseResult&gt;</TD></TR>
-        </TABLE>>];
+            List&lt;TestCaseResult&gt;</TD></TR></TABLE>>];
 
-    ReportDao -> DbConn      [arrowtail=diamond, dir=back, label="◆"];
-    ReportDao -> TestRunDao  [arrowtail=diamond, dir=back, label="◆"];
-    ReportDao -> TestCaseDao [arrowtail=diamond, dir=back, label="◆"];
-    ReportDao -> SchemaInit  [style=dashed, label="«create at init»", fontsize=8];
-
-    TestRunDao -> DbConn [arrowtail=diamond, dir=back, style=dashed, label="◇"];
-    SchemaInit -> DbConn [arrowtail=diamond, dir=back, style=dashed, label="◇"];
+    ReportDao -> DbConn      [arrowtail=diamond, dir=back, label="1"];
+    ReportDao -> TestRunDao  [arrowtail=diamond, dir=back, label="1"];
+    ReportDao -> TestCaseDao [arrowtail=diamond, dir=back, label="1"];
+    ReportDao -> SchemaInit  [style=dashed, label="«create at init»", fontsize=9];
+    TestRunDao -> DbConn [arrowtail=odiamond, dir=back, label="1"];
+    SchemaInit -> DbConn [arrowtail=odiamond, dir=back, label="1"];
 }

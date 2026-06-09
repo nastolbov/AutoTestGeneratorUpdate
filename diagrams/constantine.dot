@@ -1,0 +1,92 @@
+digraph C {
+    rankdir=TB; fontname="DejaVu Sans"; fontsize=18;
+    ranksep=1.0; nodesep=0.45;
+    label="Структурная карта Константайна\nдля информационной системы AutoTestGenerator"; labelloc=t;
+    node [fontname="DejaVu Sans", fontsize=11, fillcolor=white, style=filled];
+    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+
+    App                 [shape=box, label="App\n(точка входа)"];
+    MainController      [shape=box, label="MainController"];
+    XmlModelParser      [shape=box, label="XmlModelParser\n«фасад»"];
+    TestConfig          [shape=box, label="TestConfig"];
+    TestGenerator       [shape=box, label="TestGenerator\n«дирижёр»"];
+    TestRunner          [shape=box, label="TestRunner"];
+    ReportDao           [shape=box, label="ReportDao\n«фасад»"];
+    EntityParser        [shape=box, label="EntityParser"];
+    SearchParser        [shape=box, label="SearchParser"];
+    PropertyGroupParser [shape=box, label="PropertyGroupParser"];
+    PageObjectWriter    [shape=box, label="PageObjectWriter"];
+    TestClassWriter     [shape=box, label="TestClassWriter"];
+    EntityClassifier    [shape=box, label="EntityClassifier"];
+    TestDataFactory     [shape=box, label="TestDataFactory"];
+    DatabaseConnection  [shape=box, label="DatabaseConnection"];
+    SchemaInitializer   [shape=box, label="SchemaInitializer"];
+    TestRunDao          [shape=box, label="TestRunDao"];
+    TestCaseDao         [shape=box, label="TestCaseDao"];
+
+    StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
+    XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
+    JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
+    Transliterator [shape=box, peripheries=2, label="Transliterator"];
+
+    SQLite   [shape=ellipse, label="autotestgen.db\n(SQLite)"];
+    GenFiles [shape=ellipse, label="generated-tests/\n*.java, pom.xml,\nsurefire-reports/"];
+
+    App -> MainController [label="  1\n(FXML)"];
+
+    MainController -> XmlModelParser [label="↓○ File\n↑○ AppModel"];
+    MainController -> TestConfig     [label="↓○ setters"];
+    MainController -> TestGenerator  [label="↓○ AppModel,\n   TestConfig"];
+    MainController -> TestRunner     [label="↓○ outputDir, filter\n↓● fastMode"];
+    MainController -> ReportDao      [label="↓○ TestRunResult\n↑○ List<…>"];
+
+    XmlModelParser -> EntityParser [label="↓○ reader\n↑○ EntityObject"];
+    XmlModelParser -> SearchParser [label="↓○ reader\n↑○ List<Search>"];
+    EntityParser -> PropertyGroupParser [label="↓○ reader\n↑○ PropertyGroup"];
+
+    TestGenerator -> EntityClassifier [label="цикл\n↓○ entity, model\n↑○ Classification"];
+    TestGenerator -> PageObjectWriter [label="цикл\n↓○ entity, config"];
+    TestGenerator -> TestClassWriter  [label="цикл\n↓○ entity, model, config"];
+    TestGenerator -> TestDataFactory  [label="↓○ property\n↑○ String"];
+
+    ReportDao -> DatabaseConnection [label="↓○ url\n↑○ Connection"];
+    ReportDao -> SchemaInitializer  [label="«init»"];
+    ReportDao -> TestRunDao         [label="↓○ conn, result\n↑○ runId"];
+    ReportDao -> TestCaseDao        [label="↓○ conn, runId, cases"];
+
+    EntityParser        -> StaxUtils [style=dashed];
+    SearchParser        -> StaxUtils [style=dashed];
+    PropertyGroupParser -> StaxUtils [style=dashed];
+    EntityParser        -> XmlNamespaces [style=dashed];
+    SearchParser        -> XmlNamespaces [style=dashed];
+    PropertyGroupParser -> XmlNamespaces [style=dashed];
+    PageObjectWriter -> JavaFileWriter [style=dashed];
+    TestClassWriter  -> JavaFileWriter [style=dashed];
+    PageObjectWriter -> Transliterator [style=dashed];
+    TestClassWriter  -> Transliterator [style=dashed];
+
+    TestGenerator -> GenFiles [label="↓○ записывает"];
+    TestRunner    -> GenFiles [label="↑○ читает\n   surefire-reports/"];
+    DatabaseConnection -> SQLite [label="JDBC"];
+
+    { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; }
+    { rank=same; EntityParser; SearchParser; PropertyGroupParser;
+                 PageObjectWriter; TestClassWriter; EntityClassifier; TestDataFactory;
+                 DatabaseConnection; SchemaInitializer; TestRunDao; TestCaseDao; }
+    { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; }
+    { rank=same; GenFiles; SQLite; }
+
+    subgraph cluster_legend {
+        label="Условные обозначения (по Л. Константайну)";
+        labelloc=b; style=dashed; fontsize=11; margin=12;
+        L_mod  [shape=box, label="модуль"];
+        L_lib  [shape=box, peripheries=2, label="библиотека"];
+        L_data [shape=ellipse, label="область\nданных"];
+        L_n1 [shape=plaintext, label="↓○ ↑○ — связь по данным (data couple)"];
+        L_n2 [shape=plaintext, label="↓● — связь по управлению (control couple)"];
+        L_n3 [shape=plaintext, label="«1» — однократный вызов  /  «цикл» — циклический"];
+        L_n4 [shape=plaintext, label="— — — common coupling (использование библиотеки)"];
+        L_mod -> L_lib -> L_data [style=invis];
+        L_data -> L_n1 -> L_n2 -> L_n3 -> L_n4 [style=invis];
+    }
+}
