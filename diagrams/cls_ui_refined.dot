@@ -1,0 +1,27 @@
+digraph ClsUIRefined {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.6;
+    ranksep=0.9;
+
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
+    edge [fontname="DejaVu Sans", fontsize=10];
+
+    App            [fillcolor="#FFE4B5", label=<<I>«boundary»</I><BR/><B>App</B>>];
+    MainController [fillcolor="#FFE4B5", label=<<I>«control»</I><BR/><B>MainController</B>>];
+    TestCaseRow    [fillcolor="#FFE4B5", label=<<I>«entity»</I><BR/><B>TestCaseRow</B>>];
+
+    JavaFXApp      [fillcolor="#E8E8E8", label=<<I>«framework»</I><BR/><B>javafx.application.Application</B>>];
+
+    // Обобщение (наследование) — пустой треугольник
+    App -> JavaFXApp [arrowhead=empty, label="extends", fontsize=9];
+
+    // Ассоциация — обычная стрелка (создание через FXML)
+    App -> MainController [label="«create»\n(FXML)", style=dashed, fontsize=9];
+
+    // Композиция ♦ — закрашенный ромб (inner static class)
+    MainController -> TestCaseRow [arrowtail=diamond, dir=back, label="1..*", fontsize=10];
+}

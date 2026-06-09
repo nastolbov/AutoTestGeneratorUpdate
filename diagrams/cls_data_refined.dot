@@ -1,0 +1,35 @@
+digraph ClsDataRefined {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 49. Уточнённая диаграмма классов пакета «Data»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+    ranksep=0.9;
+
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
+    edge [fontname="DejaVu Sans", fontsize=10];
+
+    ReportDao          [fillcolor="#FFB6C1", label=<<I>«control» «facade»</I><BR/><B>ReportDao</B>>];
+    DatabaseConnection [fillcolor="#FFB6C1", label=<<I>«boundary»</I><BR/><B>DatabaseConnection</B>>];
+    SchemaInitializer  [fillcolor="#FFB6C1", label=<<I>«control»</I><BR/><B>SchemaInitializer</B>>];
+    TestRunDao         [fillcolor="#FFB6C1", label=<<I>«control»</I><BR/><B>TestRunDao</B>>];
+    TestCaseDao        [fillcolor="#FFB6C1", label=<<I>«control»</I><BR/><B>TestCaseDao</B>>];
+
+    // Композиция ♦ — фасад владеет под-DAO и connection
+    ReportDao -> DatabaseConnection [arrowtail=diamond, dir=back, label="1", fontsize=10];
+    ReportDao -> TestRunDao         [arrowtail=diamond, dir=back, label="1", fontsize=10];
+    ReportDao -> TestCaseDao        [arrowtail=diamond, dir=back, label="1", fontsize=10];
+
+    // Ассоциация — создаёт SchemaInitializer на init и сразу выкидывает
+    ReportDao -> SchemaInitializer [style=dashed, label="«create at init»", fontsize=9];
+
+    // Агрегация ◇ — TestRunDao и SchemaInitializer ссылаются на DatabaseConnection,
+    // но не владеют им (его владеет ReportDao)
+    TestRunDao        -> DatabaseConnection [arrowtail=odiamond, dir=back, label="1", fontsize=10];
+    SchemaInitializer -> DatabaseConnection [arrowtail=odiamond, dir=back, label="1", fontsize=10];
+
+    { rank=same; ReportDao; }
+    { rank=same; SchemaInitializer; TestRunDao; TestCaseDao; }
+    { rank=same; DatabaseConnection; }
+}

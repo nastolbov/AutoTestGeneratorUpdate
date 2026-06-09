@@ -1,0 +1,20 @@
+digraph ClsCommonRefined {
+    rankdir=LR;
+    fontname="DejaVu Sans";
+    label="Рис. 52. Уточнённая диаграмма классов пакета «Common»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.6;
+
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
+    edge [fontname="DejaVu Sans", fontsize=10];
+
+    Transliterator  [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>Transliterator</B>>];
+    JavaFileWriter  [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>JavaFileWriter</B>>];
+    ParserException [fillcolor="#FFCDD2", label=<<I>«exception»</I><BR/><B>ParserException</B>>];
+
+    JavaException [fillcolor="#E8E8E8", label=<<I>«system»</I><BR/><B>java.lang.Exception</B>>];
+
+    // Обобщение ▷
+    ParserException -> JavaException [arrowhead=empty, label="extends", fontsize=9];
+}

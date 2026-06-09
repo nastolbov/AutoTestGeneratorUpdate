@@ -1,0 +1,37 @@
+digraph ClsParserRefined {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+    ranksep=0.8;
+
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
+    edge [fontname="DejaVu Sans", fontsize=10];
+
+    XmlModelParser      [fillcolor="#B0E0E6", label=<<I>«control» «facade»</I><BR/><B>XmlModelParser</B>>];
+    EntityParser        [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>EntityParser</B>>];
+    PropertyGroupParser [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>PropertyGroupParser</B>>];
+    SearchParser        [fillcolor="#B0E0E6", label=<<I>«control»</I><BR/><B>SearchParser</B>>];
+    StaxUtils           [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>StaxUtils</B>>];
+    XmlNamespaces       [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>XmlNamespaces</B>>];
+
+    // Композиция ♦
+    XmlModelParser -> EntityParser        [arrowtail=diamond, dir=back, label="1", fontsize=10];
+    XmlModelParser -> SearchParser        [arrowtail=diamond, dir=back, label="1", fontsize=10];
+    EntityParser   -> PropertyGroupParser [arrowtail=diamond, dir=back, label="1", fontsize=10];
+
+    // Ассоциация (use) — пунктир с обычной стрелкой
+    EntityParser        -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
+    PropertyGroupParser -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
+    SearchParser        -> StaxUtils     [style=dashed, label="«use»", fontsize=9];
+    EntityParser        -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
+    PropertyGroupParser -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
+    SearchParser        -> XmlNamespaces [style=dashed, label="«use»", fontsize=9];
+
+    { rank=same; XmlModelParser; }
+    { rank=same; EntityParser; SearchParser; }
+    { rank=same; PropertyGroupParser; }
+    { rank=same; StaxUtils; XmlNamespaces; }
+}

@@ -1,0 +1,35 @@
+digraph ClsGenRefined {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 32. Уточнённая диаграмма классов пакета «Generator»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+    ranksep=0.9;
+
+    node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled"];
+    edge [fontname="DejaVu Sans", fontsize=10];
+
+    TestConfig       [fillcolor="#D8BFD8", label=<<I>«entity»</I><BR/><B>TestConfig</B>>];
+    TestGenerator    [fillcolor="#D8BFD8", label=<<I>«control» «director»</I><BR/><B>TestGenerator</B>>];
+    PageObjectWriter [fillcolor="#D8BFD8", label=<<I>«control»</I><BR/><B>PageObjectWriter</B>>];
+    TestClassWriter  [fillcolor="#D8BFD8", label=<<I>«control»</I><BR/><B>TestClassWriter</B>>];
+    TestDataFactory  [fillcolor="#F0F0F0", peripheries=2, label=<<I>«utility»</I><BR/><B>TestDataFactory</B>>];
+    TestRunner       [fillcolor="#D8BFD8", label=<<I>«control» «boundary»</I><BR/><B>TestRunner</B>>];
+    RunReportWriter  [fillcolor="#D8BFD8", label=<<I>«control»</I><BR/><B>RunReportWriter</B>>];
+
+    // Агрегация ◇ — config извне через конструктор
+    TestGenerator -> TestConfig [arrowtail=odiamond, dir=back, label="1"];
+
+    // Ассоциация (create+use) — пунктир
+    TestGenerator -> PageObjectWriter [style=dashed, label="«create»\nцикл по сущностям", fontsize=9];
+    TestGenerator -> TestClassWriter  [style=dashed, label="«create»\nцикл по сущностям", fontsize=9];
+    TestGenerator -> TestDataFactory  [style=dashed, label="«use»"];
+
+    PageObjectWriter -> TestDataFactory [style=dashed, label="«use»"];
+    TestClassWriter  -> TestDataFactory [style=dashed, label="«use»"];
+
+    { rank=same; TestConfig; TestGenerator; }
+    { rank=same; PageObjectWriter; TestClassWriter; TestRunner; RunReportWriter; }
+    { rank=same; TestDataFactory; }
+}
