@@ -1,59 +1,60 @@
 digraph GD {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 33. Детальная диаграмма классов пакета «Generator»"; labelloc=b;
-    nodesep=0.4;
-    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+    nodesep=0.5;
+    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    TC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestConfig</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— baseUrl, login, password: String<BR/>
-            — outputDir: Path<BR/>
-            — browserType, basePackage, siteType,<BR/>
-              subsystemName, testLevel: String<BR/>
-            — smokeAllSubsystems: boolean</TD></TR>
-        <TR><TD ALIGN="LEFT">+ get/set для 10 полей</TD></TR></TABLE>>];
+    TC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestConfig</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- baseUrl, login, password: String<BR ALIGN="LEFT"/>
+            - outputDir: Path<BR ALIGN="LEFT"/>
+            - browserType, basePackage, siteType,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;subsystemName, testLevel: String<BR ALIGN="LEFT"/>
+            - smokeAllSubsystems: boolean<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ get/set для 10 полей<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestGenerator</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— config: final TestConfig</TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestGenerator(config: TestConfig)<BR/>
-            + generate(model: AppModel): void<BR/>
-            — generatePom, generateBaseTest,<BR/>
-              generateSharedDriver, generateTestData,<BR/>
-              generateSubsystemsSmokeTest</TD></TR></TABLE>>];
+    TG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestGenerator</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- config: final TestConfig<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestGenerator(config: TestConfig)<BR ALIGN="LEFT"/>
+            + generate(model: AppModel): void<BR ALIGN="LEFT"/>
+            - generatePom, generateBaseTest,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;generateSharedDriver, generateTestData,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;generateSubsystemsSmokeTest<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    POW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>PageObjectWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ write(entity: EntityObject,<BR/>
-              outputDir: Path): void</TD></TR></TABLE>>];
+    POW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>PageObjectWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ write(entity: EntityObject,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;outputDir: Path): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TCW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestClassWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ write(entity, model, outputDir): void<BR/>
-            + writeChildTest(...): void</TD></TR></TABLE>>];
+    TCW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestClassWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ write(entity, model, outputDir): void<BR ALIGN="LEFT"/>
+            + writeChildTest(...): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TDF [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestDataFactory</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ generateValue(prop): static String<BR/>
-            + generateSearchParamValue(p):<BR/>
-              static String<BR/>
-            + generateFromMask(mask): static String</TD></TR></TABLE>>];
+    TDF [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestDataFactory</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ generateValue(prop): static String<BR ALIGN="LEFT"/>
+            + generateSearchParamValue(p):<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;static String<BR ALIGN="LEFT"/>
+            + generateFromMask(mask): static String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestRunner</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— lastMavenOutput: String</TD></TR>
-        <TR><TD ALIGN="LEFT">+ run(projectDir, xml, url): TestRunResult<BR/>
-            + run(..., lineConsumer): TestRunResult<BR/>
-            + run(..., testFilter): TestRunResult<BR/>
-            + run(..., testFilter, fastMode):<BR/>
-              TestRunResult</TD></TR></TABLE>>];
+    TR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestRunner</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- lastMavenOutput: String<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ run(projectDir, xml, url): TestRunResult<BR ALIGN="LEFT"/>
+            + run(..., lineConsumer): TestRunResult<BR ALIGN="LEFT"/>
+            + run(..., testFilter): TestRunResult<BR ALIGN="LEFT"/>
+            + run(..., testFilter, fastMode):<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;TestRunResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    RRW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>RunReportWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ writeHtml(result, outputDir): void<BR/>
-            + writeCsv(result, outputDir): void</TD></TR></TABLE>>];
+    RRW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>RunReportWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ writeHtml(result, outputDir): void<BR ALIGN="LEFT"/>
+            + writeCsv(result, outputDir): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TG -> TC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    TG -> TC  [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
     TG -> POW [taillabel="1", headlabel="*"];
     TG -> TCW [taillabel="1", headlabel="*"];
     TG -> TDF; POW -> TDF; TCW -> TDF;

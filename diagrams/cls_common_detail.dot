@@ -1,34 +1,34 @@
 digraph CD {
-    rankdir=LR; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=LR; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 53. Детальная диаграмма классов пакета «Common»"; labelloc=b;
-    nodesep=0.7;
-    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+    nodesep=1.0;
+    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
 
-    T [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>Transliterator</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— MAPPING: static final<BR/>
-              Map&lt;Character, String&gt;</TD></TR>
-        <TR><TD ALIGN="LEFT">+ toClassName(s: String): static String<BR/>
-            + toMethodName(s: String): static String<BR/>
-            + toFieldName(s: String): static String<BR/>
-            — transliterate(w: String): static String<BR/>
-            — snakeToCamel(s: String): static String</TD></TR></TABLE>>];
+    T [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Transliterator</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- MAPPING: static final<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;Map&lt;Character, String&gt;<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ toClassName(s: String): static String<BR ALIGN="LEFT"/>
+            + toMethodName(s: String): static String<BR ALIGN="LEFT"/>
+            + toFieldName(s: String): static String<BR ALIGN="LEFT"/>
+            - transliterate(w: String): static String<BR ALIGN="LEFT"/>
+            - snakeToCamel(s: String): static String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    JW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>JavaFileWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— sb: final StringBuilder<BR/>
-            — indentLevel: int<BR/>
-            — INDENT: static "    "</TD></TR>
-        <TR><TD ALIGN="LEFT">+ writeLine(line: String): JavaFileWriter<BR/>
-            + writeLine(): JavaFileWriter<BR/>
-            + openBlock(header: String): JavaFileWriter<BR/>
-            + closeBlock(): JavaFileWriter<BR/>
-            + writeToFile(dir: Path, fileName: String): void<BR/>
-            + toString(): String</TD></TR></TABLE>>];
+    JW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>JavaFileWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- sb: final StringBuilder<BR ALIGN="LEFT"/>
+            - indentLevel: int<BR ALIGN="LEFT"/>
+            - INDENT: static "    "<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ writeLine(line: String): JavaFileWriter<BR ALIGN="LEFT"/>
+            + writeLine(): JavaFileWriter<BR ALIGN="LEFT"/>
+            + openBlock(header: String): JavaFileWriter<BR ALIGN="LEFT"/>
+            + closeBlock(): JavaFileWriter<BR ALIGN="LEFT"/>
+            + writeToFile(dir: Path, fileName: String): void<BR ALIGN="LEFT"/>
+            + toString(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    PE [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>ParserException</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ ParserException(message: String)<BR/>
-            + ParserException(message: String,<BR/>
-              cause: Throwable)</TD></TR></TABLE>>];
+    PE [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>ParserException</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ ParserException(message: String)<BR ALIGN="LEFT"/>
+            + ParserException(message: String,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;cause: Throwable)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 }

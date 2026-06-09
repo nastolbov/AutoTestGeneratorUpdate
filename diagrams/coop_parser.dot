@@ -1,11 +1,11 @@
 digraph CoopParser {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 24. Диаграмма кооперации пакета «Parser»\n(1.x — нормальный ход, 1.x.Ex — XMLStreamException)"; labelloc=b;
-    nodesep=0.7;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+    nodesep=0.8;
+    node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    MC   [label=":MainController"];
+    MC   [label=":MainController «ui»"];
     XMP  [label=":XmlModelParser"];
     EP   [label=":EntityParser"];
     PGP  [label=":PropertyGroupParser"];

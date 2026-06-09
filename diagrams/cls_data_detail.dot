@@ -1,54 +1,55 @@
 digraph DD {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 50. Детальная диаграмма классов пакета «Data»"; labelloc=b;
-    nodesep=0.5;
-    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+    nodesep=0.6; ranksep=0.9;
+    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    RD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>ReportDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
-            — testRunDao: final TestRunDao<BR/>
-            — testCaseDao: final TestCaseDao</TD></TR>
-        <TR><TD ALIGN="LEFT">+ ReportDao()<BR/>
-            + ReportDao(connection: DatabaseConnection)<BR/>
-            + ReportDao(connection, testRunDao,<BR/>
-              testCaseDao)<BR/>
-            + saveRun(result: TestRunResult): void<BR/>
-            + getAllRuns(): List&lt;TestRunResult&gt;</TD></TR></TABLE>>];
+    RD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>ReportDao</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/>
+            - testRunDao: final TestRunDao<BR ALIGN="LEFT"/>
+            - testCaseDao: final TestCaseDao<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ ReportDao()<BR ALIGN="LEFT"/>
+            + ReportDao(connection: DatabaseConnection)<BR ALIGN="LEFT"/>
+            + ReportDao(connection, testRunDao,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;testCaseDao)<BR ALIGN="LEFT"/>
+            + saveRun(result: TestRunResult): void<BR ALIGN="LEFT"/>
+            + getAllRuns(): List&lt;TestRunResult&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    DC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>DatabaseConnection</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ DEFAULT_URL: static final String<BR/>
-            — url: final String</TD></TR>
-        <TR><TD ALIGN="LEFT">+ DatabaseConnection()<BR/>
-            + DatabaseConnection(url: String)<BR/>
-            + open(): Connection<BR/>
-            + getUrl(): String</TD></TR></TABLE>>];
+    DC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>DatabaseConnection</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ DEFAULT_URL: static final String<BR ALIGN="LEFT"/>
+            - url: final String<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ DatabaseConnection()<BR ALIGN="LEFT"/>
+            + DatabaseConnection(url: String)<BR ALIGN="LEFT"/>
+            + open(): Connection<BR ALIGN="LEFT"/>
+            + getUrl(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    SI [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>SchemaInitializer</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection</TD></TR>
-        <TR><TD ALIGN="LEFT">+ SchemaInitializer(connection)<BR/>
-            + initialize(): void<BR/>
-            — createTestRunTable(stmt): void<BR/>
-            — createTestCaseTable(stmt): void</TD></TR></TABLE>>];
+    SI [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>SchemaInitializer</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ SchemaInitializer(connection)<BR ALIGN="LEFT"/>
+            + initialize(): void<BR ALIGN="LEFT"/>
+            - createTestRunTable(stmt): void<BR ALIGN="LEFT"/>
+            - createTestCaseTable(stmt): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TRD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestRunDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— connection: final DatabaseConnection<BR/>
-              DT_FORMAT: static final<BR/>
-              DateTimeFormatter (package)</TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestRunDao(DatabaseConnection)<BR/>
-            + insert(conn, result): long<BR/>
-            + selectAll(conn): List&lt;RunRow&gt;</TD></TR></TABLE>>];
+    TRD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestRunDao</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;DT_FORMAT: static final<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;DateTimeFormatter (package)<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestRunDao(DatabaseConnection)<BR ALIGN="LEFT"/>
+            + insert(conn, result): long<BR ALIGN="LEFT"/>
+            + selectAll(conn): List&lt;RunRow&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TCD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
-        <TR><TD><B>TestCaseDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">(нет полей-состояния)</TD></TR>
-        <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId,<BR/>
-              cases: List&lt;TestCaseResult&gt;): void<BR/>
-            + selectByRunId(conn, runId):<BR/>
-              List&lt;TestCaseResult&gt;</TD></TR></TABLE>>];
+    TCD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestCaseDao</B></TD></TR>
+        <TR><TD ALIGN="LEFT">(нет полей-состояния)<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;cases: List&lt;TestCaseResult&gt;): void<BR ALIGN="LEFT"/>
+            + selectByRunId(conn, runId):<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;List&lt;TestCaseResult&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
     RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];

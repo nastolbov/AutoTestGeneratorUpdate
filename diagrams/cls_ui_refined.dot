@@ -1,9 +1,9 @@
 digraph UIR {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 18. Уточнённая диаграмма классов пакета «UI»"; labelloc=b;
-    nodesep=0.6; ranksep=0.9;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+    nodesep=0.9; ranksep=1.2;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, labelfontsize=10, arrowsize=0.9];
 
     App            [label="App"];
     MainController [label="MainController"];

@@ -1,9 +1,9 @@
 digraph CoopUI {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 17. Диаграмма кооперации пакета «UI»\n(1.x — нормальный ход, 2.x — прерывание пользователем, 1.x.Ex — исключение)"; labelloc=b;
-    nodesep=0.8; ranksep=0.8;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+    nodesep=0.9; ranksep=1.0;
+    node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
     User    [shape=none, label=<<TABLE BORDER="0"><TR><TD><FONT POINT-SIZE="36">&#9786;</FONT></TD></TR><TR><TD>Пользователь</TD></TR></TABLE>>];
     App     [label="App"];

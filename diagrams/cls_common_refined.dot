@@ -1,8 +1,8 @@
 digraph CR {
-    rankdir=LR; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=LR; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 52. Уточнённая диаграмма классов пакета «Common»"; labelloc=b;
-    nodesep=0.8;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    nodesep=1.0;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
 
     T  [label="Transliterator"];
     JW [label="JavaFileWriter"];

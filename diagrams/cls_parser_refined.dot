@@ -1,9 +1,9 @@
 digraph PR {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»"; labelloc=b;
-    nodesep=0.5; ranksep=0.7;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+    nodesep=0.7; ranksep=1.0;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
     XMP [label="XmlModelParser"];
     EP  [label="EntityParser"];
@@ -15,12 +15,8 @@ digraph PR {
     XMP -> EP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     XMP -> SP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     EP  -> PGP [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    EP  -> SU  [taillabel="1", headlabel="1"];
-    PGP -> SU  [taillabel="1", headlabel="1"];
-    SP  -> SU  [taillabel="1", headlabel="1"];
-    EP  -> XN  [taillabel="1", headlabel="1"];
-    PGP -> XN  [taillabel="1", headlabel="1"];
-    SP  -> XN  [taillabel="1", headlabel="1"];
+    EP  -> SU; PGP -> SU; SP -> SU;
+    EP  -> XN; PGP -> XN; SP -> XN;
 
     { rank=same; XMP; }
     { rank=same; EP; SP; }

@@ -1,9 +1,9 @@
 digraph GR {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 32. Уточнённая диаграмма классов пакета «Generator»"; labelloc=b;
-    nodesep=0.5; ranksep=0.9;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+    nodesep=0.7; ranksep=1.1;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
     TC  [label="TestConfig"];
     TG  [label="TestGenerator"];
@@ -13,12 +13,10 @@ digraph GR {
     TR  [label="TestRunner"];
     RRW [label="RunReportWriter"];
 
-    TG -> TC  [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    TG -> TC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
     TG -> POW [taillabel="1", headlabel="*"];
     TG -> TCW [taillabel="1", headlabel="*"];
-    TG -> TDF [taillabel="1", headlabel="1"];
-    POW -> TDF [taillabel="1", headlabel="1"];
-    TCW -> TDF [taillabel="1", headlabel="1"];
+    TG -> TDF; POW -> TDF; TCW -> TDF;
 
     { rank=same; TC; TG; }
     { rank=same; POW; TCW; TR; RRW; }

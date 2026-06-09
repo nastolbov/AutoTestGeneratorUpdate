@@ -1,53 +1,54 @@
 digraph UID {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 19. Детальная диаграмма классов пакета «UI»"; labelloc=b;
-    nodesep=0.5;
-    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+    nodesep=0.8; ranksep=1.0;
+    node [fontname="Liberation Serif", fontsize=11, shape=plaintext];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    App [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    App [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>App</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ start(primaryStage: Stage): void<BR/>
-            + main(args: String[]): void</TD></TR></TABLE>>];
+        <TR><TD ALIGN="LEFT">+ start(primaryStage: Stage): void<BR ALIGN="LEFT"/>
+            + main(args: String[]): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    MainController [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    MainController [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>MainController</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— xmlPathField, urlField, loginField,<BR/>
-            outputDirField: TextField<BR/>
-            — passwordField: PasswordField<BR/>
-            — testLevelCombo, siteTypeCombo:<BR/>
-              ComboBox&lt;String&gt;<BR/>
-            — smokeAllSubsystemsCheck,<BR/>
-              fastModeCheck: CheckBox<BR/>
-            — btnSelectXml, btnParse, btnGenerate,<BR/>
-              btnRunTests, btnRunSelected,<BR/>
-              btnShowHistory: Button<BR/>
-            — entityListView: ListView&lt;String&gt;<BR/>
-            — resultsTable: TableView&lt;TestCaseRow&gt;<BR/>
-            — currentModel: AppModel<BR/>
-            — reportDao: final ReportDao</TD></TR>
-        <TR><TD ALIGN="LEFT">+ initialize(): void<BR/>
-            — onParse(): void<BR/>
-            — onGenerate(): void<BR/>
-            — onRunTests(): void<BR/>
-            — onRunSelected(): void<BR/>
-            — launchRun(filter: String): void<BR/>
-            — onShowHistory(): void<BR/>
-            — displayResults(r: TestRunResult): void<BR/>
-            — log(msg: String): void</TD></TR></TABLE>>];
+        <TR><TD ALIGN="LEFT">- xmlPathField, urlField, loginField,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;outputDirField: TextField<BR ALIGN="LEFT"/>
+            - passwordField: PasswordField<BR ALIGN="LEFT"/>
+            - testLevelCombo, siteTypeCombo:<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;ComboBox&lt;String&gt;<BR ALIGN="LEFT"/>
+            - smokeAllSubsystemsCheck,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;fastModeCheck: CheckBox<BR ALIGN="LEFT"/>
+            - btnSelectXml, btnParse, btnGenerate,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;btnRunTests, btnRunSelected,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;btnShowHistory: Button<BR ALIGN="LEFT"/>
+            - entityListView: ListView&lt;String&gt;<BR ALIGN="LEFT"/>
+            - resultsTable: TableView&lt;TestCaseRow&gt;<BR ALIGN="LEFT"/>
+            - currentModel: AppModel<BR ALIGN="LEFT"/>
+            - reportDao: final ReportDao<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ initialize(): void<BR ALIGN="LEFT"/>
+            - onParse(): void<BR ALIGN="LEFT"/>
+            - onGenerate(): void<BR ALIGN="LEFT"/>
+            - onRunTests(): void<BR ALIGN="LEFT"/>
+            - onRunSelected(): void<BR ALIGN="LEFT"/>
+            - launchRun(filter: String): void<BR ALIGN="LEFT"/>
+            - onShowHistory(): void<BR ALIGN="LEFT"/>
+            - displayResults(r: TestRunResult): void<BR ALIGN="LEFT"/>
+            - log(msg: String): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TestCaseRow [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+    TestCaseRow [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
         <TR><TD ALIGN="CENTER"><B>TestCaseRow</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— className: final String<BR/>
-            — methodName: final String<BR/>
-            — status:     final String<BR/>
-            — duration:   final String<BR/>
-            — message:    final String</TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestCaseRow(...): конструктор<BR/>
-            + getClassName(): String<BR/>
-            + getMethodName(): String<BR/>
-            + getStatus(): String<BR/>
-            + getDuration(): String<BR/>
-            + getMessage(): String</TD></TR></TABLE>>];
+        <TR><TD ALIGN="LEFT">- className: final String<BR ALIGN="LEFT"/>
+            - methodName: final String<BR ALIGN="LEFT"/>
+            - status: final String<BR ALIGN="LEFT"/>
+            - duration: final String<BR ALIGN="LEFT"/>
+            - message: final String<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestCaseRow(...): конструктор<BR ALIGN="LEFT"/>
+            + getClassName(): String<BR ALIGN="LEFT"/>
+            + getMethodName(): String<BR ALIGN="LEFT"/>
+            + getStatus(): String<BR ALIGN="LEFT"/>
+            + getDuration(): String<BR ALIGN="LEFT"/>
+            + getMessage(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
     App -> MainController [taillabel="1", headlabel="1"];
     MainController -> TestCaseRow [arrowtail=diamond, dir=back, taillabel="1", headlabel="*"];

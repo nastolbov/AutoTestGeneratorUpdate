@@ -1,9 +1,9 @@
 digraph GII {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 27. Исходная диаграмма классов пакета «Generator»"; labelloc=b;
-    nodesep=0.5; ranksep=0.8;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+    nodesep=0.7; ranksep=1.1;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=1.8, arrowsize=0.9];
 
     TC  [label="TestConfig"];
     TG  [label="TestGenerator"];

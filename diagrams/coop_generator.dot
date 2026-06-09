@@ -1,11 +1,11 @@
 digraph CoopGen {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 31. Диаграмма кооперации пакета «Generator»\n(1.x — generate, 2.x — run; 1.x.Ex — IOException)"; labelloc=b;
-    nodesep=0.7;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+    nodesep=0.8;
+    node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    MC   [label=":MainController"];
+    MC   [label=":MainController «ui»"];
     TC   [label=":TestConfig"];
     TG   [label=":TestGenerator"];
     POW  [label=":PageObjectWriter"];

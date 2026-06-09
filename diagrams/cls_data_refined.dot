@@ -1,9 +1,9 @@
 digraph DR {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 49. Уточнённая диаграмма классов пакета «Data»"; labelloc=b;
-    nodesep=0.5; ranksep=0.9;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=10];
+    nodesep=0.7; ranksep=1.1;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
     RD  [label="ReportDao"];
     DC  [label="DatabaseConnection"];
@@ -11,13 +11,10 @@ digraph DR {
     TRD [label="TestRunDao"];
     TCD [label="TestCaseDao"];
 
-    // Композиция ♦ — фасад владеет под-DAO и connection
     RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     RD -> TCD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    // Ассоциация — create
     RD -> SI  [taillabel="1", headlabel="1"];
-    // Агрегация ◇ — общий connection
     TRD -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
     SI  -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
 

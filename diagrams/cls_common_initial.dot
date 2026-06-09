@@ -1,12 +1,10 @@
 digraph CII {
-    rankdir=LR; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=LR; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 51. Исходная диаграмма классов пакета «Common»"; labelloc=b;
-    nodesep=0.7;
-    node [fontname="DejaVu Sans", fontsize=11, shape=box, style=filled, fillcolor=white];
+    nodesep=1.0;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
 
     T  [label="Transliterator"];
     JW [label="JavaFileWriter"];
     PE [label="ParserException"];
-
-    // Между собой не связаны — листовой пакет утилит
 }

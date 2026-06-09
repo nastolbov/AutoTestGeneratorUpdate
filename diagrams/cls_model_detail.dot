@@ -1,101 +1,102 @@
 digraph MD {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
     label="Рис. 31. Детальная диаграмма классов пакета «Model»"; labelloc=b;
-    nodesep=0.3; ranksep=0.5;
-    node [fontname="DejaVu Sans", fontsize=9, shape=plaintext];
+    nodesep=0.4; ranksep=0.6;
+    node [fontname="Liberation Serif", fontsize=9, shape=plaintext];
+    edge [color=black, fontname="Liberation Serif", fontsize=9, labeldistance=2.0, arrowsize=0.9];
 
-    AM [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>AppModel</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— categoryName, guid: String<BR/>
-            — entities: List&lt;EntityObject&gt;<BR/>
-            — searches: List&lt;Search&gt;</TD></TR>
-        <TR><TD ALIGN="LEFT">+ findEntityByGuid(guid: String):<BR/>
-              EntityObject<BR/>
-            + getSubsystemNameFromCategory(): String</TD></TR></TABLE>>];
+    AM [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>AppModel</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- categoryName, guid: String<BR ALIGN="LEFT"/>
+            - entities: List&lt;EntityObject&gt;<BR ALIGN="LEFT"/>
+            - searches: List&lt;Search&gt;<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ findEntityByGuid(guid: String):<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;EntityObject<BR ALIGN="LEFT"/>
+            + getSubsystemNameFromCategory(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    EO [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>EntityObject</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, name, keyName,<BR/>
-              featureName, nameValueMethod: String<BR/>
-            — associations: List&lt;Association&gt;<BR/>
-            — propertyGroups: List&lt;PropertyGroup&gt;</TD></TR>
-        <TR><TD ALIGN="LEFT">+ hasCrudOperations(): boolean<BR/>
-            + getFormView(): PropertyGroup</TD></TR></TABLE>>];
+    EO [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>EntityObject</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, name, keyName,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;featureName, nameValueMethod: String<BR ALIGN="LEFT"/>
+            - associations: List&lt;Association&gt;<BR ALIGN="LEFT"/>
+            - propertyGroups: List&lt;PropertyGroup&gt;<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ hasCrudOperations(): boolean<BR ALIGN="LEFT"/>
+            + getFormView(): PropertyGroup<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    PG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>PropertyGroup</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, name, stereoType,<BR/>
-              dmodule, typeLink: String<BR/>
-            — orderNumber: int<BR/>
-            — flagDisplay: boolean<BR/>
-            — properties: List&lt;Property&gt;<BR/>
-            — operation: Operation</TD></TR>
-        <TR><TD ALIGN="LEFT">+ isFormView(): boolean<BR/>
-            + isGridView(): boolean</TD></TR></TABLE>>];
+    PG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>PropertyGroup</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, name, stereoType,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;dmodule, typeLink: String<BR ALIGN="LEFT"/>
+            - orderNumber: int<BR ALIGN="LEFT"/>
+            - flagDisplay: boolean<BR ALIGN="LEFT"/>
+            - properties: List&lt;Property&gt;<BR ALIGN="LEFT"/>
+            - operation: Operation<BR ALIGN="LEFT"/></TD></TR>
+        <TR><TD ALIGN="LEFT">+ isFormView(): boolean<BR ALIGN="LEFT"/>
+            + isGridView(): boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    P [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>Property</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, name, stereoType,<BR/>
-              attrName, tableName, mask,<BR/>
-              defValueSource, comment: String<BR/>
-            — attrType: AttrType<BR/>
-            — required, flagDisplay: boolean<BR/>
-            — orderNumber: int</TD></TR></TABLE>>];
+    P [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Property</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, name, stereoType,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;attrName, tableName, mask,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;defValueSource, comment: String<BR ALIGN="LEFT"/>
+            - attrType: AttrType<BR ALIGN="LEFT"/>
+            - required, flagDisplay: boolean<BR ALIGN="LEFT"/>
+            - orderNumber: int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    Op [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>Operation</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, operationMethod,<BR/>
-              operationModule: String<BR/>
-            — params: List&lt;OperationParam&gt;<BR/>
-            — modifiers: List&lt;Modifier&gt;</TD></TR></TABLE>>];
+    Op [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Operation</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, operationMethod,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;operationModule: String<BR ALIGN="LEFT"/>
+            - params: List&lt;OperationParam&gt;<BR ALIGN="LEFT"/>
+            - modifiers: List&lt;Modifier&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    A [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>Association</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, roleA, roleB, featureName,<BR/>
-              associationId, associateItemName,<BR/>
-              associateItemGuid, searchGuid: String<BR/>
-            — flagDisplay, addFromTree: boolean</TD></TR></TABLE>>];
+    A [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Association</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, roleA, roleB, featureName,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;associationId, associateItemName,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;associateItemGuid, searchGuid: String<BR ALIGN="LEFT"/>
+            - flagDisplay, addFromTree: boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    S [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>Search</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— guid, name, query: String<BR/>
-            — minParamCount: int<BR/>
-            — params: List&lt;SearchParam&gt;<BR/>
-            — result: SearchResult</TD></TR></TABLE>>];
+    S [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Search</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- guid, name, query: String<BR ALIGN="LEFT"/>
+            - minParamCount: int<BR ALIGN="LEFT"/>
+            - params: List&lt;SearchParam&gt;<BR ALIGN="LEFT"/>
+            - result: SearchResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    EC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>EntityClassifier</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ classify(entity: EntityObject,<BR/>
-              model: AppModel):<BR/>
-              static Classification<BR/>
-            — findParentGrid, isFkTargetOnly,<BR/>
-              isReferenceDictionary,<BR/>
-              nameStemsMatch</TD></TR></TABLE>>];
+    EC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>EntityClassifier</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ classify(entity: EntityObject,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;model: AppModel):<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;static Classification<BR ALIGN="LEFT"/>
+            - findParentGrid, isFkTargetOnly,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;isReferenceDictionary,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;nameStemsMatch<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    CL [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>Classification</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ kind: final EntityKind<BR/>
-            + reason: final String<BR/>
-            + parentEntity: final EntityObject<BR/>
-            + parentGrid: final PropertyGroup</TD></TR></TABLE>>];
+    CL [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>Classification</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ kind: final EntityKind<BR ALIGN="LEFT"/>
+            + reason: final String<BR ALIGN="LEFT"/>
+            + parentEntity: final EntityObject<BR ALIGN="LEFT"/>
+            + parentGrid: final PropertyGroup<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TRR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>TestRunResult</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— totalTests, passed, failed, skipped: int<BR/>
-            — durationMs: long<BR/>
-            — runTimestamp: LocalDateTime<BR/>
-            — xmlFileName, baseUrl: String<BR/>
-            — results: List&lt;TestCaseResult&gt;<BR/>
-            — mavenOutput: String</TD></TR></TABLE>>];
+    TRR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestRunResult</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- totalTests, passed, failed, skipped: int<BR ALIGN="LEFT"/>
+            - durationMs: long<BR ALIGN="LEFT"/>
+            - runTimestamp: LocalDateTime<BR ALIGN="LEFT"/>
+            - xmlFileName, baseUrl: String<BR ALIGN="LEFT"/>
+            - results: List&lt;TestCaseResult&gt;<BR ALIGN="LEFT"/>
+            - mavenOutput: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
-    TCR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">
-        <TR><TD><B>TestCaseResult</B></TD></TR>
-        <TR><TD ALIGN="LEFT">— className, methodName,<BR/>
-              failureMessage, stdOut: String<BR/>
-            — passed, skipped: boolean<BR/>
-            — durationMs: long<BR/>
-            — screenshots: List&lt;String&gt;<BR/>
-            — steps: List&lt;StepTiming&gt;</TD></TR></TABLE>>];
+    TCR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+        <TR><TD ALIGN="CENTER"><B>TestCaseResult</B></TD></TR>
+        <TR><TD ALIGN="LEFT">- className, methodName,<BR ALIGN="LEFT"/>
+            &nbsp;&nbsp;failureMessage, stdOut: String<BR ALIGN="LEFT"/>
+            - passed, skipped: boolean<BR ALIGN="LEFT"/>
+            - durationMs: long<BR ALIGN="LEFT"/>
+            - screenshots: List&lt;String&gt;<BR ALIGN="LEFT"/>
+            - steps: List&lt;StepTiming&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
     AM -> EO [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
     AM -> S  [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
