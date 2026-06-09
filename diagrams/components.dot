@@ -1,27 +1,25 @@
-digraph Components {
-    rankdir=TB; fontname="Liberation Serif";
-    nodesep=0.6; ranksep=0.9;
-    node [fontname="Liberation Serif", fontsize=11, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10];
+graph G {
+    layout=neato;
+    fontname="Liberation Serif";
+    overlap=false;
+    splines=true;
+    sep="+15";
+    node [fontname="Liberation Serif", fontsize=12,
+          shape=component, style=filled, fillcolor=white,
+          width=1.8, height=0.8];
+    edge [color=black, penwidth=1.2];
 
-    subgraph cluster_app {
-        label="AutoTestGenerator";
-        style=rounded; labelloc=t;
-        AppJar [shape=component, label="autotestgenerator.jar\n(main, GUI, парсер,\nгенератор, отчёты)"];
-        JavaFX [shape=component, label="javafx-controls.jar\njavafx-fxml.jar"];
-        SQLite [shape=component, label="sqlite-jdbc.jar"];
-        StAX   [shape=component, label="java.xml.stream\n(встроен в JDK 17)"];
+    // Центральный компонент — наше приложение
+    AppJar [label="autotestgenerator.jar", pos="3,2!"];
 
-        AppJar -> JavaFX [style=dashed];
-        AppJar -> SQLite [style=dashed];
-        AppJar -> StAX   [style=dashed];
-    }
+    // Связи как в учебнике: простые линии без подписей и стрелок
+    JavaFXC  [label="javafx-controls.jar", pos="0.5,4!"];
+    JavaFXF  [label="javafx-fxml.jar",     pos="3,4.5!"];
+    SQLite   [label="sqlite-jdbc.jar",     pos="6,2!"];
+    StAX     [label="java.xml.stream\n(JDK 17 built-in)", pos="0,1.5!"];
 
-    XmlFile  [shape=note,     label="model.xml\n(метаданные)"];
-    SQLiteDb [shape=cylinder, label="autotestgen.db"];
-    OutDir   [shape=folder,   label="generated-tests/\n(исходники)"];
-
-    AppJar -> XmlFile  [label="чтение"];
-    AppJar -> SQLiteDb [label="JDBC"];
-    AppJar -> OutDir   [label="генерация .java"];
+    AppJar -- JavaFXC;
+    AppJar -- JavaFXF;
+    AppJar -- SQLite;
+    AppJar -- StAX;
 }
