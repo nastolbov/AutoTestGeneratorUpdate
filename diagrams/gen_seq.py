@@ -1,199 +1,224 @@
 """
-Генератор UML sequence diagrams (ДПС) — версия 2.
-Правильная нотация по §7 учебника Иванова Г.С., рис. 7.6-7.9:
-  • Объект — прямоугольник с подчёркнутым именем ":Класс" сверху
-  • Линия жизни — пунктирная вертикаль от нижней грани объекта вниз
-  • Активация — узкий БЕЛЫЙ прямоугольник с чёрной рамкой,
-    наложенный поверх линии жизни на время активности объекта
-  • Синхронное сообщение — сплошная стрелка с заполненным треугольником
-  • Возврат — пунктирная стрелка
-  • Self-call — петля
-  • Уничтожение — большой ✕ на конце линии жизни
+Генератор UML sequence diagrams (ДПС) — версия 3 (по образцу рис. 7.8).
+Логика рендеринга:
+  1) Считаем макет
+  2) Рисуем ЛИНИИ ЖИЗНИ (zorder=1) — полная пунктирная вертикаль
+  3) Рисуем АКТИВАЦИИ (zorder=3) — белые прямоугольники с рамкой,
+     перекрывают линию жизни в активные периоды
+  4) Рисуем БЛОКИ ОБЪЕКТОВ (zorder=5) — непрозрачные, поверх всего сверху
+  5) Рисуем СТРЕЛКИ И ПОДПИСИ (zorder=8) — поверх всего
 """
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, FancyArrowPatch, ConnectionPatch
+from matplotlib.patches import Rectangle, FancyArrowPatch
 import os
 
 OUT_DIR = "/home/user/AutoTestGeneratorUpdate/diagrams"
 FONT = "Liberation Serif"
 
-# Y-координаты:
-#   1.0 — низ диаграммы
-#   8.5 — низ прямоугольников с именами
-#   9.5 — верх прямоугольников
-#   Сообщения раскидываются от ~8.0 до 1.5
 
-def render(filename, objects, messages, figsize=None):
+def render(filename, objects, messages):
     """
-    objects: список имён ":Класс" или "Имя объекта"
-    messages: список словарей:
-        {"from": "A", "to": "B", "label": "1: метод()",
-         "kind": "sync"/"return"/"async"/"create"/"destroy"/"self"}
+    objects: список имён ":Класс"
+    messages: список dict:
+      {"from": str, "to": str, "label": str,
+       "kind": "sync"/"return"/"async"/"create"/"destroy"/"self"}
     """
     n = len(objects)
-    if figsize is None:
-        figsize = (max(9, n * 2.2), max(6, len(messages) * 0.55 + 2.5))
+    # ШИРОКОЕ расстояние между объектами — каждый объект занимает ~2.6 единицы
+    obj_spacing = 2.6
+    fig_w = max(10, n * obj_spacing + 2)
+    fig_h = max(6, len(messages) * 0.6 + 3)
 
-    fig, ax = plt.subplots(figsize=figsize, dpi=140)
-    ax.set_xlim(0, n + 1)
-    ax.set_ylim(0, 10)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=140)
+
+    # Размеры макета
+    canvas_w = (n + 1) * obj_spacing
+    canvas_h = 10.0
+    ax.set_xlim(0, canvas_w)
+    ax.set_ylim(0, canvas_h)
     ax.axis('off')
 
-    # X-координаты объектов
-    x_pos = {obj: i + 1 for i, obj in enumerate(objects)}
+    # X-координаты объектов (равномерно с отступом 1 слева)
+    x_pos = {obj: (i + 1) * obj_spacing for i, obj in enumerate(objects)}
 
-    # 1) Сами прямоугольники объектов сверху + подчёркнутое имя
+    # Размер прямоугольника объекта
+    box_w = 1.8
     box_h = 0.7
-    box_top = 9.6
-    box_bot = box_top - box_h
-    for obj in objects:
-        x = x_pos[obj]
-        # Рамка объекта
-        ax.add_patch(Rectangle((x - 0.7, box_bot), 1.4, box_h,
-                               linewidth=1.3, edgecolor='black', facecolor='white'))
-        # Имя с подчёркиванием (UML: имя объекта подчёркнуто)
-        ax.text(x, (box_top + box_bot) / 2, obj,
-                ha='center', va='center', fontname=FONT, fontsize=11,
-                fontweight='normal')
-        # Подчёркивание имени — линия под текстом
-        text_y = (box_top + box_bot) / 2 - 0.13
-        # Длина подчёркивания — приблизительно ширина текста
-        underline_w = max(0.4, len(obj) * 0.062)
-        ax.plot([x - underline_w / 2, x + underline_w / 2],
-                [text_y, text_y], color='black', linewidth=0.8)
+    box_top_y = canvas_h - 0.3
+    box_bot_y = box_top_y - box_h
 
-    # 2) Линии жизни — пунктир сверху донизу
-    life_bottom = 0.5
-    for obj in objects:
-        x = x_pos[obj]
-        ax.plot([x, x], [box_bot - 0.02, life_bottom],
-                linestyle=(0, (4, 4)), color='black', linewidth=0.9)
+    # Нижняя точка линии жизни
+    life_bottom = 0.4
 
-    # 3) Y-координаты сообщений
-    msg_top = box_bot - 0.6
-    msg_count = len(messages)
-    if msg_count > 0:
-        y_step = (msg_top - 1.2) / max(msg_count, 1)
-        y_pos = [msg_top - i * y_step for i in range(msg_count)]
+    # ============ Шаг 1: расчёт активаций ============
+    # Простая логика:
+    # — Когда объект получает сообщение (не return) — у него начинается активация
+    # — Когда объект отправляет return — активация заканчивается
+    # — В конце все незакрытые активации закрываются до низа
+
+    # Y-координаты сообщений
+    msg_top_y = box_bot_y - 0.5
+    msg_bottom_y = life_bottom + 0.5
+    if messages:
+        y_step = (msg_top_y - msg_bottom_y) / max(len(messages), 1)
+        msg_y = [msg_top_y - i * y_step for i in range(len(messages))]
     else:
-        y_pos = []
+        msg_y = []
 
-    # 4) Активации — определяем, какой объект активен в какой момент
-    # Простая логика: активация = узкий прямоугольник от первого вызова к объекту до последнего "return" от него
-    activations = {}  # obj -> list of (y_start, y_end)
-    active_starts = {}  # obj -> y_start
+    activations = {obj: [] for obj in objects}
+    active_start = {}
     for i, m in enumerate(messages):
-        y = y_pos[i]
+        y = msg_y[i]
         kind = m.get("kind", "sync")
         to = m["to"]
         frm = m["from"]
-        if kind in ("return",):
-            # завершить активацию у frm (он возвращает результат)
-            if frm in active_starts:
-                activations.setdefault(frm, []).append((active_starts.pop(frm), y))
-        elif kind == "destroy":
-            # завершить + поставить X
-            if to in active_starts:
-                activations.setdefault(to, []).append((active_starts.pop(to), y))
-        else:  # sync, async, create, self
-            if to != frm and to not in active_starts:
-                active_starts[to] = y
-    # Закрыть незакрытые активации до низа
-    for obj, y_start in list(active_starts.items()):
-        activations.setdefault(obj, []).append((y_start, life_bottom + 0.3))
 
-    # Нарисовать активации поверх линий жизни
-    act_w = 0.18
+        if kind == "return":
+            # closure активации у frm (он возвращает)
+            if frm in active_start:
+                activations[frm].append((active_start.pop(frm), y))
+        elif kind == "destroy":
+            # X на конце линии — активация to закрывается
+            if to in active_start:
+                activations[to].append((active_start.pop(to), y))
+        else:
+            # sync/async/create/self — у to начинается активация если не было
+            if to != frm and to not in active_start:
+                active_start[to] = y
+
+    # Закрыть всё незакрытое до низа
+    for obj, ys in list(active_start.items()):
+        activations[obj].append((ys, msg_bottom_y - 0.2))
+
+    # ============ Шаг 2: рисуем ЛИНИИ ЖИЗНИ (zorder=1) ============
+    for obj in objects:
+        x = x_pos[obj]
+        ax.plot([x, x], [box_bot_y, life_bottom],
+                linestyle=(0, (5, 4)), color='black', linewidth=1.1,
+                zorder=1)
+
+    # ============ Шаг 3: рисуем АКТИВАЦИИ (zorder=3) ============
+    act_w = 0.22
     for obj, acts in activations.items():
         x = x_pos[obj]
         for y_start, y_end in acts:
             h = y_start - y_end
             if h > 0.05:
-                ax.add_patch(Rectangle((x - act_w / 2, y_end), act_w, h,
-                                       linewidth=1.0, edgecolor='black', facecolor='white'))
+                ax.add_patch(Rectangle(
+                    (x - act_w / 2, y_end), act_w, h,
+                    linewidth=1.1, edgecolor='black', facecolor='white',
+                    zorder=3))
 
-    # 5) Рисуем сообщения
+    # ============ Шаг 4: рисуем БЛОКИ ОБЪЕКТОВ (zorder=5) ============
+    for obj in objects:
+        x = x_pos[obj]
+        # Прямоугольник
+        ax.add_patch(Rectangle(
+            (x - box_w / 2, box_bot_y), box_w, box_h,
+            linewidth=1.4, edgecolor='black', facecolor='white',
+            zorder=5))
+        # Имя объекта
+        text_y = box_bot_y + box_h / 2
+        ax.text(x, text_y, obj,
+                ha='center', va='center',
+                fontname=FONT, fontsize=11,
+                zorder=6)
+        # Подчёркивание (UML: имя экземпляра подчёркнуто)
+        # Длина = по ширине текста
+        underline_w = min(box_w - 0.2, max(0.5, len(obj) * 0.075))
+        ax.plot([x - underline_w / 2, x + underline_w / 2],
+                [text_y - 0.16, text_y - 0.16],
+                color='black', linewidth=0.9, zorder=6)
+
+    # ============ Шаг 5: рисуем СТРЕЛКИ И ПОДПИСИ (zorder=8) ============
     for i, m in enumerate(messages):
-        y = y_pos[i]
+        y = msg_y[i]
         from_x = x_pos[m["from"]]
         to_x = x_pos[m["to"]]
         kind = m.get("kind", "sync")
         label = m["label"]
 
-        if from_x == to_x:
-            # self-call: петля справа
-            lw = 0.55
-            # рисуем рамку петли вручную через 3 линии
-            ax.plot([from_x + act_w / 2, from_x + act_w / 2 + lw], [y, y],
-                    color='black', linewidth=1.2)
-            ax.plot([from_x + act_w / 2 + lw, from_x + act_w / 2 + lw],
-                    [y, y - 0.25], color='black', linewidth=1.2)
-            # стрелка обратно
-            arr = FancyArrowPatch(
-                (from_x + act_w / 2 + lw, y - 0.25),
-                (from_x + act_w / 2, y - 0.25),
-                arrowstyle='-|>', mutation_scale=10,
-                color='black', linewidth=1.2)
-            ax.add_patch(arr)
-            ax.text(from_x + act_w / 2 + lw + 0.1, y - 0.12, label,
-                    ha='left', va='center', fontname=FONT, fontsize=9)
-        else:
-            # сторона активации: от края узкого прямоугольника
-            x_start = from_x + (act_w / 2 if to_x > from_x else -act_w / 2)
-            x_end = to_x - (act_w / 2 if to_x > from_x else -act_w / 2)
+        if from_x == to_x or kind == "self":
+            # Self-call: петля справа
+            loop_w = 0.7
+            x0 = from_x + act_w / 2
+            ax.plot([x0, x0 + loop_w], [y, y],
+                    color='black', linewidth=1.3, zorder=8)
+            ax.plot([x0 + loop_w, x0 + loop_w], [y, y - 0.28],
+                    color='black', linewidth=1.3, zorder=8)
+            ax.annotate("", xy=(x0, y - 0.28), xytext=(x0 + loop_w, y - 0.28),
+                        arrowprops=dict(arrowstyle='-|>', color='black',
+                                        lw=1.3, mutation_scale=14),
+                        zorder=8)
+            # Подпись справа от петли
+            ax.text(x0 + loop_w + 0.15, y - 0.14, label,
+                    ha='left', va='center', fontname=FONT, fontsize=9.5,
+                    zorder=9)
+            continue
 
-            # Тип стрелки
-            if kind == "return":
-                style = '->'      # лёгкая стрелка
-                ls = '--'         # пунктир
-            elif kind == "async":
-                style = '->'      # половинка стрелки в UML, но в matplotlib не из коробки
-                ls = '-'
-            elif kind == "create":
-                style = '-|>'     # с заполненным треугольником
-                ls = '--'         # пунктир для create
-            elif kind == "destroy":
-                style = '-|>'
-                ls = '-'
-            else:  # sync
-                style = '-|>'
-                ls = '-'
+        # Обычное сообщение: стрелка от края активации источника
+        # до края активации цели (или линии жизни, если активации нет)
+        going_right = to_x > from_x
+        x_start = from_x + (act_w / 2 if going_right else -act_w / 2)
+        x_end = to_x - (act_w / 2 if going_right else -act_w / 2)
 
-            arr = FancyArrowPatch((x_start, y), (x_end, y),
-                                  arrowstyle=style, mutation_scale=14,
-                                  color='black', linewidth=1.2,
-                                  linestyle=ls)
-            ax.add_patch(arr)
+        # Стиль стрелки
+        if kind == "return":
+            ls = '--'
+            style = '->'
+            ms = 12
+        elif kind == "create":
+            ls = '--'
+            style = '-|>'
+            ms = 14
+        elif kind == "async":
+            ls = '-'
+            style = '->'
+            ms = 14
+        elif kind == "destroy":
+            ls = '-'
+            style = '-|>'
+            ms = 14
+        else:  # sync
+            ls = '-'
+            style = '-|>'
+            ms = 14
 
-            # подпись над стрелкой по центру
-            mid_x = (from_x + to_x) / 2
-            ax.text(mid_x, y + 0.12, label,
-                    ha='center', va='bottom', fontname=FONT, fontsize=9)
+        ax.annotate("", xy=(x_end, y), xytext=(x_start, y),
+                    arrowprops=dict(arrowstyle=style, color='black',
+                                    lw=1.3, mutation_scale=ms,
+                                    linestyle=ls),
+                    zorder=8)
 
-            # ✕ при уничтожении
-            if kind == "destroy":
-                xs = 0.2
-                ax.plot([to_x - xs, to_x + xs], [y - xs, y + xs],
-                        color='black', linewidth=2.5)
-                ax.plot([to_x - xs, to_x + xs], [y + xs, y - xs],
-                        color='black', linewidth=2.5)
+        # Подпись над стрелкой по центру
+        mid_x = (from_x + to_x) / 2
+        ax.text(mid_x, y + 0.13, label,
+                ha='center', va='bottom',
+                fontname=FONT, fontsize=9.5,
+                zorder=9)
 
-    plt.tight_layout(pad=0.4)
+        # Уничтожение: большой ✕ на линии жизни цели в точке прихода
+        if kind == "destroy":
+            xs = 0.28
+            ax.plot([to_x - xs, to_x + xs], [y - xs, y + xs],
+                    color='black', linewidth=3, zorder=10)
+            ax.plot([to_x - xs, to_x + xs], [y + xs, y - xs],
+                    color='black', linewidth=3, zorder=10)
+
+    plt.tight_layout(pad=0.5)
     plt.savefig(os.path.join(OUT_DIR, filename), dpi=140,
                 bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close(fig)
     print(f"  ✓ {filename}")
 
 
-# ============================================
-# ============   UI ПАКЕТ   ==================
-# ============================================
-print("UI пакет:")
+# ===================== UI =====================
+print("UI:")
 render("seq-ui-normal.png",
-    objects=[":Пользователь", ":App", ":MainController", ":Task", ":TestCaseRow"],
-    messages=[
+    [":Пользователь", ":App", ":MainController", ":Task", ":TestCaseRow"],
+    [
         {"from": ":Пользователь", "to": ":App", "label": "1: launch(args)"},
         {"from": ":App", "to": ":MainController", "label": "2: load('main.fxml')", "kind": "create"},
         {"from": ":Пользователь", "to": ":MainController", "label": "3: onParse()"},
@@ -206,8 +231,8 @@ render("seq-ui-normal.png",
     ])
 
 render("seq-ui-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":FileChooser", ":Task"],
-    messages=[
+    [":Пользователь", ":MainController", ":FileChooser", ":Task"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: onSelectXml()"},
         {"from": ":MainController", "to": ":FileChooser", "label": "2: showOpenDialog()"},
         {"from": ":Пользователь", "to": ":FileChooser", "label": "3: Esc / Cancel"},
@@ -219,8 +244,8 @@ render("seq-ui-user-interrupt.png",
     ])
 
 render("seq-ui-system-interrupt.png",
-    objects=[":Пользователь", ":App", ":FXMLLoader", ":MainController"],
-    messages=[
+    [":Пользователь", ":App", ":FXMLLoader", ":MainController"],
+    [
         {"from": ":Пользователь", "to": ":App", "label": "1: launch()"},
         {"from": ":App", "to": ":FXMLLoader", "label": "2: load('main.fxml')"},
         {"from": ":FXMLLoader", "to": ":App", "label": "3: IOException", "kind": "return"},
@@ -228,13 +253,11 @@ render("seq-ui-system-interrupt.png",
         {"from": ":App", "to": ":Пользователь", "label": "5: stderr трейс", "kind": "return"},
     ])
 
-# ============================================
-# ============  PARSER ПАКЕТ  ================
-# ============================================
-print("Parser пакет:")
+# ===================== PARSER =====================
+print("Parser:")
 render("seq-parser-normal.png",
-    objects=[":MainController", ":XmlModelParser", ":EntityParser", ":PropertyGroupParser", ":SearchParser"],
-    messages=[
+    [":MainController", ":XmlModelParser", ":EntityParser", ":PropertyGroupParser", ":SearchParser"],
+    [
         {"from": ":MainController", "to": ":XmlModelParser", "label": "1: parse(file)"},
         {"from": ":XmlModelParser", "to": ":EntityParser", "label": "2: parseObject(reader) [цикл]"},
         {"from": ":EntityParser", "to": ":PropertyGroupParser", "label": "3: parsePropertyGroup(reader)"},
@@ -246,8 +269,8 @@ render("seq-parser-normal.png",
     ])
 
 render("seq-parser-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":FileChooser", ":XmlModelParser"],
-    messages=[
+    [":Пользователь", ":MainController", ":FileChooser", ":XmlModelParser"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: onSelectXml + onParse"},
         {"from": ":MainController", "to": ":FileChooser", "label": "2: showOpenDialog()"},
         {"from": ":Пользователь", "to": ":FileChooser", "label": "3: Cancel"},
@@ -257,8 +280,8 @@ render("seq-parser-user-interrupt.png",
     ])
 
 render("seq-parser-system-interrupt.png",
-    objects=[":MainController", ":XmlModelParser", ":XMLStreamReader", ":ParserException"],
-    messages=[
+    [":MainController", ":XmlModelParser", ":XMLStreamReader", ":ParserException"],
+    [
         {"from": ":MainController", "to": ":XmlModelParser", "label": "1: parse(file)"},
         {"from": ":XmlModelParser", "to": ":XMLStreamReader", "label": "2: createXMLStreamReader()"},
         {"from": ":XMLStreamReader", "to": ":XmlModelParser", "label": "3: XMLStreamException", "kind": "return"},
@@ -267,13 +290,11 @@ render("seq-parser-system-interrupt.png",
         {"from": ":MainController", "to": ":MainController", "label": "6: showAlert('ошибка')", "kind": "self"},
     ])
 
-# ============================================
-# ============  MODEL ПАКЕТ   ================
-# ============================================
-print("Model пакет:")
+# ===================== MODEL =====================
+print("Model:")
 render("seq-model-normal.png",
-    objects=[":XmlModelParser", ":AppModel", ":EntityObject", ":PropertyGroup", ":Property"],
-    messages=[
+    [":XmlModelParser", ":AppModel", ":EntityObject", ":PropertyGroup", ":Property"],
+    [
         {"from": ":XmlModelParser", "to": ":AppModel", "label": "1: new AppModel()", "kind": "create"},
         {"from": ":XmlModelParser", "to": ":EntityObject", "label": "2: new EntityObject(...)", "kind": "create"},
         {"from": ":XmlModelParser", "to": ":PropertyGroup", "label": "3: new PropertyGroup(...)", "kind": "create"},
@@ -285,8 +306,8 @@ render("seq-model-normal.png",
     ])
 
 render("seq-model-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":AppModel"],
-    messages=[
+    [":Пользователь", ":MainController", ":AppModel"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: onGenerate()"},
         {"from": ":MainController", "to": ":MainController", "label": "2: if(currentModel==null)", "kind": "self"},
         {"from": ":MainController", "to": ":AppModel", "label": "3: НЕ используется", "kind": "destroy"},
@@ -294,8 +315,8 @@ render("seq-model-user-interrupt.png",
     ])
 
 render("seq-model-system-interrupt.png",
-    objects=[":TestGenerator", ":EntityObject", ":PropertyGroup"],
-    messages=[
+    [":TestGenerator", ":EntityObject", ":PropertyGroup"],
+    [
         {"from": ":TestGenerator", "to": ":EntityObject", "label": "1: getFormView()"},
         {"from": ":EntityObject", "to": ":TestGenerator", "label": "2: null (нет formView)", "kind": "return"},
         {"from": ":TestGenerator", "to": ":PropertyGroup", "label": "3: .getProperties()"},
@@ -303,13 +324,11 @@ render("seq-model-system-interrupt.png",
         {"from": ":TestGenerator", "to": ":TestGenerator", "label": "5: catch + лог + skip", "kind": "self"},
     ])
 
-# ============================================
-# ==========  GENERATOR ПАКЕТ  ===============
-# ============================================
-print("Generator пакет:")
+# ===================== GENERATOR =====================
+print("Generator:")
 render("seq-generator-normal.png",
-    objects=[":MainController", ":TestGenerator", ":PageObjectWriter", ":TestClassWriter", ":TestDataFactory"],
-    messages=[
+    [":MainController", ":TestGenerator", ":PageObjectWriter", ":TestClassWriter", ":TestDataFactory"],
+    [
         {"from": ":MainController", "to": ":TestGenerator", "label": "1: generate(model)"},
         {"from": ":TestGenerator", "to": ":TestGenerator", "label": "2: writePom + writeBaseTest", "kind": "self"},
         {"from": ":TestGenerator", "to": ":PageObjectWriter", "label": "3: write(entity) [цикл]"},
@@ -322,8 +341,8 @@ render("seq-generator-normal.png",
     ])
 
 render("seq-generator-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":TestRunner", ":Process"],
-    messages=[
+    [":Пользователь", ":MainController", ":TestRunner", ":Process"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: onRunTests()"},
         {"from": ":MainController", "to": ":TestRunner", "label": "2: run(...)"},
         {"from": ":TestRunner", "to": ":Process", "label": "3: start('mvn test')", "kind": "create"},
@@ -333,22 +352,20 @@ render("seq-generator-user-interrupt.png",
     ])
 
 render("seq-generator-system-interrupt.png",
-    objects=[":MainController", ":TestRunner", ":ProcessBuilder"],
-    messages=[
+    [":MainController", ":TestRunner", ":ProcessBuilder"],
+    [
         {"from": ":MainController", "to": ":TestRunner", "label": "1: run(outputDir, ...)"},
         {"from": ":TestRunner", "to": ":ProcessBuilder", "label": "2: start('mvn', 'test')"},
-        {"from": ":ProcessBuilder", "to": ":TestRunner", "label": "3: IOException ('mvn not found')", "kind": "return"},
+        {"from": ":ProcessBuilder", "to": ":TestRunner", "label": "3: IOException", "kind": "return"},
         {"from": ":TestRunner", "to": ":MainController", "label": "4: throw наверх", "kind": "return"},
         {"from": ":MainController", "to": ":MainController", "label": "5: Task.onFailed → showAlert", "kind": "self"},
     ])
 
-# ============================================
-# ===========  DATA ПАКЕТ  ===================
-# ============================================
-print("Data пакет:")
+# ===================== DATA =====================
+print("Data:")
 render("seq-data-normal.png",
-    objects=[":MainController", ":ReportDao", ":TestRunDao", ":TestCaseDao", ":autotestgen.db"],
-    messages=[
+    [":MainController", ":ReportDao", ":TestRunDao", ":TestCaseDao", ":autotestgen.db"],
+    [
         {"from": ":MainController", "to": ":ReportDao", "label": "1: saveRun(result)"},
         {"from": ":ReportDao", "to": ":ReportDao", "label": "2: conn = open()", "kind": "self"},
         {"from": ":ReportDao", "to": ":TestRunDao", "label": "3: insert(conn, result)"},
@@ -362,18 +379,18 @@ render("seq-data-normal.png",
     ])
 
 render("seq-data-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":ReportDao"],
-    messages=[
+    [":Пользователь", ":MainController", ":ReportDao"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: тесты завершены"},
         {"from": ":MainController", "to": ":ReportDao", "label": "2: saveRun(result) (в Task)"},
         {"from": ":Пользователь", "to": ":MainController", "label": "3: закрытие окна сейчас"},
-        {"from": ":ReportDao", "to": ":ReportDao", "label": "4: транзакция продолжается асинхронно", "kind": "self"},
+        {"from": ":ReportDao", "to": ":ReportDao", "label": "4: транзакция асинхронно", "kind": "self"},
         {"from": ":ReportDao", "to": ":MainController", "label": "5: commit или rollback", "kind": "return"},
     ])
 
 render("seq-data-system-interrupt.png",
-    objects=[":MainController", ":ReportDao", ":TestRunDao", ":autotestgen.db"],
-    messages=[
+    [":MainController", ":ReportDao", ":TestRunDao", ":autotestgen.db"],
+    [
         {"from": ":MainController", "to": ":ReportDao", "label": "1: saveRun(result)"},
         {"from": ":ReportDao", "to": ":ReportDao", "label": "2: open + setAutoCommit(false)", "kind": "self"},
         {"from": ":ReportDao", "to": ":TestRunDao", "label": "3: insert(conn, result)"},
@@ -384,13 +401,11 @@ render("seq-data-system-interrupt.png",
         {"from": ":ReportDao", "to": ":MainController", "label": "8: void (graceful)", "kind": "return"},
     ])
 
-# ============================================
-# ==========  COMMON ПАКЕТ  ==================
-# ============================================
-print("Common пакет:")
+# ===================== COMMON =====================
+print("Common:")
 render("seq-common-normal.png",
-    objects=[":PageObjectWriter", ":Transliterator", ":JavaFileWriter", ":Files"],
-    messages=[
+    [":PageObjectWriter", ":Transliterator", ":JavaFileWriter", ":Files"],
+    [
         {"from": ":PageObjectWriter", "to": ":Transliterator", "label": "1: toClassName(name)"},
         {"from": ":Transliterator", "to": ":PageObjectWriter", "label": "2: 'GskOgsk'", "kind": "return"},
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "3: new()", "kind": "create"},
@@ -404,8 +419,8 @@ render("seq-common-normal.png",
     ])
 
 render("seq-common-user-interrupt.png",
-    objects=[":Пользователь", ":MainController", ":JavaFileWriter"],
-    messages=[
+    [":Пользователь", ":MainController", ":JavaFileWriter"],
+    [
         {"from": ":Пользователь", "to": ":MainController", "label": "1: onGenerate()"},
         {"from": ":MainController", "to": ":JavaFileWriter", "label": "2: writer.writeLine(...) [синхронно]"},
         {"from": ":Пользователь", "to": ":MainController", "label": "3: закрыть окно сейчас"},
@@ -414,8 +429,8 @@ render("seq-common-user-interrupt.png",
     ])
 
 render("seq-common-system-interrupt.png",
-    objects=[":PageObjectWriter", ":JavaFileWriter", ":Files"],
-    messages=[
+    [":PageObjectWriter", ":JavaFileWriter", ":Files"],
+    [
         {"from": ":PageObjectWriter", "to": ":JavaFileWriter", "label": "1: writeToFile(dir, name)"},
         {"from": ":JavaFileWriter", "to": ":Files", "label": "2: createDirectories(dir)"},
         {"from": ":Files", "to": ":JavaFileWriter", "label": "3: AccessDeniedException", "kind": "return"},
@@ -423,4 +438,4 @@ render("seq-common-system-interrupt.png",
         {"from": ":PageObjectWriter", "to": ":PageObjectWriter", "label": "5: throw наверх в TestGenerator", "kind": "self"},
     ])
 
-print("\nВсего ДПС:", 18)
+print("\nГотово.")
