@@ -1,23 +1,25 @@
 digraph CoopParser {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 24. Диаграмма кооперации пакета «Parser»\n(1.x — нормальный ход, 1.x.Ex — XMLStreamException)"; labelloc=b;
-    nodesep=0.8;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.8; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    MC   [label=":MainController «ui»"];
+    MC   [label=":MainController"];
     XMP  [label=":XmlModelParser"];
     EP   [label=":EntityParser"];
     PGP  [label=":PropertyGroupParser"];
     SP   [label=":SearchParser"];
     SU   [label="StaxUtils"];
+    XN   [label="XmlNamespaces"];
 
-    MC  -> XMP [label="1: parse(file)\n1.Ex: throw ParserException"];
-    XMP -> EP  [label="1.1: parseObject(reader)"];
-    XMP -> SP  [label="1.2: parseSearches(reader)"];
-    EP  -> PGP [label="1.1.1: parsePropertyGroup(reader)"];
-    EP  -> SU  [label="1.1.2: attr(reader, name)\n1.1.3: skipToEnd(reader)"];
-    PGP -> SU  [label="1.1.1.1: attr / parseInt"];
-    SP  -> SU  [label="1.2.1: attr / parseInt"];
-    XMP -> MC  [label="1.99: вернуть AppModel"];
+    MC  -> XMP [label="файл метаданных (File),\nназад: модель приложения\nлибо ParserException"];
+    XMP -> EP  [label="XMLStreamReader\n(курсор в позиции <Object>)"];
+    EP  -> PGP [label="XMLStreamReader\n(курсор в <Properties>)"];
+    EP  -> SU  [label="имя атрибута\n→ строковое значение"];
+    PGP -> SU  [label="имя атрибута → значение,\nпропуск элемента"];
+    XMP -> SP  [label="XMLStreamReader\n(курсор в <Searches>)"];
+    SP  -> SU  [label="имя атрибута, parseInt"];
+    EP  -> XN  [label="константы NS_E, NS_E3\nдля сверки namespace"];
+    PGP -> XN  [label="константы NS_E, NS_E3"];
+    SP  -> XN  [label="константа NS_E3"];
 }

@@ -1,27 +1,29 @@
 digraph CoopGen {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 31. Диаграмма кооперации пакета «Generator»\n(1.x — generate, 2.x — run; 1.x.Ex — IOException)"; labelloc=b;
-    nodesep=0.8;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.9; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    MC   [label=":MainController «ui»"];
+    MC   [label=":MainController"];
     TC   [label=":TestConfig"];
     TG   [label=":TestGenerator"];
     POW  [label=":PageObjectWriter"];
     TCW  [label=":TestClassWriter"];
     TDF  [label="TestDataFactory"];
     TR   [label=":TestRunner"];
-    Mvn  [label="ProcessBuilder\n(\"mvn test\")"];
+    Mvn  [label="ProcessBuilder\n(mvn test)"];
+    RRW  [label=":RunReportWriter"];
 
-    MC -> TC  [label="1: new TestConfig(...)"];
-    MC -> TG  [label="2: new TestGenerator(config)\n3: generate(model)"];
-    TG -> POW [label="3.1: цикл по PRIMARY-сущностям\n     write(entity, outputDir)"];
-    TG -> TCW [label="3.2: цикл по PRIMARY-сущностям\n     write(entity, model, outputDir)"];
-    POW -> TDF [label="3.1.1: generateValue(prop)"];
-    TCW -> TDF [label="3.2.1: generateValue(prop)"];
-    MC -> TR  [label="4: run(outputDir, xml, url, filter, fastMode)"];
-    TR -> Mvn [label="4.1: start()"];
-    Mvn -> TR [label="4.2: stdout строки"];
-    TR -> MC  [label="4.99: TestRunResult\n3.Ex: IOException"];
+    MC -> TC  [label="настройки: URL, логин,\nпароль, каталог,\nуровень тестов, fastMode"];
+    MC -> TG  [label="конфигурация,\nобъектная модель (AppModel)"];
+    TG -> POW [label="сущность,\nкаталог вывода"];
+    TG -> TCW [label="сущность, модель,\nуровень тестов"];
+    POW -> TDF [label="свойство (Property)\n→ корректное значение\nпо типу и маске"];
+    TCW -> TDF [label="свойство → значение"];
+    TG -> MC  [label="готовый Maven-проект\nв каталоге generated-tests/"];
+    MC -> TR  [label="каталог проекта,\nfilter, fastMode"];
+    TR -> Mvn [label="команда mvn test\nс параметрами"];
+    Mvn -> TR [label="stdout (живой лог),\nfile surefire-reports/*.xml"];
+    TR -> RRW [label="агрегированный результат\nTestRunResult"];
+    TR -> MC  [label="результат прогона:\nсчётчики, кейсы, лог"];
 }

@@ -1,11 +1,10 @@
 digraph CD {
     rankdir=TB; fontname="Liberation Serif";
-    nodesep=1.0; ranksep=0.5;
+    nodesep=1.0;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
 
     T [label="{Transliterator|\
-- MAPPING: static final\l\
-\ \ Map\<Character, String\>\l\
+- MAPPING: static final Map\<Character, String\>\l\
 |\
 + toClassName(s: String): static String\l\
 + toMethodName(s: String): static String\l\
@@ -17,7 +16,7 @@ digraph CD {
     JW [label="{JavaFileWriter|\
 - sb: final StringBuilder\l\
 - indentLevel: int\l\
-- INDENT: static \"    \"\l\
+- INDENT: static final String\l\
 |\
 + writeLine(line: String): JavaFileWriter\l\
 + writeLine(): JavaFileWriter\l\

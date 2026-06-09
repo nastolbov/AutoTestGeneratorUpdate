@@ -1,18 +1,21 @@
 digraph CoopCommon {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 50. Диаграмма кооперации пакета «Common»\n(использование утилит снаружи)"; labelloc=b;
-    nodesep=0.8;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=1.0; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    Gen [label=":TestGenerator «generator»"];
-    POW [label=":PageObjectWriter «generator»"];
+    Gen [label=":TestGenerator"];
+    POW [label=":PageObjectWriter"];
     JW  [label=":JavaFileWriter"];
     T   [label="Transliterator"];
-    XMP [label=":XmlModelParser «parser»"];
+    XMP [label=":XmlModelParser"];
     PE  [label="ParserException"];
 
-    Gen -> T   [label="1: toClassName(name)\n2: toMethodName(name)"];
-    POW -> JW  [label="3: writeLine(line)\n4: openBlock(header)\n5: closeBlock()\n6: writeToFile(dir, fileName)"];
-    XMP -> PE  [label="Ex: throw ParserException(msg, cause)"];
+    Gen -> T   [label="русское имя сущности\n→ Java-имя класса"];
+    POW -> T   [label="русское имя поля\n→ имя поля Java"];
+    POW -> JW  [label="строки кода:\npackage, import, class,\nметоды, скобки блоков"];
+    JW  -> JW  [label="накопление в StringBuilder,\nуправление отступом"];
+    POW -> JW  [label="запись на диск:\nкаталог + имя файла"];
+    XMP -> PE  [label="сообщение об ошибке\n+ причина (cause)"];
+    PE  -> XMP [label="исключение готово\nк выбросу"];
 }

@@ -2,17 +2,26 @@ digraph UID {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.8; ranksep=1.0;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     App [label="{App|+ start(primaryStage: Stage): void\l+ main(args: String[]): void\l}"];
 
     MainController [label="{MainController|\
-- xmlPathField, urlField, loginField, outputDirField: TextField\l\
+- xmlPathField: TextField\l\
+- urlField: TextField\l\
+- loginField: TextField\l\
+- outputDirField: TextField\l\
 - passwordField: PasswordField\l\
-- testLevelCombo, siteTypeCombo: ComboBox\<String\>\l\
-- smokeAllSubsystemsCheck, fastModeCheck: CheckBox\l\
-- btnSelectXml, btnParse, btnGenerate, btnRunTests,\l\
-\ \ btnRunSelected, btnShowHistory: Button\l\
+- testLevelCombo: ComboBox\<String\>\l\
+- siteTypeCombo: ComboBox\<String\>\l\
+- smokeAllSubsystemsCheck: CheckBox\l\
+- fastModeCheck: CheckBox\l\
+- btnSelectXml: Button\l\
+- btnParse: Button\l\
+- btnGenerate: Button\l\
+- btnRunTests: Button\l\
+- btnRunSelected: Button\l\
+- btnShowHistory: Button\l\
 - entityListView: ListView\<String\>\l\
 - resultsTable: TableView\<TestCaseRow\>\l\
 - currentModel: AppModel\l\

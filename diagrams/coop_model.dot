@@ -1,29 +1,28 @@
 digraph CoopModel {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 29. Диаграмма кооперации пакета «Model»\n(заполнение модели парсером + классификация)"; labelloc=b;
-    nodesep=0.7;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.8; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    XMP [label=":XmlModelParser «parser»"];
+    XMP [label=":XmlModelParser"];
     AM  [label=":AppModel"];
     EO  [label=":EntityObject"];
     PG  [label=":PropertyGroup"];
     P   [label=":Property"];
-    TG  [label=":TestGenerator «generator»"];
+    TG  [label=":TestGenerator"];
     EC  [label="EntityClassifier"];
     CL  [label=":Classification"];
 
-    XMP -> AM  [label="1: new AppModel()"];
-    XMP -> EO  [label="2: new EntityObject(...)"];
-    XMP -> PG  [label="3: new PropertyGroup(...)"];
-    XMP -> P   [label="4: new Property(...)"];
-    PG  -> P   [label="4.1: properties.add(p)"];
-    EO  -> PG  [label="3.1: propertyGroups.add(pg)"];
-    AM  -> EO  [label="2.1: entities.add(e)"];
+    XMP -> AM [label="создаёт корень модели,\nзаполняет списки сущностей\nи поисков"];
+    XMP -> EO [label="создаёт сущность,\nатрибуты из XML"];
+    XMP -> PG [label="создаёт группу,\nдобавляет в EntityObject"];
+    XMP -> P  [label="создаёт поле формы,\nдобавляет в PropertyGroup"];
+    EO  -> PG [label="вложенно владеет\nсписком групп"];
+    PG  -> P  [label="вложенно владеет\nсписком полей"];
+    AM  -> EO [label="вложенно владеет\nсписком сущностей"];
 
-    TG  -> EC  [label="5: classify(entity, model)"];
-    EC  -> AM  [label="5.1: пройти по соседям"];
-    EC  -> CL  [label="5.2: new Classification(kind, reason)"];
-    EC  -> TG  [label="5.99: Classification"];
+    TG  -> EC [label="сущность и модель\nдля классификации"];
+    EC  -> AM [label="обход соседних\nсущностей для анализа"];
+    EC  -> CL [label="создаёт результат:\nkind (PRIMARY/CHILD/REF),\nreason, parentEntity"];
+    EC  -> TG [label="Classification обратно,\nрешение генерировать или нет"];
 }

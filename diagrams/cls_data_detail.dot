@@ -2,7 +2,7 @@ digraph DD {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.6; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     RD [label="{ReportDao|\
 - connection: final DatabaseConnection\l\
@@ -50,10 +50,10 @@ digraph DD {
 + selectByRunId(conn, runId): List\<TestCaseResult\>\l\
 }"];
 
-    RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    RD -> TCD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    RD -> SI  [taillabel="1", headlabel="1"];
-    TRD -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
-    SI  -> DC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
+    RD -> DC  [arrowtail=diamond, dir=back];
+    RD -> TRD [arrowtail=diamond, dir=back];
+    RD -> TCD [arrowtail=diamond, dir=back];
+    RD -> SI;
+    TRD -> DC [arrowtail=odiamond, dir=back];
+    SI  -> DC [arrowtail=odiamond, dir=back];
 }

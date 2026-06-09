@@ -2,16 +2,21 @@ digraph GD {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.5;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     TC [label="{TestConfig|\
-- baseUrl, login, password: String\l\
+- baseUrl: String\l\
+- login: String\l\
+- password: String\l\
 - outputDir: Path\l\
-- browserType, basePackage, siteType,\l\
-\ \ subsystemName, testLevel: String\l\
+- browserType: String\l\
+- basePackage: String\l\
+- siteType: String\l\
+- subsystemName: String\l\
+- testLevel: String\l\
 - smokeAllSubsystems: boolean\l\
 |\
-+ get/set для 10 полей\l\
++ get/set для каждого из 10 полей\l\
 }"];
 
     TG [label="{TestGenerator|\
@@ -19,9 +24,11 @@ digraph GD {
 |\
 + TestGenerator(config: TestConfig)\l\
 + generate(model: AppModel): void\l\
-- generatePom, generateBaseTest,\l\
-\ \ generateSharedDriver, generateTestData,\l\
-\ \ generateSubsystemsSmokeTest\l\
+- generatePom(): void\l\
+- generateBaseTest(): void\l\
+- generateSharedDriver(): void\l\
+- generateTestData(): void\l\
+- generateSubsystemsSmokeTest(): void\l\
 }"];
 
     POW [label="{PageObjectWriter|\
@@ -37,9 +44,9 @@ digraph GD {
 
     TDF [label="{TestDataFactory|\
 |\
-+ generateValue(prop): static String\l\
++ generateValue(prop: Property): static String\l\
 + generateSearchParamValue(p): static String\l\
-+ generateFromMask(mask): static String\l\
++ generateFromMask(mask: String): static String\l\
 }"];
 
     TR [label="{TestRunner|\
@@ -53,12 +60,11 @@ digraph GD {
 
     RRW [label="{RunReportWriter|\
 |\
-+ writeHtml(result, outputDir): void\l\
-+ writeCsv(result, outputDir): void\l\
++ write(htmlPath: Path, result: TestRunResult): void\l\
++ writeCsv(csvPath: Path, result: TestRunResult): void\l\
 }"];
 
-    TG -> TC  [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
-    TG -> POW [taillabel="1", headlabel="*"];
-    TG -> TCW [taillabel="1", headlabel="*"];
-    TG -> TDF; POW -> TDF; TCW -> TDF;
+    TG -> TC [arrowtail=odiamond, dir=back];
+    TG -> POW; TG -> TCW; TG -> TDF;
+    POW -> TDF; TCW -> TDF;
 }

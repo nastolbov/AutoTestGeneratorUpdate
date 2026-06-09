@@ -1,11 +1,10 @@
 digraph CoopData {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 48. Диаграмма кооперации пакета «Data»\n(1.x — saveRun, 2.x — getAllRuns, 1.x.Ex — SQLException)"; labelloc=b;
-    nodesep=0.8;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.9; ranksep=0.9;
     node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
-    MC   [label=":MainController «ui»"];
+    MC   [label=":MainController"];
     RD   [label=":ReportDao"];
     DC   [label=":DatabaseConnection"];
     TRD  [label=":TestRunDao"];
@@ -13,14 +12,14 @@ digraph CoopData {
     SI   [label=":SchemaInitializer"];
     DB   [shape=cylinder, label="autotestgen.db"];
 
-    MC  -> RD  [label="1: saveRun(result)\n2: getAllRuns()"];
-    RD  -> SI  [label="0: initialize() — при создании"];
-    SI  -> DC  [label="0.1: open()"];
-    RD  -> DC  [label="1.1: open()\n2.1: open()"];
-    DC  -> DB  [label="0.2: CREATE TABLE\n1.1.1: connect\n2.1.1: connect"];
-    RD  -> TRD [label="1.2: insert(conn, result): runId\n2.2: selectAll(conn)"];
-    RD  -> TCD [label="1.3: insertBatch(conn, runId, cases)\n2.3: selectByRunId(conn, runId)"];
-    TRD -> DB  [label="1.2.1: INSERT test_run\n1.Ex: SQLException"];
-    TCD -> DB  [label="1.3.1: batch INSERT test_case\n2.3.1: SELECT test_case"];
-    RD  -> MC  [label="1.99: void\n2.99: List<TestRunResult>"];
+    MC  -> RD  [label="запрос: сохранить результат\nили загрузить историю"];
+    RD  -> SI  [label="при создании:\nинициализировать схему БД"];
+    SI  -> DC  [label="запрос соединения\n→ Connection"];
+    RD  -> DC  [label="запрос соединения\nдля транзакции"];
+    DC  -> DB  [label="JDBC: CREATE TABLE,\nоткрытие сессии"];
+    RD  -> TRD [label="Connection + результат\nпрогона (TestRunResult)"];
+    RD  -> TCD [label="Connection + runId\n+ список TestCaseResult"];
+    TRD -> DB  [label="INSERT в test_run,\nвозврат сгенерированного id"];
+    TCD -> DB  [label="batch INSERT в test_case\n(все кейсы прогона)"];
+    RD  -> MC  [label="результат: void (запись)\nили список TestRunResult"];
 }

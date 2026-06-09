@@ -1,11 +1,12 @@
 digraph MD {
     rankdir=TB; fontname="Liberation Serif";
-    nodesep=0.4; ranksep=0.6;
+    nodesep=0.4; ranksep=0.7;
     node [fontname="Liberation Serif", fontsize=9, shape=record, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=9, labeldistance=2.0, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     AM [label="{AppModel|\
-- categoryName, guid: String\l\
+- categoryName: String\l\
+- guid: String\l\
 - entities: List\<EntityObject\>\l\
 - searches: List\<Search\>\l\
 |\
@@ -14,8 +15,11 @@ digraph MD {
 }"];
 
     EO [label="{EntityObject|\
-- guid, name, keyName, featureName,\l\
-\ \ nameValueMethod: String\l\
+- guid: String\l\
+- name: String\l\
+- keyName: String\l\
+- featureName: String\l\
+- nameValueMethod: String\l\
 - associations: List\<Association\>\l\
 - propertyGroups: List\<PropertyGroup\>\l\
 |\
@@ -24,7 +28,11 @@ digraph MD {
 }"];
 
     PG [label="{PropertyGroup|\
-- guid, name, stereoType, dmodule, typeLink: String\l\
+- guid: String\l\
+- name: String\l\
+- stereoType: String\l\
+- dmodule: String\l\
+- typeLink: String\l\
 - orderNumber: int\l\
 - flagDisplay: boolean\l\
 - properties: List\<Property\>\l\
@@ -35,31 +43,48 @@ digraph MD {
 }"];
 
     P [label="{Property|\
-- guid, name, stereoType, attrName, tableName,\l\
-\ \ mask, defValueSource, comment: String\l\
+- guid: String\l\
+- name: String\l\
+- stereoType: String\l\
+- attrName: String\l\
+- tableName: String\l\
+- mask: String\l\
+- defValueSource: String\l\
+- comment: String\l\
 - attrType: AttrType\l\
-- required, flagDisplay: boolean\l\
+- required: boolean\l\
+- flagDisplay: boolean\l\
 - orderNumber: int\l\
 |\
 }"];
 
     Op [label="{Operation|\
-- guid, operationMethod, operationModule: String\l\
+- guid: String\l\
+- operationMethod: String\l\
+- operationModule: String\l\
 - params: List\<OperationParam\>\l\
 - modifiers: List\<Modifier\>\l\
 |\
 }"];
 
     A [label="{Association|\
-- guid, roleA, roleB, featureName,\l\
-\ \ associationId, associateItemName,\l\
-\ \ associateItemGuid, searchGuid: String\l\
-- flagDisplay, addFromTree: boolean\l\
+- guid: String\l\
+- roleA: String\l\
+- roleB: String\l\
+- featureName: String\l\
+- associationId: String\l\
+- associateItemName: String\l\
+- associateItemGuid: String\l\
+- searchGuid: String\l\
+- flagDisplay: boolean\l\
+- addFromTree: boolean\l\
 |\
 }"];
 
     S [label="{Search|\
-- guid, name, query: String\l\
+- guid: String\l\
+- name: String\l\
+- query: String\l\
 - minParamCount: int\l\
 - params: List\<SearchParam\>\l\
 - result: SearchResult\l\
@@ -69,8 +94,10 @@ digraph MD {
     EC [label="{EntityClassifier|\
 |\
 + classify(entity, model): static Classification\l\
-- findParentGrid, isFkTargetOnly,\l\
-\ \ isReferenceDictionary, nameStemsMatch\l\
+- findParentGrid(entity, model): Classification\l\
+- isFkTargetOnly(entity, model): String\l\
+- isReferenceDictionary(entity, model): String\l\
+- nameStemsMatch(a, b): boolean\l\
 }"];
 
     CL [label="{Classification|\
@@ -82,32 +109,40 @@ digraph MD {
 }"];
 
     TRR [label="{TestRunResult|\
-- totalTests, passed, failed, skipped: int\l\
+- totalTests: int\l\
+- passed: int\l\
+- failed: int\l\
+- skipped: int\l\
 - durationMs: long\l\
 - runTimestamp: LocalDateTime\l\
-- xmlFileName, baseUrl: String\l\
+- xmlFileName: String\l\
+- baseUrl: String\l\
 - results: List\<TestCaseResult\>\l\
 - mavenOutput: String\l\
 |\
 }"];
 
     TCR [label="{TestCaseResult|\
-- className, methodName, failureMessage, stdOut: String\l\
-- passed, skipped: boolean\l\
+- className: String\l\
+- methodName: String\l\
+- failureMessage: String\l\
+- stdOut: String\l\
+- passed: boolean\l\
+- skipped: boolean\l\
 - durationMs: long\l\
 - screenshots: List\<String\>\l\
 - steps: List\<StepTiming\>\l\
 |\
 }"];
 
-    AM -> EO [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
-    AM -> S  [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
-    EO -> PG [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
-    EO -> A  [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
-    PG -> P  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1..*"];
-    PG -> Op [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..1"];
-    EC -> CL [taillabel="1", headlabel="*"];
-    TRR -> TCR [arrowtail=diamond, dir=back, taillabel="1", headlabel="0..*"];
-    CL -> EO [arrowtail=odiamond, dir=back, taillabel="0..1", headlabel="0..1"];
-    CL -> PG [arrowtail=odiamond, dir=back, taillabel="0..1", headlabel="0..1"];
+    AM -> EO [arrowtail=diamond, dir=back];
+    AM -> S  [arrowtail=diamond, dir=back];
+    EO -> PG [arrowtail=diamond, dir=back];
+    EO -> A  [arrowtail=diamond, dir=back];
+    PG -> P  [arrowtail=diamond, dir=back];
+    PG -> Op [arrowtail=diamond, dir=back];
+    EC -> CL;
+    TRR -> TCR [arrowtail=diamond, dir=back];
+    CL -> EO [arrowtail=odiamond, dir=back];
+    CL -> PG [arrowtail=odiamond, dir=back];
 }

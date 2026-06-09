@@ -2,7 +2,7 @@ digraph PD {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.6;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     XMP [label="{XmlModelParser|\
 - entityParser: final EntityParser\l\
@@ -47,9 +47,9 @@ digraph PD {
 |\
 }"];
 
-    XMP -> EP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    XMP -> SP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    EP  -> PGP [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
+    XMP -> EP  [arrowtail=diamond, dir=back];
+    XMP -> SP  [arrowtail=diamond, dir=back];
+    EP  -> PGP [arrowtail=diamond, dir=back];
     EP  -> SU; PGP -> SU; SP -> SU;
     EP  -> XN; PGP -> XN; SP -> XN;
 }
