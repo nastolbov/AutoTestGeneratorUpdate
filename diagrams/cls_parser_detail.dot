@@ -1,48 +1,51 @@
 digraph PD {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 26. Детальная диаграмма классов пакета «Parser»"; labelloc=b;
+    rankdir=TB; fontname="Liberation Serif";
     nodesep=0.6;
-    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
+    node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    XMP [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>XmlModelParser</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- entityParser: final EntityParser<BR ALIGN="LEFT"/>
-            - searchParser: final SearchParser<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ XmlModelParser()<BR ALIGN="LEFT"/>
-            + XmlModelParser(EntityParser, SearchParser)<BR ALIGN="LEFT"/>
-            + parse(xmlFile: File): AppModel<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    XMP [label="{XmlModelParser|\
+- entityParser: final EntityParser\l\
+- searchParser: final SearchParser\l\
+|\
++ XmlModelParser()\l\
++ XmlModelParser(EntityParser, SearchParser)\l\
++ parse(xmlFile: File): AppModel\l\
+}"];
 
-    EP [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>EntityParser</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- pgParser: final PropertyGroupParser<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ parseObject(reader): EntityObject<BR ALIGN="LEFT"/>
-            - parseAssociation(reader): Association<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    EP [label="{EntityParser|\
+- pgParser: final PropertyGroupParser\l\
+|\
++ parseObject(reader): EntityObject\l\
+- parseAssociation(reader): Association\l\
+}"];
 
-    PGP [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>PropertyGroupParser</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ parsePropertyGroup(reader):<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;PropertyGroup<BR ALIGN="LEFT"/>
-            - parseProperty(reader): Property<BR ALIGN="LEFT"/>
-            - parseOperation(reader): Operation<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    PGP [label="{PropertyGroupParser|\
+|\
++ parsePropertyGroup(reader): PropertyGroup\l\
+- parseProperty(reader): Property\l\
+- parseOperation(reader): Operation\l\
+}"];
 
-    SP [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>SearchParser</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ parseSearches(reader):<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;List&lt;Search&gt;<BR ALIGN="LEFT"/>
-            - parseSingleSearch(reader): Search<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    SP [label="{SearchParser|\
+|\
++ parseSearches(reader): List\<Search\>\l\
+- parseSingleSearch(reader): Search\l\
+}"];
 
-    SU [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>StaxUtils</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ attr(reader, name): static String<BR ALIGN="LEFT"/>
-            + parseInt(value): static int<BR ALIGN="LEFT"/>
-            + skipToEnd(reader): static void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    SU [label="{StaxUtils|\
+|\
++ attr(reader, name): static String\l\
++ parseInt(value): static int\l\
++ skipToEnd(reader): static void\l\
+}"];
 
-    XN [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>XmlNamespaces</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ NS_E: static final String<BR ALIGN="LEFT"/>
-            + NS_E3: static final String<BR ALIGN="LEFT"/>
-            + NS_MD: static final String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    XN [label="{XmlNamespaces|\
++ NS_E: static final String\l\
++ NS_E3: static final String\l\
++ NS_MD: static final String\l\
+|\
+}"];
 
     XMP -> EP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     XMP -> SP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];

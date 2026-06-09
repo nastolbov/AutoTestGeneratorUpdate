@@ -1,58 +1,61 @@
 digraph GD {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 33. Детальная диаграмма классов пакета «Generator»"; labelloc=b;
+    rankdir=TB; fontname="Liberation Serif";
     nodesep=0.5;
-    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
+    node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    TC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestConfig</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- baseUrl, login, password: String<BR ALIGN="LEFT"/>
-            - outputDir: Path<BR ALIGN="LEFT"/>
-            - browserType, basePackage, siteType,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;subsystemName, testLevel: String<BR ALIGN="LEFT"/>
-            - smokeAllSubsystems: boolean<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ get/set для 10 полей<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TC [label="{TestConfig|\
+- baseUrl, login, password: String\l\
+- outputDir: Path\l\
+- browserType, basePackage, siteType,\l\
+\ \ subsystemName, testLevel: String\l\
+- smokeAllSubsystems: boolean\l\
+|\
++ get/set для 10 полей\l\
+}"];
 
-    TG [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestGenerator</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- config: final TestConfig<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestGenerator(config: TestConfig)<BR ALIGN="LEFT"/>
-            + generate(model: AppModel): void<BR ALIGN="LEFT"/>
-            - generatePom, generateBaseTest,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;generateSharedDriver, generateTestData,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;generateSubsystemsSmokeTest<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TG [label="{TestGenerator|\
+- config: final TestConfig\l\
+|\
++ TestGenerator(config: TestConfig)\l\
++ generate(model: AppModel): void\l\
+- generatePom, generateBaseTest,\l\
+\ \ generateSharedDriver, generateTestData,\l\
+\ \ generateSubsystemsSmokeTest\l\
+}"];
 
-    POW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>PageObjectWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ write(entity: EntityObject,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;outputDir: Path): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    POW [label="{PageObjectWriter|\
+|\
++ write(entity: EntityObject, outputDir: Path): void\l\
+}"];
 
-    TCW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestClassWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ write(entity, model, outputDir): void<BR ALIGN="LEFT"/>
-            + writeChildTest(...): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TCW [label="{TestClassWriter|\
+|\
++ write(entity, model, outputDir): void\l\
++ writeChildTest(...): void\l\
+}"];
 
-    TDF [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestDataFactory</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ generateValue(prop): static String<BR ALIGN="LEFT"/>
-            + generateSearchParamValue(p):<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;static String<BR ALIGN="LEFT"/>
-            + generateFromMask(mask): static String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TDF [label="{TestDataFactory|\
+|\
++ generateValue(prop): static String\l\
++ generateSearchParamValue(p): static String\l\
++ generateFromMask(mask): static String\l\
+}"];
 
-    TR [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestRunner</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- lastMavenOutput: String<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ run(projectDir, xml, url): TestRunResult<BR ALIGN="LEFT"/>
-            + run(..., lineConsumer): TestRunResult<BR ALIGN="LEFT"/>
-            + run(..., testFilter): TestRunResult<BR ALIGN="LEFT"/>
-            + run(..., testFilter, fastMode):<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;TestRunResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TR [label="{TestRunner|\
+- lastMavenOutput: String\l\
+|\
++ run(projectDir, xml, url): TestRunResult\l\
++ run(..., lineConsumer): TestRunResult\l\
++ run(..., testFilter): TestRunResult\l\
++ run(..., testFilter, fastMode): TestRunResult\l\
+}"];
 
-    RRW [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>RunReportWriter</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ writeHtml(result, outputDir): void<BR ALIGN="LEFT"/>
-            + writeCsv(result, outputDir): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    RRW [label="{RunReportWriter|\
+|\
++ writeHtml(result, outputDir): void\l\
++ writeCsv(result, outputDir): void\l\
+}"];
 
     TG -> TC  [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
     TG -> POW [taillabel="1", headlabel="*"];

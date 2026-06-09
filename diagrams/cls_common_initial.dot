@@ -1,10 +1,11 @@
-digraph CII {
-    rankdir=LR; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 51. Исходная диаграмма классов пакета «Common»"; labelloc=b;
-    nodesep=1.0;
+digraph cls_common_initial {
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.7; ranksep=1.0;
     node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=1.8, arrowsize=0.9];
 
     T  [label="Transliterator"];
     JW [label="JavaFileWriter"];
     PE [label="ParserException"];
+
 }

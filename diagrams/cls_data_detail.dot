@@ -1,55 +1,54 @@
 digraph DD {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 50. Детальная диаграмма классов пакета «Data»"; labelloc=b;
+    rankdir=TB; fontname="Liberation Serif";
     nodesep=0.6; ranksep=0.9;
-    node [fontname="Liberation Serif", fontsize=10, shape=plaintext];
+    node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
     edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
-    RD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>ReportDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/>
-            - testRunDao: final TestRunDao<BR ALIGN="LEFT"/>
-            - testCaseDao: final TestCaseDao<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ ReportDao()<BR ALIGN="LEFT"/>
-            + ReportDao(connection: DatabaseConnection)<BR ALIGN="LEFT"/>
-            + ReportDao(connection, testRunDao,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;testCaseDao)<BR ALIGN="LEFT"/>
-            + saveRun(result: TestRunResult): void<BR ALIGN="LEFT"/>
-            + getAllRuns(): List&lt;TestRunResult&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    RD [label="{ReportDao|\
+- connection: final DatabaseConnection\l\
+- testRunDao: final TestRunDao\l\
+- testCaseDao: final TestCaseDao\l\
+|\
++ ReportDao()\l\
++ ReportDao(connection: DatabaseConnection)\l\
++ ReportDao(connection, testRunDao, testCaseDao)\l\
++ saveRun(result: TestRunResult): void\l\
++ getAllRuns(): List\<TestRunResult\>\l\
+}"];
 
-    DC [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>DatabaseConnection</B></TD></TR>
-        <TR><TD ALIGN="LEFT">+ DEFAULT_URL: static final String<BR ALIGN="LEFT"/>
-            - url: final String<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ DatabaseConnection()<BR ALIGN="LEFT"/>
-            + DatabaseConnection(url: String)<BR ALIGN="LEFT"/>
-            + open(): Connection<BR ALIGN="LEFT"/>
-            + getUrl(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    DC [label="{DatabaseConnection|\
++ DEFAULT_URL: static final String\l\
+- url: final String\l\
+|\
++ DatabaseConnection()\l\
++ DatabaseConnection(url: String)\l\
++ open(): Connection\l\
++ getUrl(): String\l\
+}"];
 
-    SI [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>SchemaInitializer</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ SchemaInitializer(connection)<BR ALIGN="LEFT"/>
-            + initialize(): void<BR ALIGN="LEFT"/>
-            - createTestRunTable(stmt): void<BR ALIGN="LEFT"/>
-            - createTestCaseTable(stmt): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    SI [label="{SchemaInitializer|\
+- connection: final DatabaseConnection\l\
+|\
++ SchemaInitializer(connection)\l\
++ initialize(): void\l\
+- createTestRunTable(stmt): void\l\
+- createTestCaseTable(stmt): void\l\
+}"];
 
-    TRD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestRunDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">- connection: final DatabaseConnection<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;DT_FORMAT: static final<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;DateTimeFormatter (package)<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ TestRunDao(DatabaseConnection)<BR ALIGN="LEFT"/>
-            + insert(conn, result): long<BR ALIGN="LEFT"/>
-            + selectAll(conn): List&lt;RunRow&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TRD [label="{TestRunDao|\
+- connection: final DatabaseConnection\l\
+\ \ DT_FORMAT: static final DateTimeFormatter\l\
+|\
++ TestRunDao(DatabaseConnection)\l\
++ insert(conn, result): long\l\
++ selectAll(conn): List\<RunRow\>\l\
+}"];
 
-    TCD [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
-        <TR><TD ALIGN="CENTER"><B>TestCaseDao</B></TD></TR>
-        <TR><TD ALIGN="LEFT">(нет полей-состояния)<BR ALIGN="LEFT"/></TD></TR>
-        <TR><TD ALIGN="LEFT">+ insertBatch(conn, runId,<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;cases: List&lt;TestCaseResult&gt;): void<BR ALIGN="LEFT"/>
-            + selectByRunId(conn, runId):<BR ALIGN="LEFT"/>
-            &nbsp;&nbsp;List&lt;TestCaseResult&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    TCD [label="{TestCaseDao|\
+|\
++ insertBatch(conn, runId, cases): void\l\
++ selectByRunId(conn, runId): List\<TestCaseResult\>\l\
+}"];
 
     RD -> DC  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
     RD -> TRD [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];

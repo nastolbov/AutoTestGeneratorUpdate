@@ -1,14 +1,13 @@
-digraph UIR {
-    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
-    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»"; labelloc=b;
-    nodesep=0.9; ranksep=1.2;
+digraph cls_ui_refined {
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.8; ranksep=1.1;
     node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, labelfontsize=10, arrowsize=0.9];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=2.0, arrowsize=0.9];
 
     App            [label="App"];
     MainController [label="MainController"];
     TestCaseRow    [label="TestCaseRow"];
-
     App -> MainController [taillabel="1", headlabel="1"];
     MainController -> TestCaseRow [arrowtail=diamond, dir=back, taillabel="1", headlabel="*"];
+
 }
