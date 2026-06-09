@@ -13,29 +13,48 @@ digraph UID {
 - outputDirField: TextField\l\
 - passwordField: PasswordField\l\
 - testLevelCombo: ComboBox\<String\>\l\
-- siteTypeCombo: ComboBox\<String\>\l\
+- siteTypeCombo: final ComboBox\<String\>\l\
+- subsystemField: final TextField\l\
 - smokeAllSubsystemsCheck: CheckBox\l\
 - fastModeCheck: CheckBox\l\
 - btnSelectXml: Button\l\
+- btnSelectOutputDir: Button\l\
 - btnParse: Button\l\
 - btnGenerate: Button\l\
 - btnRunTests: Button\l\
 - btnRunSelected: Button\l\
 - btnShowHistory: Button\l\
+- TEST_CATEGORIES: static final String[][]\l\
 - entityListView: ListView\<String\>\l\
 - resultsTable: TableView\<TestCaseRow\>\l\
+- colClass: TableColumn\<TestCaseRow, String\>\l\
+- colMethod: TableColumn\<TestCaseRow, String\>\l\
+- colStatus: TableColumn\<TestCaseRow, String\>\l\
+- colDuration: TableColumn\<TestCaseRow, String\>\l\
+- colMessage: TableColumn\<TestCaseRow, String\>\l\
+- statusLabel: Label\l\
+- progressBar: ProgressBar\l\
+- logArea: TextArea\l\
+- totalLabel: Label\l\
+- passedLabel: Label\l\
+- failedLabel: Label\l\
 - currentModel: AppModel\l\
 - reportDao: final ReportDao\l\
 |\
 + initialize(): void\l\
+- onSelectXml(): void\l\
+- onSelectOutputDir(): void\l\
 - onParse(): void\l\
 - onGenerate(): void\l\
 - onRunTests(): void\l\
 - onRunSelected(): void\l\
-- launchRun(filter: String): void\l\
++ buildTestFilter(entityChecks, typeChecks): static String\l\
+- launchRun(testFilter: String): void\l\
 - onShowHistory(): void\l\
-- displayResults(r: TestRunResult): void\l\
-- log(msg: String): void\l\
+- displayResults(result: TestRunResult): void\l\
+- getXmlFileName(): String\l\
+- log(message: String): void\l\
+- showAlert(title: String, content: String): void\l\
 }"];
 
     TestCaseRow [label="{TestCaseRow|\
@@ -45,7 +64,7 @@ digraph UID {
 - duration: final String\l\
 - message: final String\l\
 |\
-+ TestCaseRow(...)\l\
++ TestCaseRow(className, methodName, status, duration, message)\l\
 + getClassName(): String\l\
 + getMethodName(): String\l\
 + getStatus(): String\l\
