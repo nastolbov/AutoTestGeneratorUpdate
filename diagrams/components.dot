@@ -1,45 +1,27 @@
 digraph Components {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=14;
-    label="Рис. 55. Диаграмма компонентов системы"; labelloc=b;
-    nodesep=0.4; ranksep=0.8;
-    node [fontname="DejaVu Sans", fontsize=10, style=filled, fillcolor=white];
-    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=0.6; ranksep=0.9;
+    node [fontname="Liberation Serif", fontsize=11, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10];
 
     subgraph cluster_app {
-        label="AutoTestGenerator (приложение)";
+        label="AutoTestGenerator";
         style=rounded; labelloc=t;
-        AppExe [shape=component, label="autotestgenerator.jar"];
+        AppJar [shape=component, label="autotestgenerator.jar\n(main, GUI, парсер,\nгенератор, отчёты)"];
         JavaFX [shape=component, label="javafx-controls.jar\njavafx-fxml.jar"];
         SQLite [shape=component, label="sqlite-jdbc.jar"];
         StAX   [shape=component, label="java.xml.stream\n(встроен в JDK 17)"];
-        AppExe -> JavaFX [style=dashed, label="«use»"];
-        AppExe -> SQLite [style=dashed, label="«use»"];
-        AppExe -> StAX   [style=dashed, label="«use»"];
+
+        AppJar -> JavaFX [style=dashed];
+        AppJar -> SQLite [style=dashed];
+        AppJar -> StAX   [style=dashed];
     }
-    subgraph cluster_gen {
-        label="generated-tests/ (артефакт-выход)";
-        style=rounded; labelloc=t;
-        GenJar   [shape=component, label="Page Object +\nTest classes (.java)"];
-        Selenium [shape=component, label="selenium-java 4.15.0"];
-        JUnit5   [shape=component, label="junit-jupiter 5.10.1"];
-        WdM      [shape=component, label="webdrivermanager 5.6.2"];
-        Maven    [shape=component, label="maven-surefire-plugin\n3.2.2"];
-        GenJar -> Selenium [style=dashed, label="«use»"];
-        GenJar -> JUnit5   [style=dashed, label="«use»"];
-        GenJar -> WdM      [style=dashed, label="«use»"];
-        Maven  -> GenJar   [style=dashed, label="«run»"];
-    }
-    subgraph cluster_ext {
-        label="Внешние артефакты"; style=dashed; labelloc=t;
-        XmlFile  [shape=note,     label="model.xml\n(метаданные)"];
-        SQLiteDb [shape=cylinder, label="autotestgen.db"];
-        Chrome   [shape=box3d,    label="Chrome Browser"];
-        Reports  [shape=folder,   label="surefire-reports/\nrun-report.html\nscreenshots/"];
-    }
-    AppExe   -> XmlFile  [label="чтение"];
-    AppExe   -> SQLiteDb [label="JDBC"];
-    AppExe   -> GenJar   [label="генерация"];
-    AppExe   -> Maven    [label="ProcessBuilder"];
-    Selenium -> Chrome   [label="WebDriver"];
-    Maven    -> Reports  [label="записывает"];
+
+    XmlFile  [shape=note,     label="model.xml\n(метаданные)"];
+    SQLiteDb [shape=cylinder, label="autotestgen.db"];
+    OutDir   [shape=folder,   label="generated-tests/\n(исходники)"];
+
+    AppJar -> XmlFile  [label="чтение"];
+    AppJar -> SQLiteDb [label="JDBC"];
+    AppJar -> OutDir   [label="генерация .java"];
 }

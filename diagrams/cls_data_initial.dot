@@ -2,18 +2,14 @@ digraph cls_data_initial {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.7; ranksep=1.0;
     node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=1.8, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     RD  [label="ReportDao"];
     DC  [label="DatabaseConnection"];
     SI  [label="SchemaInitializer"];
     TRD [label="TestRunDao"];
     TCD [label="TestCaseDao"];
-    RD -> DC  [label="содержит", taillabel="1", headlabel="1"];
-    RD -> TRD [label="содержит", taillabel="1", headlabel="1"];
-    RD -> TCD [label="содержит", taillabel="1", headlabel="1"];
-    RD -> SI  [label="создаёт",  taillabel="1", headlabel="1"];
-    TRD -> DC [label="использует", taillabel="1", headlabel="1"];
-    SI  -> DC [label="использует", taillabel="1", headlabel="1"];
+    RD -> DC; RD -> TRD; RD -> TCD; RD -> SI;
+    TRD -> DC; SI -> DC;
 
 }

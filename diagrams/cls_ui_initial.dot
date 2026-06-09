@@ -2,12 +2,12 @@ digraph cls_ui_initial {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.7; ranksep=1.0;
     node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=1.8, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
     App            [label="App"];
     MainController [label="MainController"];
     TestCaseRow    [label="TestCaseRow"];
-    App -> MainController [label="загружает", taillabel="1", headlabel="1"];
-    MainController -> TestCaseRow [label="отображает", taillabel="1", headlabel="*"];
+    App -> MainController;
+    MainController -> TestCaseRow;
 
 }

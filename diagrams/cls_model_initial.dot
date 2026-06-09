@@ -2,36 +2,16 @@ digraph cls_model_initial {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.7; ranksep=1.0;
     node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=10, labeldistance=1.8, arrowsize=0.9];
+    edge [color=black, arrowsize=0.9];
 
-    AM  [label="AppModel"];
-    EO  [label="EntityObject"];
-    PG  [label="PropertyGroup"];
-    P   [label="Property"];
-    Op  [label="Operation"];
-    OP  [label="OperationParam"];
-    M   [label="Modifier"];
-    A   [label="Association"];
-    S   [label="Search"];
-    SP  [label="SearchParam"];
-    SR  [label="SearchResult"];
-    SRP [label="SearchResultProperty"];
-    EC  [label="EntityClassifier"];
-    CL  [label="Classification"];
-    TRR [label="TestRunResult"];
-    TCR [label="TestCaseResult"];
-    AM -> EO   [label="содержит", taillabel="1", headlabel="1..*"];
-    AM -> S    [label="содержит", taillabel="1", headlabel="0..*"];
-    EO -> PG   [label="содержит", taillabel="1", headlabel="1..*"];
-    EO -> A    [label="имеет", taillabel="1", headlabel="0..*"];
-    PG -> P    [label="содержит", taillabel="1", headlabel="1..*"];
-    PG -> Op   [label="имеет", taillabel="1", headlabel="0..1"];
-    Op -> OP   [label="содержит", taillabel="1", headlabel="0..*"];
-    Op -> M    [label="содержит", taillabel="1", headlabel="0..*"];
-    S  -> SP   [label="содержит", taillabel="1", headlabel="0..*"];
-    S  -> SR   [label="имеет", taillabel="1", headlabel="0..1"];
-    SR -> SRP  [label="содержит", taillabel="1", headlabel="0..*"];
-    EC -> CL   [label="создаёт", taillabel="1", headlabel="*"];
-    TRR -> TCR [label="содержит", taillabel="1", headlabel="0..*"];
+    AM [label="AppModel"]; EO [label="EntityObject"]; PG [label="PropertyGroup"];
+    P [label="Property"]; Op [label="Operation"]; OP [label="OperationParam"];
+    M [label="Modifier"]; A [label="Association"];
+    S [label="Search"]; SP [label="SearchParam"]; SR [label="SearchResult"]; SRP [label="SearchResultProperty"];
+    EC [label="EntityClassifier"]; CL [label="Classification"];
+    TRR [label="TestRunResult"]; TCR [label="TestCaseResult"];
+    AM -> EO; AM -> S; EO -> PG; EO -> A; PG -> P; PG -> Op;
+    Op -> OP; Op -> M; S -> SP; S -> SR; SR -> SRP;
+    EC -> CL; TRR -> TCR;
 
 }

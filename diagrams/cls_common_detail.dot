@@ -1,10 +1,11 @@
 digraph CD {
-    rankdir=LR; fontname="Liberation Serif";
-    nodesep=1.0;
+    rankdir=TB; fontname="Liberation Serif";
+    nodesep=1.0; ranksep=0.5;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
 
     T [label="{Transliterator|\
-- MAPPING: static final Map\<Character, String\>\l\
+- MAPPING: static final\l\
+\ \ Map\<Character, String\>\l\
 |\
 + toClassName(s: String): static String\l\
 + toMethodName(s: String): static String\l\

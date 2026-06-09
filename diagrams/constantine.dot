@@ -1,17 +1,24 @@
 digraph C {
-    rankdir=TB; fontname="DejaVu Sans"; fontsize=18;
-    ranksep=1.0; nodesep=0.45;
-    label="Структурная карта Константайна\nдля информационной системы AutoTestGenerator"; labelloc=t;
-    node [fontname="DejaVu Sans", fontsize=11, fillcolor=white, style=filled];
-    edge [color=black, fontname="DejaVu Sans", fontsize=9];
+    rankdir=TB; fontname="Liberation Serif"; fontsize=14;
+    ranksep=1.0; nodesep=0.4;
+    node [fontname="Liberation Serif", fontsize=11, fillcolor=white, style=filled];
+    edge [color=black, fontname="Liberation Serif", fontsize=10];
 
-    App                 [shape=box, label="App\n(точка входа)"];
-    MainController      [shape=box, label="MainController"];
-    XmlModelParser      [shape=box, label="XmlModelParser\n«фасад»"];
-    TestConfig          [shape=box, label="TestConfig"];
-    TestGenerator       [shape=box, label="TestGenerator\n«дирижёр»"];
-    TestRunner          [shape=box, label="TestRunner"];
-    ReportDao           [shape=box, label="ReportDao\n«фасад»"];
+    // Уровень 1: точка входа
+    App [shape=box, label="App"];
+
+    // Уровень 2: контроллер
+    MainController [shape=box, label="MainController"];
+
+    // Уровень 3: фасады
+    XmlModelParser [shape=box, label="XmlModelParser"];
+    TestConfig     [shape=box, label="TestConfig"];
+    TestGenerator  [shape=box, label="TestGenerator"];
+    TestRunner     [shape=box, label="TestRunner"];
+    ReportDao      [shape=box, label="ReportDao"];
+    RunReportWriter [shape=box, label="RunReportWriter"];
+
+    // Уровень 4: специализированные
     EntityParser        [shape=box, label="EntityParser"];
     SearchParser        [shape=box, label="SearchParser"];
     PropertyGroupParser [shape=box, label="PropertyGroupParser"];
@@ -24,69 +31,95 @@ digraph C {
     TestRunDao          [shape=box, label="TestRunDao"];
     TestCaseDao         [shape=box, label="TestCaseDao"];
 
+    // Уровень 5: библиотеки (utility)
     StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
     XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
     JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
     Transliterator [shape=box, peripheries=2, label="Transliterator"];
 
-    SQLite   [shape=ellipse, label="autotestgen.db\n(SQLite)"];
-    GenFiles [shape=ellipse, label="generated-tests/\n*.java, pom.xml,\nsurefire-reports/"];
+    // Исключения и enum'ы
+    ParserException [shape=box, label="ParserException"];
 
-    App -> MainController [label="  1\n(FXML)"];
+    // POJO model (компактным кластером — все 18 файлов)
+    AppModel       [shape=box, label="AppModel"];
+    EntityObject   [shape=box, label="EntityObject"];
+    PropertyGroup  [shape=box, label="PropertyGroup"];
+    Property       [shape=box, label="Property"];
+    Operation      [shape=box, label="Operation"];
+    OperationParam [shape=box, label="OperationParam"];
+    Modifier       [shape=box, label="Modifier"];
+    ModifyType     [shape=box, label="ModifyType"];
+    Association    [shape=box, label="Association"];
+    Search         [shape=box, label="Search"];
+    SearchParam    [shape=box, label="SearchParam"];
+    SearchResult   [shape=box, label="SearchResult"];
+    SearchResultProperty [shape=box, label="SearchResultProperty"];
+    AttrType       [shape=box, label="AttrType"];
+    EntityKind     [shape=box, label="EntityKind"];
+    TestRunResult  [shape=box, label="TestRunResult"];
+    TestCaseResult [shape=box, label="TestCaseResult"];
+    Classification [shape=box, label="Classification"];
 
-    MainController -> XmlModelParser [label="↓○ File\n↑○ AppModel"];
-    MainController -> TestConfig     [label="↓○ setters"];
-    MainController -> TestGenerator  [label="↓○ AppModel,\n   TestConfig"];
-    MainController -> TestRunner     [label="↓○ outputDir, filter\n↓● fastMode"];
-    MainController -> ReportDao      [label="↓○ TestRunResult\n↑○ List<…>"];
+    // Артефакты
+    SQLite   [shape=ellipse, label="autotestgen.db"];
+    GenFiles [shape=ellipse, label="generated-tests/"];
 
-    XmlModelParser -> EntityParser [label="↓○ reader\n↑○ EntityObject"];
-    XmlModelParser -> SearchParser [label="↓○ reader\n↑○ List<Search>"];
-    EntityParser -> PropertyGroupParser [label="↓○ reader\n↑○ PropertyGroup"];
+    // ===== Вызовы =====
+    App -> MainController [label="1"];
 
-    TestGenerator -> EntityClassifier [label="цикл\n↓○ entity, model\n↑○ Classification"];
-    TestGenerator -> PageObjectWriter [label="цикл\n↓○ entity, config"];
-    TestGenerator -> TestClassWriter  [label="цикл\n↓○ entity, model, config"];
-    TestGenerator -> TestDataFactory  [label="↓○ property\n↑○ String"];
+    MainController -> XmlModelParser [label="File\nAppModel"];
+    MainController -> TestConfig;
+    MainController -> TestGenerator [label="model"];
+    MainController -> TestRunner    [label="filter"];
+    MainController -> ReportDao     [label="TestRunResult"];
+    MainController -> RunReportWriter [label="result"];
 
-    ReportDao -> DatabaseConnection [label="↓○ url\n↑○ Connection"];
-    ReportDao -> SchemaInitializer  [label="«init»"];
-    ReportDao -> TestRunDao         [label="↓○ conn, result\n↑○ runId"];
-    ReportDao -> TestCaseDao        [label="↓○ conn, runId, cases"];
+    XmlModelParser -> EntityParser [label="reader"];
+    XmlModelParser -> SearchParser [label="reader"];
+    EntityParser -> PropertyGroupParser [label="reader"];
 
-    EntityParser        -> StaxUtils [style=dashed];
-    SearchParser        -> StaxUtils [style=dashed];
+    TestGenerator -> EntityClassifier [label="entity, model"];
+    TestGenerator -> PageObjectWriter [label="entity"];
+    TestGenerator -> TestClassWriter  [label="entity, model"];
+    TestGenerator -> TestDataFactory  [label="property"];
+
+    ReportDao -> DatabaseConnection [label="url"];
+    ReportDao -> SchemaInitializer;
+    ReportDao -> TestRunDao  [label="conn, result"];
+    ReportDao -> TestCaseDao [label="conn, runId"];
+
+    EntityParser -> StaxUtils [style=dashed];
+    SearchParser -> StaxUtils [style=dashed];
     PropertyGroupParser -> StaxUtils [style=dashed];
-    EntityParser        -> XmlNamespaces [style=dashed];
-    SearchParser        -> XmlNamespaces [style=dashed];
+    EntityParser -> XmlNamespaces [style=dashed];
+    SearchParser -> XmlNamespaces [style=dashed];
     PropertyGroupParser -> XmlNamespaces [style=dashed];
     PageObjectWriter -> JavaFileWriter [style=dashed];
     TestClassWriter  -> JavaFileWriter [style=dashed];
     PageObjectWriter -> Transliterator [style=dashed];
     TestClassWriter  -> Transliterator [style=dashed];
 
-    TestGenerator -> GenFiles [label="↓○ записывает"];
-    TestRunner    -> GenFiles [label="↑○ читает\n   surefire-reports/"];
+    XmlModelParser -> ParserException [label="throw"];
+
+    XmlModelParser -> AppModel [label="заполняет"];
+    AppModel -> EntityObject; EntityObject -> PropertyGroup; PropertyGroup -> Property;
+    PropertyGroup -> Operation; Operation -> OperationParam; Operation -> Modifier;
+    Modifier -> ModifyType; EntityObject -> Association;
+    AppModel -> Search; Search -> SearchParam; Search -> SearchResult; SearchResult -> SearchResultProperty;
+    Property -> AttrType;
+    EntityClassifier -> Classification; Classification -> EntityKind;
+    TestRunner -> TestRunResult; TestRunResult -> TestCaseResult;
+
+    TestGenerator -> GenFiles [label="*.java"];
     DatabaseConnection -> SQLite [label="JDBC"];
 
-    { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; }
+    { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; RunReportWriter; }
     { rank=same; EntityParser; SearchParser; PropertyGroupParser;
                  PageObjectWriter; TestClassWriter; EntityClassifier; TestDataFactory;
                  DatabaseConnection; SchemaInitializer; TestRunDao; TestCaseDao; }
-    { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; }
+    { rank=same; StaxUtils; XmlNamespaces; JavaFileWriter; Transliterator; ParserException; }
+    { rank=same; AppModel; EntityObject; PropertyGroup; Property; Operation; OperationParam;
+                 Modifier; ModifyType; Association; Search; SearchParam; SearchResult;
+                 SearchResultProperty; AttrType; EntityKind; TestRunResult; TestCaseResult; Classification; }
     { rank=same; GenFiles; SQLite; }
-
-    subgraph cluster_legend {
-        label="Условные обозначения (по Л. Константайну)";
-        labelloc=b; style=dashed; fontsize=11; margin=12;
-        L_mod  [shape=box, label="модуль"];
-        L_lib  [shape=box, peripheries=2, label="библиотека"];
-        L_data [shape=ellipse, label="область\nданных"];
-        L_n1 [shape=plaintext, label="↓○ ↑○ — связь по данным (data couple)"];
-        L_n2 [shape=plaintext, label="↓● — связь по управлению (control couple)"];
-        L_n3 [shape=plaintext, label="«1» — однократный вызов  /  «цикл» — циклический"];
-        L_n4 [shape=plaintext, label="— — — common coupling (использование библиотеки)"];
-        L_mod -> L_lib -> L_data [style=invis];
-        L_data -> L_n1 -> L_n2 -> L_n3 -> L_n4 [style=invis];
-    }
 }
