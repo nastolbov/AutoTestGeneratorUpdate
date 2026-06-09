@@ -23,74 +23,74 @@ FONT = "Liberation Serif"
 # (x, y, w, h, kind) — kind ∈ 'module', 'library', 'data', 'subsystem'
 modules = {
     # Уровень 1
-    "App":                   (11.16, 16, 3.2, 1.0, "module"),
+    "App": (18, 16, 3.2, 1.0, "module"),
     # Уровень 2
-    "MainController":        (11.16, 13.5, 3.6, 1.0, "module"),
+    "MainController": (18, 13.5, 3.6, 1.0, "module"),
     # Уровень 3: фасады
-    "XmlModelParser":        (2.17, 11, 3.8, 1.0, "module"),
-    "TestConfig":            (6.20, 11, 3.0, 1.0, "data"),
-    "TestGenerator":         (9.92, 11, 3.6, 1.0, "module"),
-    "TestRunner":            (14.88, 11, 3.0, 1.0, "module"),
-    "ReportDao":             (19.22, 11, 3.0, 1.0, "module"),
+    "XmlModelParser": (3.5, 11, 3.8, 1.0, "module"),
+    "TestConfig":     (10, 11, 3.0, 1.0, "data"),
+    "TestGenerator":  (16, 11, 3.6, 1.0, "module"),
+    "TestRunner":     (24, 11, 3.0, 1.0, "module"),
+    "ReportDao":      (31, 11, 3.0, 1.0, "module"),
     # Уровень 4: исполнители
-    "EntityParser":          (1.24, 8.5, 3.4, 1.0, "module"),
-    "SearchParser":          (4.03, 8.5, 3.4, 1.0, "module"),
-    "PageObjectWriter":      (8.37, 8.5, 3.6, 1.0, "module"),
-    "TestClassWriter":       (11.16, 8.5, 3.6, 1.0, "module"),
-    "EntityClassifier":      (6.20, 8.5, 3.4, 1.0, "library"),
-    "TestDataFactory":       (13.95, 8.5, 3.6, 1.0, "library"),
-    "RunReportWriter":       (14.88, 8.5, 3.6, 1.0, "module"),  # справа от Runner
-    "DatabaseConnection":    (17.36, 8.5, 3.4, 1.0, "module"),
-    "SchemaInitializer":     (19.84, 8.5, 3.4, 1.0, "module"),
-    "TestRunDao":            (22.01, 8.5, 3.0, 1.0, "module"),
-    "TestCaseDao":           (24.18, 8.5, 3.0, 1.0, "module"),
+    "EntityParser":        (2,    8.5, 3.4, 1.0, "module"),
+    "SearchParser":        (6.5,  8.5, 3.4, 1.0, "module"),
+    "PageObjectWriter":    (13.5, 8.5, 3.6, 1.0, "module"),
+    "TestClassWriter":     (18,   8.5, 3.6, 1.0, "module"),
+    "EntityClassifier":    (10,   8.5, 3.4, 1.0, "library"),
+    "TestDataFactory":     (22.5, 8.5, 3.6, 1.0, "library"),
+    "RunReportWriter":     (24, 8.5, 3.6, 1.0, "module"),  # справа от Runner
+    "DatabaseConnection":  (28, 8.5, 3.4, 1.0, "module"),
+    "SchemaInitializer":   (32, 8.5, 3.4, 1.0, "module"),
+    "TestRunDao":          (35.5, 8.5, 3.0, 1.0, "module"),
+    "TestCaseDao":         (39, 8.5, 3.0, 1.0, "module"),
     # Уровень 5
-    "PropertyGroupParser":   (1.24, 6, 4.2, 1.0, "module"),
+    "PropertyGroupParser": (2, 6, 4.2, 1.0, "module"),
     # Уровень 6: библиотеки
-    "StaxUtils":             (1.86, 3.5, 2.8, 1.0, "library"),
-    "XmlNamespaces":         (4.03, 3.5, 3.2, 1.0, "library"),
-    "JavaFileWriter":        (8.06, 3.5, 3.4, 1.0, "library"),
-    "Transliterator":        (11.16, 3.5, 3.4, 1.0, "library"),
+    "StaxUtils":      (3,   3.5, 2.8, 1.0, "library"),
+    "XmlNamespaces":  (6.5, 3.5, 3.2, 1.0, "library"),
+    "JavaFileWriter": (13,  3.5, 3.4, 1.0, "library"),
+    "Transliterator": (18,  3.5, 3.4, 1.0, "library"),
     "ParserException":(7,   1, 3.4, 1.0, "library"),
     # Уровень 7: артефакты
-    "autotestgen.db":        (18.29, 1, 3.0, 1.0, "data"),
-    "generated-tests/":      (13.02, 1, 3.5, 1.0, "data"),
+    "autotestgen.db":    (29.5, 1, 3.0, 1.0, "data"),
+    "generated-tests/":  (21, 1, 3.5, 1.0, "data"),
 }
 
 # Перерасчёт позиций — расширить, переразложить
 # Делаем 7 уровней по Y, X разносим по нужным колонкам
 modules = {
-    "App":                   (12.40, 15.5, 3.0, 0.9, "module"),
-    "MainController":        (12.40, 13.0, 3.6, 0.9, "module"),
+    "App":                  (20.0, 15.5, 3.0, 0.9, "module"),
+    "MainController":       (20.0, 13.0, 3.6, 0.9, "module"),
     # Уровень 3
-    "XmlModelParser":        (2.17, 10.5, 4.0, 0.9, "module"),
-    "TestConfig":            (6.51, 10.5, 3.2, 0.9, "data"),
-    "TestGenerator":         (10.23, 10.5, 3.6, 0.9, "module"),
-    "TestRunner":            (15.19, 10.5, 3.2, 0.9, "module"),
-    "ReportDao":             (19.84, 10.5, 3.0, 0.9, "module"),
+    "XmlModelParser":       (3.5,  10.5, 4.0, 0.9, "module"),
+    "TestConfig":           (10.5, 10.5, 3.2, 0.9, "data"),
+    "TestGenerator":        (16.5, 10.5, 3.6, 0.9, "module"),
+    "TestRunner":           (24.5, 10.5, 3.2, 0.9, "module"),
+    "ReportDao":            (32.0, 10.5, 3.0, 0.9, "module"),
     # Уровень 4
-    "EntityParser":          (1.86, 7.5, 3.4, 0.9, "module"),
-    "SearchParser":          (4.65, 7.5, 3.4, 0.9, "module"),
-    "EntityClassifier":      (7.44, 7.5, 3.4, 0.9, "library"),
-    "PageObjectWriter":      (9.80, 7.5, 3.8, 0.9, "module"),
-    "TestClassWriter":       (12.52, 7.5, 3.8, 0.9, "module"),
-    "TestDataFactory":       (15.19, 7.5, 3.4, 0.9, "library"),
-    "RunReportWriter":       (17.67, 7.5, 3.6, 0.9, "module"),
-    "DatabaseConnection":    (20.46, 7.5, 3.8, 0.9, "module"),
-    "SchemaInitializer":     (22.94, 7.5, 3.6, 0.9, "module"),
-    "TestRunDao":            (25.11, 7.5, 3.0, 0.9, "module"),
-    "TestCaseDao":           (26.97, 7.5, 3.0, 0.9, "module"),
+    "EntityParser":         (3.0,   7.5, 3.4, 0.9, "module"),
+    "SearchParser":         (7.5,   7.5, 3.4, 0.9, "module"),
+    "EntityClassifier":     (12.0,  7.5, 3.4, 0.9, "library"),
+    "PageObjectWriter":     (15.8,  7.5, 3.8, 0.9, "module"),
+    "TestClassWriter":      (20.2,  7.5, 3.8, 0.9, "module"),
+    "TestDataFactory":      (24.5,  7.5, 3.4, 0.9, "library"),
+    "RunReportWriter":      (28.5,  7.5, 3.6, 0.9, "module"),
+    "DatabaseConnection":   (33.0,  7.5, 3.8, 0.9, "module"),
+    "SchemaInitializer":    (37.0,  7.5, 3.6, 0.9, "module"),
+    "TestRunDao":           (40.5,  7.5, 3.0, 0.9, "module"),
+    "TestCaseDao":          (43.5,  7.5, 3.0, 0.9, "module"),
     # Уровень 5
-    "PropertyGroupParser":   (1.86, 5.0, 4.4, 0.9, "module"),
+    "PropertyGroupParser":  (3.0,   5.0, 4.4, 0.9, "module"),
     # Уровень 6: библиотеки
-    "StaxUtils":             (1.86, 2.5, 3.0, 0.9, "library"),
-    "XmlNamespaces":         (4.03, 2.5, 3.4, 0.9, "library"),
-    "JavaFileWriter":        (9.61, 2.5, 3.6, 0.9, "library"),
-    "Transliterator":        (12.71, 2.5, 3.6, 0.9, "library"),
-    "ParserException":       (6.51, 2.5, 3.4, 0.9, "library"),
+    "StaxUtils":            (3.0,   2.5, 3.0, 0.9, "library"),
+    "XmlNamespaces":        (6.5,   2.5, 3.4, 0.9, "library"),
+    "JavaFileWriter":       (15.5,  2.5, 3.6, 0.9, "library"),
+    "Transliterator":       (20.5,  2.5, 3.6, 0.9, "library"),
+    "ParserException":      (10.5,  2.5, 3.4, 0.9, "library"),
     # Уровень 7
-    "generated-tests/":      (15.50, 0.3, 3.6, 0.9, "data"),
-    "autotestgen.db":        (20.46, 0.3, 3.4, 0.9, "data"),
+    "generated-tests/":     (25.0,  0.3, 3.6, 0.9, "data"),
+    "autotestgen.db":       (33.0,  0.3, 3.4, 0.9, "data"),
 }
 
 # ============== ВЫЗОВЫ С COUPLES ==============
@@ -143,8 +143,8 @@ calls = [
 ]
 
 # ============== РЕНДЕР ==============
-fig, ax = plt.subplots(figsize=(16, 16), dpi=120)
-ax.set_xlim(0, 30)
+fig, ax = plt.subplots(figsize=(22, 16), dpi=120)
+ax.set_xlim(0, 47)
 ax.set_ylim(-1, 17)
 ax.axis('off')
 
@@ -163,7 +163,7 @@ for name, (cx, cy, w, h, kind) in modules.items():
         ax.add_patch(Rectangle((cx - w/2, cy - h/2), w, h,
                                linewidth=1.2, edgecolor='black', facecolor='white'))
     # текст
-    ax.text(cx, cy, name, ha='center', va='center', fontname=FONT, fontsize=12)
+    ax.text(cx, cy, name, ha='center', va='center', fontname=FONT, fontsize=10.5)
 
 def edge_point(name, dx, dy):
     """Точка на границе модуля в сторону (dx, dy)"""
@@ -196,7 +196,8 @@ for from_name, to_name, special, data_d, data_u, ctrl_d in calls:
     # Маркер особого вызова на середине линии
     midx, midy = (fpt[0] + tpt[0])/2, (fpt[1] + tpt[1])/2
     if special == "1":
-        ax.text(midx + 0.3, midy, "1", fontname=FONT, fontsize=14, ha='left', va='center', fontweight='bold')
+        ax.text(midx + 0.3, midy, "1", fontname=FONT, fontsize=11,
+                ha='left', va='center', fontweight='bold')
     elif special == "cycle":
         ax.add_patch(Circle((midx + 0.4, midy), 0.18,
                             linewidth=1.0, edgecolor='black', facecolor='white'))
@@ -206,7 +207,7 @@ for from_name, to_name, special, data_d, data_u, ctrl_d in calls:
     import math
     length = max(math.hypot(dx, dy), 0.001)
     nx, ny = -dy / length, dx / length  # нормаль слева
-    couple_offset = 0.85
+    couple_offset = 0.5
 
     def couple_arrow(name, side, going_down, kind):
         """side=+1 справа, -1 слева; going_down=True если вниз; kind='data'/'control'"""
@@ -225,11 +226,11 @@ for from_name, to_name, special, data_d, data_u, ctrl_d in calls:
         ax.plot([start[0], end[0]], [start[1], end[1]],
                 color='black', lw=0.9, zorder=2)
         face = 'white' if kind == 'data' else 'black'
-        ax.add_patch(Circle(end, 0.13, linewidth=0.9,
+        ax.add_patch(Circle(end, 0.085, linewidth=0.9,
                             edgecolor='black', facecolor=face, zorder=3))
         # подпись
         ax.text(end[0] + ox * 0.5, end[1] + oy * 0.5, name,
-                ha='center', va='center', fontname=FONT, fontsize=11)
+                ha='center', va='center', fontname=FONT, fontsize=8)
 
     # Раскладываем couples
     side_left, side_right = -1, +1
