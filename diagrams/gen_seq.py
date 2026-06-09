@@ -23,7 +23,7 @@ def render(filename, objects, messages):
     n = len(objects)
     obj_spacing = 2.7
     fig_w = max(11, n * obj_spacing + 2)
-    fig_h = max(6, len(messages) * 0.65 + 3)
+    fig_h = max(4.5, len(messages) * 0.55 + 2)
 
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=140)
     canvas_w = (n + 1) * obj_spacing
@@ -35,9 +35,9 @@ def render(filename, objects, messages):
 
     box_w = 2.0
     box_h = 0.75
-    box_top_y = 9.6
+    box_top_y = 9.8
     box_bot_y = box_top_y - box_h
-    life_bottom = 0.4
+    life_bottom = 0.5
 
     msg_top_y = box_bot_y - 0.6
     msg_bottom_y = life_bottom + 0.5
