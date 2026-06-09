@@ -1,0 +1,59 @@
+digraph Components {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 55. Диаграмма компонентов системы";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.4;
+    ranksep=0.8;
+
+    node [fontname="DejaVu Sans", fontsize=10];
+    edge [fontname="DejaVu Sans", fontsize=9];
+
+    subgraph cluster_app {
+        label="AutoTestGenerator (наше приложение)";
+        style="rounded,filled"; fillcolor="#FFF8DC"; labelloc=t;
+
+        AppExe   [shape=component, label="autotestgenerator.jar\n(main, GUI)"];
+        JavaFX   [shape=component, label="javafx-controls.jar\njavafx-fxml.jar"];
+        SQLite   [shape=component, label="sqlite-jdbc.jar"];
+        StAX     [shape=component, label="java.xml.stream\n(встроен в JDK 17)"];
+
+        AppExe -> JavaFX [style=dashed, label="«use»"];
+        AppExe -> SQLite [style=dashed, label="«use»"];
+        AppExe -> StAX   [style=dashed, label="«use»"];
+    }
+
+    subgraph cluster_gen {
+        label="generated-tests/ (артефакт-выход)";
+        style="rounded,filled"; fillcolor="#E6E6FA"; labelloc=t;
+
+        GenJar   [shape=component, label="*.java (Page Object,\nTest classes)"];
+        Selenium [shape=component, label="selenium-java.jar\n4.15.0"];
+        JUnit5   [shape=component, label="junit-jupiter.jar\n5.10.1"];
+        WdM      [shape=component, label="webdrivermanager.jar\n5.6.2"];
+        Maven    [shape=component, label="maven-surefire-plugin\n3.2.2"];
+
+        GenJar -> Selenium [style=dashed, label="«use»"];
+        GenJar -> JUnit5   [style=dashed, label="«use»"];
+        GenJar -> WdM      [style=dashed, label="«use»"];
+        Maven  -> GenJar   [style=dashed, label="«executes»"];
+    }
+
+    subgraph cluster_external {
+        label="Внешние артефакты";
+        style="dashed"; labelloc=t;
+
+        XmlFile  [shape=note, label="model.xml\n(метаданные)"];
+        SQLiteDb [shape=cylinder, label="autotestgen.db\n(SQLite)"];
+        Chrome   [shape=box3d, label="Chrome browser\n(управляется Selenium)"];
+        Reports  [shape=folder, label="surefire-reports/\nrun-report.html\n*.csv\nscreenshots/"];
+    }
+
+    AppExe -> XmlFile  [label="читает"];
+    AppExe -> SQLiteDb [label="JDBC"];
+    AppExe -> GenJar   [label="генерирует"];
+    AppExe -> Maven    [label="ProcessBuilder"];
+    Selenium -> Chrome [label="WebDriver"];
+    Maven    -> Reports [label="пишет"];
+}

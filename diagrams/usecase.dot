@@ -1,0 +1,38 @@
+digraph UseCase {
+    rankdir=LR;
+    fontname="DejaVu Sans";
+    label="Рис. 2. Диаграмма вариантов использования";
+    labelloc="b";
+    fontsize=14;
+
+    node [fontname="DejaVu Sans", fontsize=11];
+
+    Actor [shape=none, label=<<TABLE BORDER="0" CELLBORDER="0">
+        <TR><TD><FONT POINT-SIZE="40">&#9786;</FONT></TD></TR>
+        <TR><TD><B>Пользователь</B></TD></TR></TABLE>>];
+
+    subgraph cluster_system {
+        label="Информационная система AutoTestGenerator";
+        style=rounded;
+        labelloc=b;
+        fontsize=12;
+
+        UC1 [shape=ellipse, label="Подготовить\nпараметры"];
+        UC2 [shape=ellipse, label="Разобрать\nметаданные"];
+        UC3 [shape=ellipse, label="Сгенерировать\nавтотесты"];
+        UC4 [shape=ellipse, label="Запустить\nавтотесты"];
+        UC5 [shape=ellipse, label="Сохранить отчёты\nв БД"];
+        UC6 [shape=ellipse, label="Просмотреть\nисторию прогонов"];
+
+        UC2 -> UC1 [label="«include»", style=dashed, fontsize=9, dir=back];
+        UC3 -> UC2 [label="«include»", style=dashed, fontsize=9, dir=back];
+        UC4 -> UC3 [label="«include»", style=dashed, fontsize=9, dir=back];
+        UC5 -> UC4 [label="«include»", style=dashed, fontsize=9, dir=back];
+    }
+
+    Actor -> UC1 [arrowhead=none];
+    Actor -> UC2 [arrowhead=none];
+    Actor -> UC3 [arrowhead=none];
+    Actor -> UC4 [arrowhead=none];
+    Actor -> UC6 [arrowhead=none];
+}

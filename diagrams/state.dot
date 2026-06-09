@@ -1,0 +1,48 @@
+digraph State {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 11. Диаграмма переходов состояний информационной системы";
+    labelloc="b";
+    fontsize=14;
+
+    node [fontname="DejaVu Sans", fontsize=10];
+    edge [fontname="DejaVu Sans", fontsize=9];
+
+    start [shape=circle, label="", style=filled, fillcolor=black, width=0.3];
+    final [shape=doublecircle, label="", style=filled, fillcolor=black, width=0.3];
+
+    Init      [shape=box, style="rounded,filled", fillcolor="#FFE4B5", label="Инициализация\nokno загружено,\nкнопки disabled"];
+    Idle      [shape=box, style="rounded,filled", fillcolor="#E0E0E0", label="Готово\nXML не выбран"];
+    Parsed    [shape=box, style="rounded,filled", fillcolor="#C1E1C1", label="Распаршено\nbtnGenerate enabled"];
+    Generated [shape=box, style="rounded,filled", fillcolor="#B0E0E6", label="Сгенерировано\nbtnRunTests enabled"];
+    Running   [shape=box, style="rounded,filled", fillcolor="#FFCC80", label="Прогон тестов\nprogressBar visible,\nкнопки disabled"];
+    Done      [shape=box, style="rounded,filled", fillcolor="#D8BFD8", label="Готово к новому циклу\nрезультаты в таблице"];
+    Error     [shape=box, style="rounded,filled", fillcolor="#FFCDD2", label="Ошибка\nAlert показан"];
+
+    start -> Init [label="start()"];
+    Init -> Idle [label="initialize() / FXML ready"];
+
+    Idle -> Parsed [label="onParse() / [XML валиден]"];
+    Idle -> Error  [label="onParse() / [файл не найден\nили невалиден]"];
+
+    Parsed -> Generated [label="onGenerate() / [success]"];
+    Parsed -> Error     [label="onGenerate() / [IOException]"];
+    Parsed -> Parsed    [label="onParse() / повторно"];
+
+    Generated -> Running [label="onRunTests() /\nTask.start()"];
+    Generated -> Running [label="onRunSelected() /\nTask.start(filter)"];
+    Generated -> Generated [label="onGenerate() / повторно"];
+
+    Running -> Done  [label="Task.onSucceeded /\ndisplayResults +\nsaveRun"];
+    Running -> Error [label="Task.onFailed /\nIOException"];
+
+    Done -> Running [label="onRunTests() /\nповтор"];
+    Done -> Parsed  [label="onSelectXml() +\nonParse()"];
+    Done -> Done    [label="onShowHistory()"];
+
+    Error -> Idle      [label="OK в Alert /\nвернуться к началу"];
+    Error -> Parsed    [label="OK в Alert /\n[XML был ОК]"];
+    Error -> Generated [label="OK в Alert /\n[тесты были ОК]"];
+
+    Done -> final [label="закрыть окно"];
+}

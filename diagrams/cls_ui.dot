@@ -1,0 +1,57 @@
+digraph ClsUI {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 18. Уточнённая диаграмма классов пакета «UI»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+
+    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+
+    App [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
+        <TR><TD ALIGN="CENTER"><I>«boundary»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>App</B><BR/><FONT POINT-SIZE="8">extends javafx.application.Application</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">+ start(primaryStage: Stage): void<BR/>
+            + main(args: String[]): void</TD></TR>
+        </TABLE>>];
+
+    MainController [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>MainController</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— xmlPathField, urlField, loginField,<BR/>
+            outputDirField: TextField<BR/>
+            — passwordField: PasswordField<BR/>
+            — testLevelCombo, siteTypeCombo: ComboBox&lt;String&gt;<BR/>
+            — smokeAllSubsystemsCheck, fastModeCheck: CheckBox<BR/>
+            — btnSelectXml, btnParse, btnGenerate, btnRunTests,<BR/>
+            btnRunSelected, btnShowHistory: Button<BR/>
+            — entityListView: ListView&lt;String&gt;<BR/>
+            — resultsTable: TableView&lt;TestCaseRow&gt;<BR/>
+            — currentModel: AppModel<BR/>
+            — reportDao: final ReportDao</TD></TR>
+        <TR><TD ALIGN="LEFT">+ initialize(): void<BR/>
+            — onParse(): void  — onGenerate(): void<BR/>
+            — onRunTests(): void  — onRunSelected(): void<BR/>
+            — onShowHistory(): void  — launchRun(filter): void<BR/>
+            — displayResults(r): void  — log(msg): void</TD></TR>
+        </TABLE>>];
+
+    TestCaseRow [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFE4B5">
+        <TR><TD ALIGN="CENTER"><I>«entity» «inner static»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>MainController::TestCaseRow</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— className, methodName, status,<BR/>
+            duration, message: final String</TD></TR>
+        <TR><TD ALIGN="LEFT">+ TestCaseRow(...)<BR/>
+            + getClassName(): String<BR/>
+            + getMethodName(): String<BR/>
+            + getStatus(): String<BR/>
+            + getDuration(): String<BR/>
+            + getMessage(): String</TD></TR>
+        </TABLE>>];
+
+    App -> MainController [label="«create»\n(через FXML)", style=dashed, fontsize=9];
+    MainController -> TestCaseRow [label="◆ 1..*", fontsize=10, arrowtail=diamond, dir=back];
+}

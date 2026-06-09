@@ -1,0 +1,35 @@
+digraph ClsCommon {
+    rankdir=LR;
+    fontname="DejaVu Sans";
+    label="Рис. 52. Уточнённая диаграмма классов пакета «Common»";
+    labelloc="b";
+    fontsize=14;
+
+    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+
+    Transliterator [label=<<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
+        <TR><TD><I>«utility» «library»</I></TD></TR>
+        <TR><TD><B>Transliterator</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— MAPPING: static final Map&lt;Character, String&gt;</TD></TR>
+        <TR><TD ALIGN="LEFT">+ toClassName(s): static String<BR/>
+            + toMethodName(s): static String<BR/>
+            + toFieldName(s): static String</TD></TR></TABLE>>];
+
+    JavaFileWriter [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
+        <TR><TD><I>«utility»</I></TD></TR>
+        <TR><TD><B>JavaFileWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— sb: final StringBuilder<BR/>
+            — indentLevel: int<BR/>
+            — INDENT: static "    "</TD></TR>
+        <TR><TD ALIGN="LEFT">+ writeLine(line): JavaFileWriter<BR/>
+            + openBlock(header): JavaFileWriter<BR/>
+            + closeBlock(): JavaFileWriter<BR/>
+            + writeToFile(dir, fileName)</TD></TR></TABLE>>];
+
+    ParserException [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#FFCDD2">
+        <TR><TD><I>«exception»</I></TD></TR>
+        <TR><TD><B>ParserException</B></TD></TR>
+        <TR><TD ALIGN="LEFT">extends java.lang.Exception</TD></TR>
+        <TR><TD ALIGN="LEFT">+ ParserException(message)<BR/>
+            + ParserException(message, cause)</TD></TR></TABLE>>];
+}

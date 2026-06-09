@@ -1,0 +1,75 @@
+digraph ClsParser {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 25. Уточнённая диаграмма классов пакета «Parser»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.4;
+
+    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+
+    XmlModelParser [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#B0E0E6">
+        <TR><TD ALIGN="CENTER"><I>«control» «facade»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>XmlModelParser</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— entityParser: final EntityParser<BR/>
+            — searchParser: final SearchParser</TD></TR>
+        <TR><TD ALIGN="LEFT">+ XmlModelParser()<BR/>
+            + XmlModelParser(EntityParser, SearchParser)<BR/>
+            + parse(xmlFile: File): AppModel<BR/>
+            throws ParserException</TD></TR>
+        </TABLE>>];
+
+    EntityParser [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#B0E0E6">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>EntityParser</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— pgParser: final PropertyGroupParser</TD></TR>
+        <TR><TD ALIGN="LEFT">+ parseObject(reader): EntityObject<BR/>
+            — parseAssociation(reader): Association</TD></TR>
+        </TABLE>>];
+
+    PGParser [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#B0E0E6">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>PropertyGroupParser</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ parsePropertyGroup(reader): PG<BR/>
+            — parseProperty(reader): Property<BR/>
+            — parseOperation(reader): Operation</TD></TR>
+        </TABLE>>];
+
+    SearchParser [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#B0E0E6">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>SearchParser</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ parseSearches(reader): List&lt;Search&gt;<BR/>
+            — parseSingleSearch(reader): Search</TD></TR>
+        </TABLE>>];
+
+    StaxUtils [label=<
+        <TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
+        <TR><TD ALIGN="CENTER"><I>«utility» «library»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>StaxUtils</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ attr(reader, name): static String<BR/>
+            + parseInt(value): static int<BR/>
+            + skipToEnd(reader): static void</TD></TR>
+        </TABLE>>];
+
+    XmlNamespaces [label=<
+        <TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
+        <TR><TD ALIGN="CENTER"><I>«utility»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>XmlNamespaces</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ NS_E, NS_E3, NS_MD: static final String</TD></TR>
+        </TABLE>>];
+
+    XmlModelParser -> EntityParser [label="◆", arrowtail=diamond, dir=back, fontsize=10];
+    XmlModelParser -> SearchParser [label="◆", arrowtail=diamond, dir=back, fontsize=10];
+    EntityParser -> PGParser [label="◆", arrowtail=diamond, dir=back, fontsize=10];
+
+    EntityParser -> StaxUtils [style=dashed, label="«use»", fontsize=8];
+    PGParser     -> StaxUtils [style=dashed];
+    SearchParser -> StaxUtils [style=dashed];
+    EntityParser -> XmlNamespaces [style=dashed];
+    PGParser     -> XmlNamespaces [style=dashed];
+    SearchParser -> XmlNamespaces [style=dashed];
+}

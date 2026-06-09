@@ -1,0 +1,34 @@
+digraph Packages {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 12. Диаграмма пакетов информационной системы";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+    ranksep=0.8;
+
+    node [shape=tab, fontname="DejaVu Sans", fontsize=11, style="filled"];
+    edge [fontname="DejaVu Sans", fontsize=9];
+
+    ui       [label="«presentation»\nui\n(3 класса)",      fillcolor="#FFE4B5"];
+    parser   [label="«business»\nparser\n(6 классов)",      fillcolor="#B0E0E6"];
+    generator[label="«business»\ngenerator\n(7 классов)",   fillcolor="#D8BFD8"];
+    data     [label="«persistence»\ndata\n(5 классов)",     fillcolor="#FFB6C1"];
+    model    [label="«entity» «global»\nmodel\n(20 классов)", fillcolor="#C1E1C1"];
+    common   [label="«utility» «global»\ncommon\n(3 класса)", fillcolor="#F0F0F0"];
+
+    ui -> parser    [label="«use»", style=dashed];
+    ui -> generator [label="«use»", style=dashed];
+    ui -> data      [label="«use»", style=dashed];
+    ui -> model     [label="«use»", style=dashed];
+    ui -> common    [label="«use»", style=dashed];
+
+    parser    -> model  [label="«use»", style=dashed];
+    parser    -> common [label="«use»", style=dashed];
+    generator -> model  [label="«use»", style=dashed];
+    generator -> common [label="«use»", style=dashed];
+    data      -> model  [label="«use»", style=dashed];
+
+    { rank=same; parser; generator; data; }
+    { rank=same; model; common; }
+}

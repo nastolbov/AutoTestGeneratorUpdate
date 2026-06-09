@@ -1,0 +1,43 @@
+digraph Deployment {
+    rankdir=LR;
+    fontname="DejaVu Sans";
+    label="Рис. 28. Диаграмма размещения";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.5;
+
+    node [fontname="DejaVu Sans", fontsize=10];
+    edge [fontname="DejaVu Sans", fontsize=9];
+
+    subgraph cluster_workstation {
+        label="Рабочая станция тестировщика (Windows 10/11)";
+        style="rounded,filled"; fillcolor="#FFF8DC"; labelloc=t;
+
+        AppNode [shape=box3d, label="«executionEnvironment»\nJRE 17"];
+        App     [shape=component, label="autotestgenerator.jar"];
+        Chrome  [shape=component, label="Chrome Browser"];
+        Mvn     [shape=component, label="Apache Maven 3.8+"];
+        DbFile  [shape=cylinder, label="autotestgen.db\n(SQLite)"];
+        OutDir  [shape=folder, label="generated-tests/"];
+
+        AppNode -> App     [arrowhead=none, style=dotted];
+        AppNode -> Chrome  [arrowhead=none, style=dotted];
+        AppNode -> Mvn     [arrowhead=none, style=dotted];
+        App     -> DbFile  [label="local file I/O", style=dashed];
+        App     -> OutDir  [label="generate", style=dashed];
+        Mvn     -> OutDir  [label="mvn test", style=dashed];
+        Chrome  -> Server  [label="HTTPS", style=dashed];
+    }
+
+    subgraph cluster_server {
+        label="Сервер E3Core (rrpo.cmirit.ru)";
+        style="rounded,filled"; fillcolor="#E6E6FA"; labelloc=t;
+
+        Server  [shape=box3d, label="«server»\nApache Tomcat"];
+        WebApp  [shape=component, label="E3Core\n(ExtJS UI + REST API)"];
+        DbServ  [shape=cylinder, label="СУБД\n(Oracle/PostgreSQL)"];
+
+        Server -> WebApp [arrowhead=none, style=dotted];
+        WebApp -> DbServ [label="SQL"];
+    }
+}

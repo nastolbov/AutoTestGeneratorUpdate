@@ -1,0 +1,38 @@
+digraph ER {
+    rankdir=LR;
+    fontname="DejaVu Sans";
+    label="Рис. 10. ER-диаграмма базы данных системы AutoTestGenerator";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.6;
+
+    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+
+    test_run [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#FFF0E0">
+        <TR><TD BGCOLOR="#FFB74D" COLSPAN="2"><B>test_run</B></TD></TR>
+        <TR><TD ALIGN="LEFT"><B>PK</B> id</TD><TD>INTEGER  AUTOINCREMENT</TD></TR>
+        <TR><TD ALIGN="LEFT">run_date</TD><TD>TEXT NOT NULL</TD></TR>
+        <TR><TD ALIGN="LEFT">xml_file</TD><TD>TEXT NOT NULL</TD></TR>
+        <TR><TD ALIGN="LEFT">base_url</TD><TD>TEXT NOT NULL</TD></TR>
+        <TR><TD ALIGN="LEFT">total</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        <TR><TD ALIGN="LEFT">passed</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        <TR><TD ALIGN="LEFT">failed</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        <TR><TD ALIGN="LEFT">skipped</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        <TR><TD ALIGN="LEFT">duration_ms</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        </TABLE>>];
+
+    test_case [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#E0F0FF">
+        <TR><TD BGCOLOR="#64B5F6" COLSPAN="2"><B>test_case</B></TD></TR>
+        <TR><TD ALIGN="LEFT"><B>PK</B> id</TD><TD>INTEGER  AUTOINCREMENT</TD></TR>
+        <TR><TD ALIGN="LEFT"><B>FK</B> run_id</TD><TD>INTEGER NOT NULL → test_run(id)</TD></TR>
+        <TR><TD ALIGN="LEFT">class_name</TD><TD>TEXT NOT NULL</TD></TR>
+        <TR><TD ALIGN="LEFT">method_name</TD><TD>TEXT NOT NULL</TD></TR>
+        <TR><TD ALIGN="LEFT">passed</TD><TD>INTEGER NOT NULL DEFAULT 1</TD></TR>
+        <TR><TD ALIGN="LEFT">failure_msg</TD><TD>TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">duration_ms</TD><TD>INTEGER NOT NULL DEFAULT 0</TD></TR>
+        </TABLE>>];
+
+    test_run -> test_case [label="  1 — *  (содержит)", arrowhead=crow, arrowtail=none, dir=both, fontsize=11];
+}

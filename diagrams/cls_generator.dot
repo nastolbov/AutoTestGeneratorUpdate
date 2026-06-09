@@ -1,0 +1,84 @@
+digraph ClsGen {
+    rankdir=TB;
+    fontname="DejaVu Sans";
+    label="Рис. 32. Уточнённая диаграмма классов пакета «Generator»";
+    labelloc="b";
+    fontsize=14;
+    nodesep=0.4;
+
+    node [fontname="DejaVu Sans", fontsize=10, shape=plaintext];
+
+    TestConfig [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«entity»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>TestConfig</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— baseUrl, login, password: String<BR/>
+            — outputDir: Path<BR/>
+            — browserType, basePackage, siteType,<BR/>
+            subsystemName, testLevel: String<BR/>
+            — smokeAllSubsystems: boolean</TD></TR>
+        </TABLE>>];
+
+    TestGenerator [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«control» «director»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>TestGenerator</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— config: final TestConfig</TD></TR>
+        <TR><TD ALIGN="LEFT">+ generate(model: AppModel): void<BR/>
+            — generatePom, generateBaseTest,<BR/>
+            generateSharedDriver, generateTestData,<BR/>
+            generateSubsystemsSmokeTest, ...</TD></TR>
+        </TABLE>>];
+
+    PageObjectWriter [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>PageObjectWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ write(entity, outputDir): void</TD></TR>
+        </TABLE>>];
+
+    TestClassWriter [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>TestClassWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ write(entity, model, outputDir): void<BR/>
+            + writeChildTest(...): void</TD></TR>
+        </TABLE>>];
+
+    TestDataFactory [label=<
+        <TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F0F0F0">
+        <TR><TD ALIGN="CENTER"><I>«utility»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>TestDataFactory</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ generateValue(prop): static String<BR/>
+            + generateSearchParamValue(p): static String<BR/>
+            + generateFromMask(mask): static String</TD></TR>
+        </TABLE>>];
+
+    TestRunner [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«control» «boundary»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>TestRunner</B></TD></TR>
+        <TR><TD ALIGN="LEFT">— lastMavenOutput: String</TD></TR>
+        <TR><TD ALIGN="LEFT">+ run(projectDir, xml, url): TestRunResult<BR/>
+            + run(..., lineConsumer): TestRunResult<BR/>
+            + run(..., testFilter): TestRunResult<BR/>
+            + run(..., testFilter, fastMode):<BR/>
+            TestRunResult</TD></TR>
+        </TABLE>>];
+
+    RunReportWriter [label=<
+        <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#D8BFD8">
+        <TR><TD ALIGN="CENTER"><I>«control»</I></TD></TR>
+        <TR><TD ALIGN="CENTER"><B>RunReportWriter</B></TD></TR>
+        <TR><TD ALIGN="LEFT">+ write(htmlPath, result): void<BR/>
+            + writeCsv(csvPath, result): void</TD></TR>
+        </TABLE>>];
+
+    TestGenerator -> TestConfig       [arrowtail=odiamond, dir=back, label="◇"];
+    TestGenerator -> PageObjectWriter [style=dashed, label="«create»\nцикл по сущностям", fontsize=8];
+    TestGenerator -> TestClassWriter  [style=dashed, label="«create»\nцикл по сущностям", fontsize=8];
+    TestGenerator -> TestDataFactory  [style=dashed, label="«use»", fontsize=8];
+
+    PageObjectWriter -> TestDataFactory [style=dashed];
+    TestClassWriter  -> TestDataFactory [style=dashed];
+}
