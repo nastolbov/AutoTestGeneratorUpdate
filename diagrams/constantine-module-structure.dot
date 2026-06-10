@@ -1,7 +1,7 @@
 digraph Constantine {
     rankdir=TB;
-    ranksep=1.4;
-    nodesep=0.7;
+    ranksep=1.6;
+    nodesep=0.9;
     fontname="DejaVu Sans";
     label="Карта Константайна информационной системы AutoTestGenerator";
     labelloc="t";
@@ -26,7 +26,7 @@ digraph Constantine {
     TestRunner          [shape=box, label="TestRunner"];
     ReportDao           [shape=box, label="ReportDao"];
 
-    // ==== БИБЛИОТЕКИ (двойная рамка) ====
+    // ==== БИБЛИОТЕКИ ====
     StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
     XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
     JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
@@ -36,41 +36,41 @@ digraph Constantine {
     SQLite   [shape=ellipse, label="autotestgen.db"];
     GenFiles [shape=ellipse, label="generated-tests/"];
 
-    // ==== СВЯЗИ ====
-    App -> MainController            [label=" FXML "];
+    // ==== СВЯЗИ (нотация Юрдона/Константайна: ↓○ вход данных, ↑○ выход, ↓● управление) ====
 
-    MainController -> XmlModelParser [label=" XML\n AppModel "];
-    MainController -> TestConfig     [label=" параметры "];
-    MainController -> TestGenerator  [label=" AppModel,\n TestConfig "];
-    MainController -> TestRunner     [label=" outputDir,\n fastMode "];
-    MainController -> ReportDao      [label=" RunResult,\n история "];
+    App -> MainController            [label="↓● FXML\n    разметка"];
 
-    XmlModelParser -> EntityParser   [label=" reader,\n EntityObject "];
-    XmlModelParser -> SearchParser   [label=" reader,\n Search "];
-    EntityParser -> PropertyGroupParser [label=" reader,\n PropertyGroup "];
+    MainController -> XmlModelParser [label="↓○ XML-файл\n↑○ AppModel"];
+    MainController -> TestConfig     [label="↓○ параметры\n↑○ TestConfig"];
+    MainController -> TestGenerator  [label="↓○ AppModel,\n   TestConfig\n↑○ путь к проекту"];
+    MainController -> TestRunner     [label="↓○ outputDir,\n   фильтр\n↓● fastMode\n↑○ RunResult"];
+    MainController -> ReportDao      [label="↓○ RunResult\n↑○ история\n   прогонов"];
 
-    TestGenerator -> EntityClassifier [label=" цикл:\n entity,\n тип "];
-    TestGenerator -> PageObjectWriter [label=" цикл:\n entity "];
-    TestGenerator -> TestClassWriter  [label=" цикл:\n entity, уровень "];
-    TestGenerator -> TestDataFactory  [label=" маска,\n значение "];
+    XmlModelParser -> EntityParser   [label="↓○ reader\n↑○ EntityObject"];
+    XmlModelParser -> SearchParser   [label="↓○ reader\n↑○ List<Search>"];
+    EntityParser -> PropertyGroupParser [label="↓○ reader\n↑○ PropertyGroup"];
 
-    // common coupling (пунктир)
-    EntityParser -> StaxUtils         [label=" attr,\n parseInt ", style=dashed];
+    TestGenerator -> EntityClassifier [label="↓○ entity,\n   model\n↑○ тип\n   (PRIMARY/CHILD)"];
+    TestGenerator -> PageObjectWriter [label="↓○ entity,\n   TestConfig\n↑● void"];
+    TestGenerator -> TestClassWriter  [label="↓○ entity,\n   model\n↓● уровень\n↑● void"];
+    TestGenerator -> TestDataFactory  [label="↓○ маска,\n   тип поля\n↑○ значение"];
+
+    // common coupling (пунктир) — использование библиотек
+    EntityParser -> StaxUtils         [label="↓○ reader,\n   имя атрибута\n↑○ значение", style=dashed];
     SearchParser -> StaxUtils         [style=dashed];
     PropertyGroupParser -> StaxUtils  [style=dashed];
-    EntityParser -> XmlNamespaces     [label=" NS_E, NS_E3 ", style=dashed];
+    EntityParser -> XmlNamespaces     [label="↑○ NS_E, NS_E3,\n   NS_MD", style=dashed];
     SearchParser -> XmlNamespaces     [style=dashed];
     PropertyGroupParser -> XmlNamespaces [style=dashed];
-
-    PageObjectWriter -> JavaFileWriter [label=" строки кода ", style=dashed];
+    PageObjectWriter -> JavaFileWriter [label="↓○ строки кода,\n   отступы", style=dashed];
     TestClassWriter -> JavaFileWriter  [style=dashed];
-    PageObjectWriter -> Transliterator [label=" Java-имена ", style=dashed];
+    PageObjectWriter -> Transliterator [label="↓○ русское имя\n↑○ Java-имя", style=dashed];
     TestClassWriter -> Transliterator  [style=dashed];
 
     // области данных
-    TestGenerator -> GenFiles [label=" запись:\n *.java, pom.xml "];
-    TestRunner -> GenFiles    [label=" чтение:\n surefire-reports "];
-    ReportDao -> SQLite       [label=" INSERT,\n SELECT "];
+    TestGenerator -> GenFiles [label="↓○ запись\n   *.java, pom.xml"];
+    TestRunner -> GenFiles    [label="↑○ чтение\n   surefire-reports\n   *.xml"];
+    ReportDao -> SQLite       [label="↓○ INSERT\n↑○ SELECT\n   ResultSet"];
 
     // ==== УРОВНИ ====
     { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; }
@@ -81,19 +81,23 @@ digraph Constantine {
 
     // ==== ЛЕГЕНДА ====
     subgraph cluster_legend {
-        label="Условные обозначения";
+        label="Условные обозначения (по Л. Константайну)";
         labelloc="b";
         style=dashed;
         fontsize=11;
-        margin=12;
+        margin=14;
 
         L_mod  [shape=box, label="модуль"];
         L_lib  [shape=box, peripheries=2, label="библиотека"];
         L_data [shape=ellipse, label="область\nданных"];
-        L_dash [shape=plaintext, label="- - - common coupling\n(использование библиотеки)"];
+        L_data_couple    [shape=plaintext, label="↓○  связь по данным\n        (вход / выход)"];
+        L_control_couple [shape=plaintext, label="↓●  связь по управлению\n        (управляющий флаг)"];
+        L_common         [shape=plaintext, label="- - -  common coupling\n            (библиотека)"];
 
         L_mod -> L_lib [style=invis];
         L_lib -> L_data [style=invis];
-        L_data -> L_dash [style=invis];
+        L_data -> L_data_couple [style=invis];
+        L_data_couple -> L_control_couple [style=invis];
+        L_control_couple -> L_common [style=invis];
     }
 }
