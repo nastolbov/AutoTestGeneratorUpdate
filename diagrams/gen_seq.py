@@ -383,23 +383,35 @@ render("seq-data-system-interrupt.png", DATA_OBJ, [
 COMMON_OBJ = ["Transliterator", ":JavaFileWriter", ":ParserException"]
 
 print("Common:")
-# Только классы пакета common — взаимодействие через утилиту JavaFileWriter,
-# который использует Transliterator косвенно (через подаваемые строки)
+# Сценарии используют ТОЛЬКО три класса пакета common.
+# Соответствие коду:
+#   Transliterator — статический утилитный класс (toClassName/toMethodName/toFieldName)
+#   JavaFileWriter — копит исходник Java в StringBuilder (writeLine/openBlock/closeBlock),
+#                    пишет на диск через writeToFile (бросает IOException)
+#   ParserException — исключение-обёртка (message, cause)
+
+# НОРМАЛЬНЫЙ ход: транслитерация имени → построение Java-файла → запись на диск
 render("seq-common-normal.png", COMMON_OBJ, [
-    {"from": "Transliterator", "to": ":JavaFileWriter", "label": "1: имя класса для writeLine", "kind": "async"},
-    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: openBlock + writeLine\n   накопление StringBuilder", "kind": "self"},
-    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "3: writeToFile → Files.write", "kind": "self"},
+    {"from": "Transliterator", "to": "Transliterator", "label": "1: toClassName(\"Заявка\")\n   → \"Zayavka\"", "kind": "self"},
+    {"from": "Transliterator", "to": ":JavaFileWriter", "label": "2: имя класса передаётся\n   для openBlock", "kind": "async"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "3: writeLine + openBlock\n   накопление StringBuilder", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "4: closeBlock\n   indentLevel--", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "5: writeToFile(dir, name.java)\n   Files.createDirectories + write", "kind": "self"},
 ])
 
+# ПРЕРЫВАНИЕ ПОЛЬЗОВАТЕЛЕМ: отмена между файлами — StringBuilder отбрасывается
 render("seq-common-user-interrupt.png", COMMON_OBJ, [
-    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "1: writeLine [синхронно,\n   прерывание невозможно]", "kind": "self"},
-    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: writeToFile завершается\n   до конца файла", "kind": "self"},
+    {"from": "Transliterator", "to": "Transliterator", "label": "1: toClassName(\"Документ\")\n   → \"Dokument\"", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: writeLine + openBlock\n   накопление в StringBuilder", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "3: writeToFile НЕ вызывается\n   (Cancel от пользователя),\n   StringBuilder отбрасывается", "kind": "self"},
 ])
 
+# СИСТЕМНОЕ ПРЕРЫВАНИЕ: IOException при writeToFile → обёртка в ParserException
 render("seq-common-system-interrupt.png", COMMON_OBJ, [
-    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "1: writeToFile → IOException\n   (диск переполнен)", "kind": "self"},
-    {"from": ":JavaFileWriter", "to": ":ParserException", "label": "2: new(msg, cause)", "kind": "create"},
-    {"from": ":ParserException", "to": ":JavaFileWriter", "label": "3: исключение готово", "kind": "return"},
+    {"from": "Transliterator", "to": "Transliterator", "label": "1: toClassName(\"\")\n   → \"Unknown\" (граничный)", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: writeToFile →\n   IOException (нет доступа)", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":ParserException", "label": "3: new(\"Ошибка записи\",\n   IOException)", "kind": "create"},
+    {"from": ":ParserException", "to": ":JavaFileWriter", "label": "4: исключение готово\n   к пробросу", "kind": "return"},
 ])
 
 print("\nГотово.")
