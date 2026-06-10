@@ -1,0 +1,57 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 13
+skinparam componentStyle uml2
+skinparam ArrowColor black
+skinparam ComponentBackgroundColor white
+skinparam ArtifactBackgroundColor white
+skinparam NodeBackgroundColor white
+skinparam DatabaseBackgroundColor white
+
+node "Сервер тестирования" as srv {
+
+  component "autotestgenerator.jar\n<<основное приложение>>" as app
+
+  component "javafx-controls.jar\n<<библиотека UI>>" as fxctl
+  component "javafx-fxml.jar\n<<библиотека UI>>" as fxml
+  component "sqlite-jdbc.jar\n<<JDBC-драйвер>>" as jdbc
+  component "java.xml.stream\n<<StAX-парсер JDK>>" as stax
+
+  database "autotestgen.db\n<<SQLite>>" as db
+
+  artifact "XML-файл\nметамодели" as xml
+
+  artifact "generated-tests/\n<<Maven-проект>>" as gentests
+
+  component "Apache Maven\n<<внешний инструмент>>" as mvn
+
+  artifact "surefire-reports/\n<<отчёты прогона>>" as reports
+
+  node "Google Chrome\n<<браузер>>" as chrome {
+    component "ChromeDriver\n<<WebDriver>>" as cdriver
+  }
+}
+
+node "Web-сервер" as web {
+  component "Тестируемое\nweb-приложение" as sut
+}
+
+app ..> fxctl : use
+app ..> fxml  : use
+app ..> stax  : use
+app ..> jdbc  : use
+jdbc ..> db   : JDBC
+xml  ..> app  : парсинг
+app  ..> gentests : генерация
+app  ..> mvn  : "mvn test"
+mvn  ..> gentests : сборка/запуск
+gentests ..> cdriver : Selenium WebDriver
+cdriver  ..> chrome  : управление
+chrome   ..> sut     : HTTP
+mvn  ..> reports : XML-отчёты
+app  ..> reports : чтение
+app  ..> db      : сохранение прогонов
+
+@enduml
