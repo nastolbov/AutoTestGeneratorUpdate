@@ -1,17 +1,17 @@
 digraph Constantine {
     rankdir=TB;
-    ranksep=1.0;
-    nodesep=0.45;
+    ranksep=1.4;
+    nodesep=0.7;
     fontname="DejaVu Sans";
-    label="Структурная карта Константайна\nдля информационной системы AutoTestGenerator";
+    label="Карта Константайна информационной системы AutoTestGenerator";
     labelloc="t";
     fontsize=18;
 
-    node [fontname="DejaVu Sans", fontsize=11];
-    edge [fontname="DejaVu Sans", fontsize=9];
+    node [fontname="DejaVu Sans", fontsize=12];
+    edge [fontname="DejaVu Sans", fontsize=11, arrowsize=0.9];
 
-    // ==== МОДУЛИ (rect, одинарная рамка) ====
-    App                 [shape=box, label="App\n(точка входа)"];
+    // ==== МОДУЛИ ====
+    App                 [shape=box, label="App"];
     MainController      [shape=box, label="MainController"];
     XmlModelParser      [shape=box, label="XmlModelParser"];
     EntityParser        [shape=box, label="EntityParser"];
@@ -26,74 +26,51 @@ digraph Constantine {
     TestRunner          [shape=box, label="TestRunner"];
     ReportDao           [shape=box, label="ReportDao"];
 
-    // ==== БИБЛИОТЕКИ (rect с двойной рамкой = peripheries=2) ====
+    // ==== БИБЛИОТЕКИ (двойная рамка) ====
     StaxUtils      [shape=box, peripheries=2, label="StaxUtils"];
     XmlNamespaces  [shape=box, peripheries=2, label="XmlNamespaces"];
     JavaFileWriter [shape=box, peripheries=2, label="JavaFileWriter"];
     Transliterator [shape=box, peripheries=2, label="Transliterator"];
 
-    // ==== ОБЛАСТИ ДАННЫХ (овал) ====
-    SQLite   [shape=ellipse, label="autotestgen.db\n(SQLite)"];
-    GenFiles [shape=ellipse, label="generated-tests/\n*.java, pom.xml,\nsurefire-reports/"];
+    // ==== ОБЛАСТИ ДАННЫХ ====
+    SQLite   [shape=ellipse, label="autotestgen.db"];
+    GenFiles [shape=ellipse, label="generated-tests/"];
 
     // ==== СВЯЗИ ====
-    // Уровень 1 → 2: однократный вызов (метка «1»)
-    App -> MainController [label="  1\n(FXML)"];
+    App -> MainController            [label=" FXML "];
 
-    // Уровень 2 → 3: вызовы с couples по данным и управлению
-    MainController -> XmlModelParser
-        [label="↓○ File\n↑○ AppModel"];
-    MainController -> TestConfig
-        [label="↓○ setters"];
-    MainController -> TestGenerator
-        [label="↓○ AppModel,\n   TestConfig"];
-    MainController -> TestRunner
-        [label="↓○ outputDir, filter\n↓● fastMode"];
-    MainController -> ReportDao
-        [label="↓○ TestRunResult\n↑○ List<TestRunResult>"];
+    MainController -> XmlModelParser [label=" XML\n AppModel "];
+    MainController -> TestConfig     [label=" параметры "];
+    MainController -> TestGenerator  [label=" AppModel,\n TestConfig "];
+    MainController -> TestRunner     [label=" outputDir,\n fastMode "];
+    MainController -> ReportDao      [label=" RunResult,\n история "];
 
-    // Уровень 3 → 4: парсеры (вложенно)
-    XmlModelParser -> EntityParser
-        [label="↓○ reader\n↑○ EntityObject"];
-    XmlModelParser -> SearchParser
-        [label="↓○ reader\n↑○ List<Search>"];
-    EntityParser -> PropertyGroupParser
-        [label="↓○ reader\n↑○ PropertyGroup"];
+    XmlModelParser -> EntityParser   [label=" reader,\n EntityObject "];
+    XmlModelParser -> SearchParser   [label=" reader,\n Search "];
+    EntityParser -> PropertyGroupParser [label=" reader,\n PropertyGroup "];
 
-    // Уровень 3 → 4: писатели и классификатор (циклический вызов по сущностям)
-    TestGenerator -> EntityClassifier
-        [label="цикл\n↓○ entity, model\n↑○ Classification"];
-    TestGenerator -> PageObjectWriter
-        [label="цикл\n↓○ entity, config"];
-    TestGenerator -> TestClassWriter
-        [label="цикл\n↓○ entity, model,\n   config"];
-    TestGenerator -> TestDataFactory
-        [label="↓○ property\n↑○ String"];
+    TestGenerator -> EntityClassifier [label=" цикл:\n entity,\n тип "];
+    TestGenerator -> PageObjectWriter [label=" цикл:\n entity "];
+    TestGenerator -> TestClassWriter  [label=" цикл:\n entity, уровень "];
+    TestGenerator -> TestDataFactory  [label=" маска,\n значение "];
 
-    // Уровень 4 → 5: библиотеки (common coupling — пунктир)
-    EntityParser        -> StaxUtils
-        [label="↓○ reader, name\n↑○ value", style=dashed];
-    SearchParser        -> StaxUtils [style=dashed];
-    PropertyGroupParser -> StaxUtils [style=dashed];
-    EntityParser        -> XmlNamespaces
-        [label="↑○ NS_E, NS_E3", style=dashed];
-    SearchParser        -> XmlNamespaces [style=dashed];
+    // common coupling (пунктир)
+    EntityParser -> StaxUtils         [label=" attr,\n parseInt ", style=dashed];
+    SearchParser -> StaxUtils         [style=dashed];
+    PropertyGroupParser -> StaxUtils  [style=dashed];
+    EntityParser -> XmlNamespaces     [label=" NS_E, NS_E3 ", style=dashed];
+    SearchParser -> XmlNamespaces     [style=dashed];
     PropertyGroupParser -> XmlNamespaces [style=dashed];
 
-    PageObjectWriter -> JavaFileWriter
-        [label="↓○ строки\nкода", style=dashed];
-    TestClassWriter  -> JavaFileWriter [style=dashed];
-    PageObjectWriter -> Transliterator
-        [label="↓○ russianName\n↑○ Java-имя", style=dashed];
-    TestClassWriter  -> Transliterator [style=dashed];
+    PageObjectWriter -> JavaFileWriter [label=" строки кода ", style=dashed];
+    TestClassWriter -> JavaFileWriter  [style=dashed];
+    PageObjectWriter -> Transliterator [label=" Java-имена ", style=dashed];
+    TestClassWriter -> Transliterator  [style=dashed];
 
-    // → области данных
-    TestGenerator -> GenFiles
-        [label="↓○ записывает\n   *.java, pom.xml"];
-    TestRunner    -> GenFiles
-        [label="↑○ читает\n   surefire-reports/*.xml"];
-    ReportDao     -> SQLite
-        [label="↓○ INSERT\n↑○ SELECT ResultSet"];
+    // области данных
+    TestGenerator -> GenFiles [label=" запись:\n *.java, pom.xml "];
+    TestRunner -> GenFiles    [label=" чтение:\n surefire-reports "];
+    ReportDao -> SQLite       [label=" INSERT,\n SELECT "];
 
     // ==== УРОВНИ ====
     { rank=same; XmlModelParser; TestConfig; TestGenerator; TestRunner; ReportDao; }
@@ -104,7 +81,7 @@ digraph Constantine {
 
     // ==== ЛЕГЕНДА ====
     subgraph cluster_legend {
-        label="Условные обозначения (по Л. Константайну)";
+        label="Условные обозначения";
         labelloc="b";
         style=dashed;
         fontsize=11;
@@ -113,18 +90,10 @@ digraph Constantine {
         L_mod  [shape=box, label="модуль"];
         L_lib  [shape=box, peripheries=2, label="библиотека"];
         L_data [shape=ellipse, label="область\nданных"];
+        L_dash [shape=plaintext, label="- - - common coupling\n(использование библиотеки)"];
 
-        L_data_couple    [shape=plaintext, label="↓○ ↑○ — связь по данным (data couple)"];
-        L_control_couple [shape=plaintext, label="↓● — связь по управлению (control couple)"];
-        L_once           [shape=plaintext, label="1 — однократный вызов"];
-        L_cycle          [shape=plaintext, label="«цикл» — циклический вызов"];
-        L_common         [shape=plaintext, label="— — — common coupling (использование библиотеки)"];
-
-        L_mod -> L_lib -> L_data [style=invis];
-        L_data -> L_data_couple [style=invis];
-        L_data_couple -> L_control_couple [style=invis];
-        L_control_couple -> L_once [style=invis];
-        L_once -> L_cycle [style=invis];
-        L_cycle -> L_common [style=invis];
+        L_mod -> L_lib [style=invis];
+        L_lib -> L_data [style=invis];
+        L_data -> L_dash [style=invis];
     }
 }
