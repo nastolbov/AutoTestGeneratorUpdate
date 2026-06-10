@@ -3,23 +3,33 @@ graph G {
     fontname="Liberation Serif";
     overlap=false;
     splines=true;
-    sep="+15";
-    node [fontname="Liberation Serif", fontsize=12,
+    sep="+18";
+    node [fontname="Liberation Serif", fontsize=11,
           shape=component, style=filled, fillcolor=white,
-          width=1.8, height=0.8];
+          width=2.0, height=0.8];
     edge [color=black, penwidth=1.2];
 
     // Центральный компонент — наше приложение
-    AppJar [label="autotestgenerator.jar", pos="3,2!"];
+    AppJar [label="autotestgenerator.jar", pos="4,3!"];
 
-    // Связи как в учебнике: простые линии без подписей и стрелок
-    JavaFXC  [label="javafx-controls.jar", pos="0.5,4!"];
-    JavaFXF  [label="javafx-fxml.jar",     pos="3,4.5!"];
-    SQLite   [label="sqlite-jdbc.jar",     pos="6,2!"];
-    StAX     [label="java.xml.stream\n(JDK 17 built-in)", pos="0,1.5!"];
+    // Подключаемые библиотеки приложения
+    JavaFXC  [label="javafx-controls.jar", pos="0.5,5!"];
+    JavaFXF  [label="javafx-fxml.jar",     pos="4,5.5!"];
+    SQLite   [label="sqlite-jdbc.jar",     pos="7.5,4.5!"];
+    StAX     [label="java.xml.stream\n(JDK 17 built-in)", pos="0.5,2.5!"];
 
+    // Внешние инструменты для прогона сгенерированных тестов
+    Maven    [label="Apache Maven\n(mvn test)", pos="8,2.5!"];
+    GenProj  [label="generated-tests/\n(JUnit 5 + Selenium)", pos="4,0.5!"];
+    Chrome   [label="Google Chrome\n+ ChromeDriver", pos="8,0.5!"];
+
+    // Связи
     AppJar -- JavaFXC;
     AppJar -- JavaFXF;
     AppJar -- SQLite;
     AppJar -- StAX;
+    AppJar -- Maven;
+    AppJar -- GenProj;
+    Maven -- GenProj;
+    GenProj -- Chrome;
 }
