@@ -1,21 +1,16 @@
 digraph CoopCommon {
-    rankdir=TB; fontname="Liberation Serif";
-    nodesep=1.0; ranksep=0.9;
-    node [fontname="Liberation Serif", fontsize=11, shape=box, style=filled, fillcolor=white];
-    edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
+    rankdir=LR; fontname="Liberation Serif";
+    nodesep=1.4; ranksep=1.6;
+    splines=true;
+    node [fontname="Liberation Serif", fontsize=12, shape=box, style=filled, fillcolor=white];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, arrowsize=0.9];
 
-    Gen [label=":TestGenerator"];
-    POW [label=":PageObjectWriter"];
-    JW  [label=":JavaFileWriter"];
-    T   [label="Transliterator"];
-    XMP [label=":XmlModelParser"];
-    PE  [label="ParserException"];
+    T  [label="Transliterator"];
+    JW [label=":JavaFileWriter"];
+    PE [label=":ParserException"];
 
-    Gen -> T   [label="русское имя сущности\n→ Java-имя класса"];
-    POW -> T   [label="русское имя поля\n→ имя поля Java"];
-    POW -> JW  [label="строки кода:\npackage, import, class,\nметоды, скобки блоков"];
-    JW  -> JW  [label="накопление в StringBuilder,\nуправление отступом"];
-    POW -> JW  [label="запись на диск:\nкаталог + имя файла"];
-    XMP -> PE  [label="сообщение об ошибке\n+ причина (cause)"];
-    PE  -> XMP [label="исключение готово\nк выбросу"];
+    T  -> JW [label="имя класса Java\n(после toClassName)"];
+    JW -> JW [label="накопление строк в StringBuilder,\nуправление отступом,\nзапись на диск через writeToFile"];
+    JW -> PE [label="при IOException —\nсоздание исключения с\nсообщением и причиной (cause)"];
+    PE -> JW [label="исключение готово\nк пробросу наверх"];
 }
