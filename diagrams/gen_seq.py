@@ -380,31 +380,26 @@ render("seq-data-system-interrupt.png", DATA_OBJ, [
 # :TestGenerator (внешний), Transliterator, :JavaFileWriter,
 # :ParserException, :XmlModelParser (внешний — для exception)
 # ====================================================
-COMMON_OBJ = [":TestGenerator", "Transliterator", ":JavaFileWriter",
-              ":XmlModelParser", ":ParserException"]
+COMMON_OBJ = ["Transliterator", ":JavaFileWriter", ":ParserException"]
 
 print("Common:")
+# Только классы пакета common — взаимодействие через утилиту JavaFileWriter,
+# который использует Transliterator косвенно (через подаваемые строки)
 render("seq-common-normal.png", COMMON_OBJ, [
-    {"from": ":TestGenerator", "to": "Transliterator", "label": "1: toClassName(name)"},
-    {"from": "Transliterator", "to": ":TestGenerator", "label": "2: 'GskOgsk'", "kind": "return"},
-    {"from": ":TestGenerator", "to": ":JavaFileWriter", "label": "3: new()", "kind": "create"},
-    {"from": ":TestGenerator", "to": ":JavaFileWriter", "label": "4: openBlock + writeLine [цикл]"},
-    {"from": ":TestGenerator", "to": ":JavaFileWriter", "label": "5: writeToFile(dir, name)"},
-    {"from": ":JavaFileWriter", "to": ":TestGenerator", "label": "6: void", "kind": "return"},
+    {"from": "Transliterator", "to": ":JavaFileWriter", "label": "1: имя класса для writeLine", "kind": "async"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: openBlock + writeLine\n   накопление StringBuilder", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "3: writeToFile → Files.write", "kind": "self"},
 ])
 
 render("seq-common-user-interrupt.png", COMMON_OBJ, [
-    {"from": ":TestGenerator", "to": ":JavaFileWriter", "label": "1: writer.writeLine(...) [синхронно]"},
-    {"from": ":JavaFileWriter", "to": ":TestGenerator", "label": "2: запись прервана пользователем", "kind": "return"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "1: writeLine [синхронно,\n   прерывание невозможно]", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "2: writeToFile завершается\n   до конца файла", "kind": "self"},
 ])
 
 render("seq-common-system-interrupt.png", COMMON_OBJ, [
-    {"from": ":XmlModelParser", "to": "Transliterator", "label": "1: toClassName(name)"},
-    {"from": "Transliterator", "to": ":XmlModelParser", "label": "2: имя", "kind": "return"},
-    {"from": ":XmlModelParser", "to": ":JavaFileWriter", "label": "3: writeToFile (нет прав)"},
-    {"from": ":JavaFileWriter", "to": ":XmlModelParser", "label": "4: IOException", "kind": "return"},
-    {"from": ":XmlModelParser", "to": ":ParserException", "label": "5: new(msg, cause)", "kind": "create"},
-    {"from": ":ParserException", "to": ":XmlModelParser", "label": "6: исключение", "kind": "return"},
+    {"from": ":JavaFileWriter", "to": ":JavaFileWriter", "label": "1: writeToFile → IOException\n   (диск переполнен)", "kind": "self"},
+    {"from": ":JavaFileWriter", "to": ":ParserException", "label": "2: new(msg, cause)", "kind": "create"},
+    {"from": ":ParserException", "to": ":JavaFileWriter", "label": "3: исключение готово", "kind": "return"},
 ])
 
 print("\nГотово.")
