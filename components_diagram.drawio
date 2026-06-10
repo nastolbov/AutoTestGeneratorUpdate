@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Компоненты" id="components">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="srv" value="Сервер тестирования" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1120" height="780" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="xml" value="XML-файл метамодели&#10;«artifact»" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="90" width="180" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="app" value="autotestgenerator.jar&#10;«основное приложение»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="90" width="260" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fxctl" value="javafx-controls.jar&#10;«библиотека UI»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fxml" value="javafx-fxml.jar&#10;«библиотека UI»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="stax" value="java.xml.stream&#10;«StAX-парсер JDK»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="240" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="jdbc" value="sqlite-jdbc.jar&#10;«JDBC-драйвер»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="740" y="240" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db" value="autotestgen.db&#10;«SQLite»" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="370" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="mvn" value="Apache Maven&#10;«внешний инструмент»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="90" width="180" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gentests" value="generated-tests/&#10;«Maven-проект»" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="370" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="reports" value="surefire-reports/&#10;«отчёты прогона»" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="370" width="180" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="chrome" value="Google Chrome  «device»" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="530" width="260" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cdriver" value="ChromeDriver&#10;«WebDriver»" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="600" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="web" value="Web-сервер" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="860" width="1120" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sut" value="Тестируемое&#10;web-приложение" style="shape=component;align=center;spacingLeft=20;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="910" width="240" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=open;dashed=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="xml" target="app">
+          <mxGeometry relative="1" as="geometry"/>
+          <mxCell id="e1l" value="парсинг" style="" vertex="1"/>
+        </mxCell>
+        <mxCell id="e2" value="use" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="fxctl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="use" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="fxml"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="use" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="stax"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="use" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="jdbc"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="JDBC" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="jdbc" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="генерация" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="gentests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="mvn test" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="mvn"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="сборка/запуск" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="mvn" target="gentests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="XML-отчёты" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="mvn" target="reports"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="чтение" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="app" target="reports"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" value="Selenium WebDriver" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="gentests" target="cdriver"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" value="HTTP" style="endArrow=open;dashed=1;html=1;" edge="1" parent="1" source="cdriver" target="sut"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
