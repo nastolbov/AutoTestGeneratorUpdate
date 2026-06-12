@@ -930,6 +930,11 @@ public class TestClassWriter {
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
         w.writeLine("shot(\"record_opened\");");
+        // ВАЖНО: убеждаемся что активен таб «Сведения», а не «Документы»/«История».
+        // ExtJS может запомнить последний активный таб от предыдущего теста и открыть
+        // карточку на нём → fill попадёт в чужой раздел и save не сработает корректно.
+        w.writeLine("ensureSvedeniyaTabActive();");
+        w.writeLine("shot(\"svedeniya_tab_active\");");
         // 3) Меняем РОВНО ОДНО поле — первое STRING. Остальные значения, которые уже
         //    есть в карточке, не трогаем (никаких clear/fillAll — обновлять надо именно
         //    одно поле, чтобы остальные не уехали в null и сервер не отверг save).
