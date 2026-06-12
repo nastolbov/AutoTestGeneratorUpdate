@@ -166,21 +166,38 @@ public class PageObjectWriter {
         // ExtJS зафиксировал значение и закрыл редактор ячейки.
         w.openBlock("try");
         w.writeLine("editor.click();");
-        w.writeLine("Thread.sleep(80);");
-        w.writeLine("try { editor.clear(); } catch (Exception ignored) {}");
-        // selectAll + delete как страховка от случаев когда clear() не очищает ExtJS-инпут
+        w.writeLine("Thread.sleep(150);");
+        // Лог содержимого ДО ввода — увидим что в редакторе изначально (от предыдущего fill?)
         w.openBlock("try");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.DELETE);");
+        w.writeLine("String beforeVal = editor.getAttribute(\"value\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor.value BEFORE = '\" + (beforeVal == null ? \"\" : beforeVal) + \"'\");");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        // ОДНИМ chord'ом: Ctrl+A выделяет всё, потом сразу sendKeys(value) перетирает
+        // выделение. Раньше было editor.clear() + Ctrl+A + DELETE отдельными вызовами —
+        // после DELETE редактор ExtJS закрывался, sendKeys(value) уходил в body вместо
+        // ячейки → ячейка оставалась ПУСТОЙ (как пользователь и видел после marker stamp).
+        w.openBlock("try");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
+        w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(value);");
-        w.writeLine("Thread.sleep(120);");
+        w.writeLine("Thread.sleep(150);");
+        w.closeBlock();
+        w.openBlock("catch (Exception keyEx)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' sendKeys threw: \" + keyEx.getMessage());");
+        w.closeBlock();
+        // Лог содержимого ПОСЛЕ ввода, ДО ENTER
+        w.openBlock("try");
+        w.writeLine("String afterVal = editor.getAttribute(\"value\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor.value AFTER sendKeys = '\" + (afterVal == null ? \"\" : afterVal) + \"' (expected '\" + value + \"')\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // ENTER подтверждает значение в редакторе PropertyGrid; ExtJS закрывает редактор
-        // и применяет value к rec.data. TAB перенесёт фокус не туда и иногда «теряет» ввод.
+        // и применяет value к rec.data.
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(250);");
         // Верификация: читаем ОБРАТНО текст value-ячейки. Если в ней нет нашего value —
         // sendKeys ушёл не туда (например в чужой редактор), и поле осталось пустым.
         w.openBlock("try");
@@ -188,10 +205,10 @@ public class PageObjectWriter {
         w.writeLine("    \"return (arguments[0].innerText || arguments[0].textContent || '').trim();\", valueCell);");
         w.writeLine("String actual = cellText == null ? \"\" : String.valueOf(cellText);");
         w.openBlock("if (actual.contains(value))");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' видно в ячейке)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' видно в ячейке после ENTER)\");");
         w.closeBlock();
         w.openBlock("else");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = WARN sendKeys прошёл но в ячейке '\" + actual + \"' нет '\" + value + \"' — value не зафиксирован!\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = WARN! Cell text после ENTER = '\" + actual + \"', ожидали '\" + value + \"' — value НЕ зафиксирован, sendKeys ушёл не туда\");");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");

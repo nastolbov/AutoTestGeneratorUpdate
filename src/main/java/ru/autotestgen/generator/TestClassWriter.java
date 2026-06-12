@@ -939,8 +939,14 @@ public class TestClassWriter {
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
         w.writeLine("shot(\"record_opened\");");
-        // Карточка открывается на табе «Сведения» сама по себе (см. скриншот пользователя),
-        // принудительный клик по табу не нужен — он только тыкал бы лишний раз.
+        // Лог активного окна ДО fillX — поможет понять что было перед изменением.
+        w.openBlock("try");
+        w.writeLine("Object awBefore = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var a = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null; return a ? (a.id + ' / title=' + (a.title||'')) : 'no-active-window'; } catch(e) { return 'ext-err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"testUpdate: активное окно ДО fillX = \" + awBefore);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // 3) Меняем РОВНО ОДНО поле — первое STRING. Остальные значения, которые уже
         //    есть в карточке, не трогаем (никаких clear/fillAll — обновлять надо именно
         //    одно поле, чтобы остальные не уехали в null и сервер не отверг save).
@@ -951,6 +957,19 @@ public class TestClassWriter {
         w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
         w.writeLine("System.out.println(\"testUpdate: новое значение '\" + updatedValue + \"' в поле \" + filledSnapshot.keySet());");
         w.writeLine("shot(\"value_typed\");");
+        // Лог активного окна ПОСЛЕ fillX — если оно изменилось (например Сведения →
+        // Приглашённые ГСК), значит fillX переключил раздел.
+        w.openBlock("try");
+        w.writeLine("Object awAfter = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var a = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null; return a ? (a.id + ' / title=' + (a.title||'')) : 'no-active-window'; } catch(e) { return 'ext-err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"testUpdate: активное окно ПОСЛЕ fillX = \" + awAfter);");
+        // Дополнительно: какой PropertyGroup сейчас активен (Сведения / Приглашённые / ...)
+        w.writeLine("Object activeGroup = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var nodes = document.querySelectorAll('.x-grid3-row-selected, .x-grid-row-selected'); var out = ''; for (var i = 0; i < nodes.length && i < 5; i++) { var t = (nodes[i].innerText || '').trim().replace(/\\\\n/g, '|'); if (t.length > 0) out += '[' + t + ']'; } return out || 'no-selected-row'; } catch(e) { return 'err:' + e.message; }\");");
+        w.writeLine("System.out.println(\"testUpdate: подсвеченная (selected) строка после fillX = \" + activeGroup);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // 4) TAB чтобы закомитить активный редактор PropertyGrid'а.
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
