@@ -760,28 +760,34 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testCreate: popup после Готово = '\" + createPopupText + \"'\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
-        w.openBlock("for (int i = 0; i < 3 && (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")); i++)");
-        w.writeLine("System.out.println(\"testCreate: диалог не закрылся — итерация \" + (i+1) + \" wizard'a, жмём Готово ещё раз\");");
-        w.writeLine("boolean again = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("System.out.println(\"testCreate: повторный Готово=\" + again);");
-        w.writeLine("String iterPopup = capturePopupText(\"wizard-iter-\" + (i+1));");
-        w.openBlock("if (!iterPopup.isEmpty())");
-        w.writeLine("createPopupText = iterPopup;");
-        w.writeLine("System.out.println(\"testCreate: popup на итерации \" + (i+1) + \" = '\" + iterPopup + \"'\");");
+        // Ждём СПОКОЙНО — 3с на серверный round-trip. Если карточка осталась открытой —
+        // это нормально для некоторых стендов (после save карточка переходит в read-only
+        // и остаётся на экране). НЕ фейлим на «диалог открыт» — единственный надёжный
+        // критерий «сохранилось» = запись видна в обновлённом гриде.
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(3000);");
         w.closeBlock();
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForDialogClose();");
+        w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
-        // КЛЮЧЕВОЕ: если диалог всё ещё открыт после всех попыток — НЕ ЖМЁМ Отмена
-        // (раньше тут была эта строка и она УБИВАЛА только что введённые данные —
-        // запись никогда не сохранялась). Просто фейлим тест с диагностикой; пусть
-        // следующий тест сам откроется через свой шаг навигации.
+        // Если popup сервера явно сказал «не заполнено» — это твёрдый сигнал что save
+        // отвергнут. Фейлим сразу с диагностикой, не ходим в грид.
+        w.openBlock("if (createPopupText != null && (createPopupText.contains(\"\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e\") || createPopupText.contains(\"\\u041d\\u0435 \\u0437\\u0430\\u043f\\u043e\\u043b\\u043d\\u0435\\u043d\\u043e\")))");
+        w.writeLine("shot(\"validation_error\");");
+        w.writeLine("fail(\"testCreate: сервер отверг save с popup'ом валидации: '\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
+        w.writeLine("    + \". ExtJS rec.set вернул OK, но сервер при save видит эти поля пустыми — возможно поле зависит от FK/wizard-шага которого мы не проходили.\");");
+        w.closeBlock();
+        // Закрываем карточку через Esc / Отмена ТОЛЬКО если popup НЕ был валидационным.
+        // На стенде «Сведения» после save может оставаться открытым read-only — нам надо
+        // вернуться к гриду чтобы посчитать запись. Esc не вызовет отмены сохранения,
+        // т.к. save уже произошёл.
         w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("System.out.println(\"testCreate: диалог НЕ закрылся после 3 попыток — save не прошёл, popup='\" + createPopupText + \"'\");");
-        w.writeLine("shot(\"dialog_stuck_open\");");
-        w.writeLine("fail(\"testCreate: диалог 'Сведения' остался открыт после Готово + 3 попыток. \"");
-        w.writeLine("    + \"Popup сервера='\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
-        w.writeLine("    + \". Скорее всего сервер отверг save (валидация / FK) либо это wizard с другим путём подтверждения.\");");
+        w.writeLine("System.out.println(\"testCreate: карточка осталась открытой после save — закрываем Esc, переходим к проверке грида\");");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.closeBlock();
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
@@ -966,28 +972,33 @@ public class TestClassWriter {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("assertTrue(savedClicked, \"testUpdate: ни 'Сохранить Изменения' (dropdown), ни 'Готово', ни 'Сохранить', ни Enter не сработали\");");
-        // 6) Popup-диагностика + wizard-retry.
+        // 6) Popup-диагностика. После «Сохранить Изменения» стенд может показать
+        //    подтверждение или сразу сохранить молча. Если popup явно про ошибку
+        //    валидации — фейлим без хождения в грид.
         w.writeLine("String updatePopupText = capturePopupText(\"after-save\");");
         w.writeLine("System.out.println(\"testUpdate: popup после save = '\" + updatePopupText + \"'\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
-        w.openBlock("for (int i = 0; i < 3 && (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")); i++)");
-        w.writeLine("System.out.println(\"testUpdate: диалог не закрылся — wizard-iter \" + (i+1) + \", повторяем Готово\");");
-        w.writeLine("clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("String iterPopup = capturePopupText(\"wizard-iter-\" + (i+1));");
-        w.openBlock("if (!iterPopup.isEmpty())");
-        w.writeLine("updatePopupText = iterPopup;");
+        // Ждём 3с round-trip на сервер.
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(3000);");
         w.closeBlock();
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForDialogClose();");
+        w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
-        // 7) НЕ жмём Отмена если диалог остался — фейлим с popup'ом.
-        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("shot(\"dialog_stuck_open\");");
-        w.writeLine("fail(\"testUpdate: диалог карточки остался открыт после save + 3 попыток. Popup='\" + updatePopupText");
-        w.writeLine("    + \"'. Заполненные поля: \" + filledSnapshot + \". Скорее всего сервер отверг save или у записи запрещено редактирование.\");");
+        w.openBlock("if (updatePopupText != null && (updatePopupText.contains(\"\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e\") || updatePopupText.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
+        w.writeLine("shot(\"update_validation_error\");");
+        w.writeLine("fail(\"testUpdate: сервер отверг save с popup'ом: '\" + updatePopupText + \"'. Изменяли поле: \" + filledSnapshot);");
         w.closeBlock();
-        w.writeLine("waitForGridSettle();");
+        // Закрываем карточку Esc — на стенде после save карточка остаётся открытой read-only.
+        w.openBlock("if (isOnRecordCard() || isDialogOpen())");
+        w.writeLine("System.out.println(\"testUpdate: карточка осталась открытой после save — закрываем Esc и идём проверять грид\");");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(600);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"testUpdate: после save появилась ошибка на стенде\");");
         w.writeLine();
