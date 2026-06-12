@@ -79,9 +79,62 @@ public class PageObjectWriter {
         w.closeBlock();
         // СТРАТЕГИЯ A (ExtJS rec.set) УБРАНА — она лазала по всем компонентам через
         // ComponentMgr и как побочный эффект переключала табы (Сведения → Документы).
-        // Теперь только Strategy B: ищем ВИДИМУЮ ячейку текущего таба и эмулируем
-        // живой пользовательский ввод (click + sendKeys + ENTER).
-        // СТРАТЕГИЯ B (DOM): активируем editor ячейки и вводим значение.
+        // НОВАЯ СТРАТЕГИЯ: открываем editor через ExtJS API grid.startEditing(rowIndex, 1).
+        // Это надёжно: ExtJS сам найдёт правильную ячейку и откроет НУЖНЫЙ editor.
+        // Раньше click+positioning часто открывал editor чужого поля (x-form-num-field
+        // или x-combo-noedit) и sendKeys уходили в воздух или переключали раздел.
+        w.openBlock("try");
+        w.writeLine("Object startResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try {\"");
+        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
+        w.writeLine("    + \"  var name = arguments[0];\"");
+        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
+        w.writeLine("    + \"  if (!mgr || !mgr.all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var items = [];\"");
+        w.writeLine("    + \"  if (mgr.all.items) items = mgr.all.items;\"");
+        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){items.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in mgr.all) items.push(mgr.all[k]);\"");
+        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
+        w.writeLine("    + \"    var c = items[i];\"");
+        w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors || !c.startEditing) continue;\"");
+        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0 || c.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
+        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
+        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        w.writeLine("    + \"        try { c.startEditing(j, 1); } catch(e) { return 'err-start:' + e.message; }\"");
+        w.writeLine("    + \"        return 'OK:grid=' + (c.id || '?') + '/row=' + j + '/dn=' + dn;\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing result: \" + startResult);");
+        w.openBlock("if (startResult != null && String.valueOf(startResult).startsWith(\"OK:\"))");
+        w.writeLine("Thread.sleep(250);");
+        w.writeLine("WebElement startedEditor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"return document.activeElement;\");");
+        w.openBlock("if (startedEditor != null)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через startEditing: id=\" + startedEditor.getAttribute(\"id\") + \" class=\" + startedEditor.getAttribute(\"class\"));");
+        w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
+        w.writeLine("Thread.sleep(80);");
+        w.writeLine("startedEditor.sendKeys(value);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(300);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+sendKeys+ENTER)\");");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing не сработал — пробуем DOM click fallback\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception startEx)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing threw: \" + startEx.getMessage());");
+        w.closeBlock();
+        // СТРАТЕГИЯ B (DOM): fallback — клик по ячейке + sendKeys.
         w.openBlock("try");
         // НЕ ИСПОЛЬЗУЕМ Esc — в ExtJS PropertyGrid Esc отменяет inline-add и УДАЛЯЕТ
         // последнюю добавленную строку (см. фидбек пользователя 'то первую строку удаляешь').
