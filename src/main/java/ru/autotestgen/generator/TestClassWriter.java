@@ -695,17 +695,18 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // Заполняем ТОЛЬКО ОБЯЗАТЕЛЬНЫЕ поля (по запросу пользователя). fillAllFields
-        // заполнял слишком много полей и часть попадала в чужие PropertyGrid'ы (вложенный
-        // документ), сервер при save видел «не заполнено» по главной форме. Со всего на
-        // только required — меньше шанса промахнуться, картинка чище.
+        // Заполняем ТОЛЬКО ОБЯЗАТЕЛЬНЫЕ поля (по запросу пользователя).
         w.writeLine("step(\"fill required fields\", () -> page.fillRequiredFields());");
+        // Шаг-за-шагом скриншоты — пользователь сможет в отчёте увидеть какие поля
+        // визуально заполнились (а какие нет) и не путать с silent-skip'ами в логе.
         w.writeLine("shot(\"required_filled\");");
+        w.writeLine("System.out.println(\"testCreate: после fillRequiredFields проверьте скриншот required_filled — какие поля визуально заполнены, lastFilledValues=\" + page.lastFilledValues);");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
             w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
             w.writeLine("shot(\"marker_applied\");");
+            w.writeLine("System.out.println(\"testCreate: после stamp marker — проверьте скриншот marker_applied, видно ли '\" + createdMarker + \"' в поле '" + markerField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "'\");");
         } else {
             w.writeLine("String createdMarker = \"\";  // no STRING field available to stamp with marker");
         }
@@ -939,24 +940,30 @@ public class TestClassWriter {
         w.writeLine("page.lastFilledValues.clear();");
         w.writeLine("System.out.println(\"testUpdate: меняем ОДНО поле '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' на '\" + updatedValue + \"' (остальные поля карточки не трогаем)\");");
         w.writeLine("step(\"type new value\", () -> page." + methodName + "(updatedValue));");
-        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
-        w.writeLine("System.out.println(\"testUpdate: новое значение '\" + updatedValue + \"' в поле \" + filledSnapshot.keySet());");
+        // Скриншот СРАЗУ после fill — чтобы было видно: появилось ли новое значение
+        // на экране карточки или fillX молча промахнулся (например, ячейка не нашлась).
         w.writeLine("shot(\"value_typed\");");
-        // 4) TAB чтобы закомитить активный редактор PropertyGrid'а.
+        w.writeLine("System.out.println(\"testUpdate: после fillX(updatedValue) — проверьте скриншот value_typed, видно ли '\" + updatedValue + \"' на карточке\");");
+        // 4) TAB чтобы закомитить активный редактор PropertyGrid'а + ждём 1.5с.
+        //    Раньше было 200мс — недостаточно для ExtJS чтобы прокинуть change-event'ы
+        //    из editor'а в record store до клика «Редактирование».
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(1500);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.writeLine("shot(\"before_edit_dropdown\");");
         // 5) Save через ТОЛЬКО дропдаун «Редактирование → Сохранить Изменения» —
         //    на карточке записи это единственный путь сохранения (см. скриншоты пользователя).
-        //    Никаких Готово / Сохранить / Enter — таких кнопок в карточке нет, и попытка
-        //    их кликнуть могла лишь промахнуться по чужому элементу.
+        //    Перед кликом печатаем diagnostics карточки чтобы в логе видеть какие кнопки
+        //    реально на экране.
+        w.writeLine("dumpCardDiagnostics();");
         w.writeLine("boolean savedClicked = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
         w.writeLine("System.out.println(\"testUpdate: 'Редактирование → Сохранить Изменения' clicked=\" + savedClicked);");
+        w.writeLine("shot(\"after_edit_dropdown\");");
         w.writeLine("assertTrue(savedClicked, \"testUpdate: не удалось через 'Редактирование' открыть дропдаун или кликнуть 'Сохранить Изменения'. \"");
-        w.writeLine("    + \"Возможно карточка не догрузилась или дропдаун не появился. См. dumpCardDiagnostics в логе.\");");
+        w.writeLine("    + \"Возможно карточка не догрузилась или дропдаун не появился. См. скриншоты before_edit_dropdown / after_edit_dropdown и dumpCardDiagnostics в логе.\");");
         // 6) Popup-диагностика. После «Сохранить Изменения» стенд может показать
         //    подтверждение или сразу сохранить молча. Если popup явно про ошибку
         //    валидации — фейлим без хождения в грид.
