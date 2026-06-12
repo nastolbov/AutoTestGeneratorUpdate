@@ -874,86 +874,148 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Update existing record\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
-        // User reported: ПКМ-меню в этом стенде не работает в Selenium. Реальная
-        // последовательность для редактирования: ВЫДЕЛИТЬ строку (одиночный клик) +
-        // ДВОЙНОЙ КЛИК → откроется карточка/редактор записи.
-        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 4, \"edit form opened\");");
-        w.writeLine("shot(\"record_opened\");");
         Property stringField = properties.stream()
                 .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
                         && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
                 .findFirst().orElse(null);
-        if (stringField != null) {
-            String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
-            // ПЕРЕБИРАЕМ записи 0..N: первая запись может не поддерживать редактирование
-            // (нет «Сохранить Изменения» в дропдауне) — переходим к следующей, и так пока
-            // не удастся обновить какую-то одну. Если ни одна не далась — мягкий SKIP.
-            w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-            w.writeLine("boolean updateApplied = false;");
-            w.writeLine("int maxAttempts = 5;");
-            w.openBlock("for (int attempt = 0; attempt < maxAttempts && !updateApplied; attempt++)");
-            w.writeLine("System.out.println(\"  testUpdate attempt #\" + (attempt + 1) + \" (row idx=\" + attempt + \")\");");
-            // Каждая попытка стартует со свежего грида результатов
-            w.openBlock("if (attempt > 0)");
-            w.writeLine("resetState();");
-            w.writeLine("navigationAttempted = false;");
-            w.writeLine("cardOpenAttempted = false;");
-            w.writeLine("addDialogFailed = false;");
-            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
-            w.writeLine("waitForGridSettle();");
-            w.closeBlock();
-            w.writeLine("boolean opened = selectAndOpenRecordAtIndex(attempt);");
-            w.openBlock("if (!opened)");
-            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": не открылась — пробуем следующую\");");
-            w.writeLine("continue;");
-            w.closeBlock();
+        if (stringField == null) {
+            // Сущность без строкового поля — менять нечего. Открываем карточку, жмём save,
+            // верифицируем что нет ошибки. Это «smoke»-update.
+            w.writeLine("Assumptions.assumeTrue(selectAndOpenRecord(), \"testUpdate (no-string): не удалось открыть первую запись\");");
             w.writeLine("waitForCardLoaded(10);");
-            // Печатаем новое значение в первое строковое поле
-            w.writeLine("page." + methodName + "(updatedValue);");
-            w.writeLine("shot(\"value_typed_attempt_\" + attempt);");
-            // Жмём «Сохранить Изменения». Если не найдено — переходим к следующей записи.
-            w.writeLine("boolean savedViaDropdown = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
-            w.openBlock("if (!savedViaDropdown)");
-            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": нет 'Сохранить Изменения' в дропдауне — пробуем следующую\");");
-            w.writeLine("continue;");
-            w.closeBlock();
-            w.writeLine("capturePopupText(\"Update-attempt-\" + attempt);");
+            w.writeLine("boolean saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")");
+            w.writeLine("    || clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\")");
+            w.writeLine("    || clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+            w.writeLine("assertTrue(saved, \"testUpdate (no-string): не нашли ни Готово, ни 'Сохранить Изменения', ни 'Сохранить'\");");
             w.writeLine("confirmDialogYes();");
             w.writeLine("waitForDialogClose();");
             w.writeLine("waitForGridSettle();");
-            w.writeLine("shot(\"after_save_attempt_\" + attempt);");
-            w.openBlock("if (isErrorPresent())");
-            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": ошибка после сохранения — пробуем следующую\");");
-            w.writeLine("continue;");
-            w.closeBlock();
-            // Проверяем что значение в свежем гриде
-            w.writeLine("resetState();");
-            w.writeLine("navigationAttempted = false;");
-            w.writeLine("cardOpenAttempted = false;");
-            w.writeLine("addDialogFailed = false;");
-            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
-            w.writeLine("waitForGridSettle();");
-            w.openBlock("if (gridContainsRow(updatedValue))");
-            w.writeLine("updateApplied = true;");
-            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": UPDATE SUCCESS — value '\" + updatedValue + \"' в гриде\");");
-            w.writeLine("shot(\"value_in_grid\");");
-            w.closeBlock();
-            w.openBlock("else");
-            w.writeLine("System.out.println(\"    row idx=\" + attempt + \": сохранили, но в гриде не нашли — пробуем следующую\");");
-            w.closeBlock();
+            w.writeLine("shot(\"after_save\");");
+            w.writeLine("assertFalse(isErrorPresent(), \"testUpdate (no-string): после save появилась ошибка\");");
             w.closeBlock();
             w.writeLine();
-            w.writeLine("assertFalse(isErrorPresent(), \"No errors should remain after testUpdate attempts\");");
-            w.writeLine("Assumptions.assumeTrue(updateApplied,");
-            w.writeLine("    \"testUpdate: ни одну из первых \" + maxAttempts + \" записей обновить не удалось (либо нет 'Сохранить Изменения', либо колонка '\" + \"" + stringField.getName() + "\" + \"' не выводится в гриде).\");");
-        } else {
-            w.writeLine("step(\"click Готово\", () -> clickButtonByText(\"Готово\"));");
-            w.writeLine("waitForDialogClose();");
-            w.writeLine("waitForGridSettle();");
-            w.writeLine("shot(\"after_save\");");
-            w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after updating a record\");");
+            return;
         }
+
+        String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
+        // 1) Захватываем подпись первой строки ДО открытия карточки — чтобы потом понять,
+        //    какую именно запись мы редактировали.
+        w.writeLine("String editedRowSignature = captureFirstResultRowSignature();");
+        w.writeLine("System.out.println(\"testUpdate: подпись редактируемой записи = '\" + editedRowSignature + \"'\");");
+        // 2) Открываем первую запись. Без перебора — если на первой записи update недоступен,
+        //    проблема системная, а не «не та строка».
+        w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
+        w.writeLine("assertTrue(opened, \"testUpdate: не удалось открыть первую запись на редактирование\");");
+        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"edit form opened\");");
+        w.writeLine("waitForCardLoaded(10);");
+        w.writeLine("shot(\"record_opened\");");
+        // 3) Вписываем новое значение в первое STRING-поле. Запоминаем snapshot.
+        w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
+        w.writeLine("page.lastFilledValues.clear();");
+        w.writeLine("step(\"type new value\", () -> page." + methodName + "(updatedValue));");
+        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
+        w.writeLine("System.out.println(\"testUpdate: новое значение '\" + updatedValue + \"' в поле \" + filledSnapshot.keySet());");
+        w.writeLine("shot(\"value_typed\");");
+        // 4) TAB чтобы закомитить активный редактор PropertyGrid'а.
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // 5) Save: дропдаун-«Сохранить Изменения» → нижняя «Готово» → «Сохранить» → Enter.
+        w.writeLine("boolean savedClicked = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.writeLine("System.out.println(\"testUpdate: 'Сохранить Изменения' (dropdown)=\" + savedClicked);");
+        w.openBlock("if (!savedClicked)");
+        w.writeLine("savedClicked = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("System.out.println(\"testUpdate: 'Готово' (button)=\" + savedClicked);");
+        w.closeBlock();
+        w.openBlock("if (!savedClicked)");
+        w.writeLine("savedClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("System.out.println(\"testUpdate: 'Сохранить' (button)=\" + savedClicked);");
+        w.closeBlock();
+        w.openBlock("if (!savedClicked)");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
+        w.writeLine("savedClicked = true;");
+        w.writeLine("System.out.println(\"testUpdate: Enter отправлен как save-жест\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"testUpdate: Enter-fallback провалился: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(savedClicked, \"testUpdate: ни 'Сохранить Изменения' (dropdown), ни 'Готово', ни 'Сохранить', ни Enter не сработали\");");
+        // 6) Popup-диагностика + wizard-retry.
+        w.writeLine("String updatePopupText = capturePopupText(\"after-save\");");
+        w.writeLine("System.out.println(\"testUpdate: popup после save = '\" + updatePopupText + \"'\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.openBlock("for (int i = 0; i < 3 && (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")); i++)");
+        w.writeLine("System.out.println(\"testUpdate: диалог не закрылся — wizard-iter \" + (i+1) + \", повторяем Готово\");");
+        w.writeLine("clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("String iterPopup = capturePopupText(\"wizard-iter-\" + (i+1));");
+        w.openBlock("if (!iterPopup.isEmpty())");
+        w.writeLine("updatePopupText = iterPopup;");
+        w.closeBlock();
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.closeBlock();
+        // 7) НЕ жмём Отмена если диалог остался — фейлим с popup'ом.
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("shot(\"dialog_stuck_open\");");
+        w.writeLine("fail(\"testUpdate: диалог карточки остался открыт после save + 3 попыток. Popup='\" + updatePopupText");
+        w.writeLine("    + \"'. Заполненные поля: \" + filledSnapshot + \". Скорее всего сервер отверг save или у записи запрещено редактирование.\");");
+        w.closeBlock();
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_save\");");
+        w.writeLine("assertFalse(isErrorPresent(), \"testUpdate: после save появилась ошибка на стенде\");");
+        w.writeLine();
+        // 8) Re-навигация к гриду результатов и поиск нового значения по тем же 3 уровням,
+        //    что в testCreate (DOM → ExtJS store → фильтрованный поиск).
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
+        w.writeLine();
+        w.writeLine("boolean updateApplied = gridContainsRow(updatedValue);");
+        w.writeLine("String hitVia = updateApplied ? \"DOM\" : \"\";");
+        w.openBlock("if (!updateApplied && gridStoreContainsText(updatedValue))");
+        w.writeLine("updateApplied = true;");
+        w.writeLine("hitVia = \"ExtJS store\";");
+        w.closeBlock();
+        // Фильтрованный поиск как fallback — вписываем updatedValue в форму поиска
+        w.openBlock("if (!updateApplied)");
+        w.writeLine("System.out.println(\"testUpdate: значение не найдено в DOM/store, пробуем фильтрованный поиск\");");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.openBlock("try");
+        w.writeLine("page." + methodName + "(updatedValue);");
+        w.writeLine("executeSearchIfPresent();");
+        w.writeLine("waitForGridSettle();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("shot(\"after_filtered_search\");");
+        w.openBlock("if (gridContainsRow(updatedValue))");
+        w.writeLine("updateApplied = true;");
+        w.writeLine("hitVia = \"filtered search\";");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("System.out.println(\"testUpdate: updateApplied=\" + updateApplied + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
+        w.writeLine("shot(updateApplied ? \"value_in_grid\" : \"final_grid\");");
+        // 9) assertTrue вместо assumeTrue — реальный fail, не SKIP.
+        w.writeLine("assertTrue(updateApplied,");
+        w.writeLine("    \"testUpdate: новое значение '\" + updatedValue + \"' в поле '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' не найдено в гриде \"");
+        w.writeLine("    + \"(ни DOM, ни ExtJS store, ни фильтрованный поиск). Подпись редактируемой записи='\" + editedRowSignature + \"'. \"");
+        w.writeLine("    + \"Popup сервера после save='\" + updatePopupText + \"'. Save click прошёл, но изменения не доехали до базы.\");");
         w.closeBlock();
         w.writeLine();
     }
