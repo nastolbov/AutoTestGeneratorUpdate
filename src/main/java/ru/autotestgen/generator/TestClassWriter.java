@@ -979,7 +979,7 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("if (updatePopupText != null && (updatePopupText.contains(\"\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e\") || updatePopupText.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
         w.writeLine("shot(\"update_validation_error\");");
-        w.writeLine("fail(\"testUpdate: сервер отверг save с popup'ом: '\" + updatePopupText + \"'. Изменяли поле: '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' на '\" + updatedValue + \"'\");");
+        w.writeLine("fail(\"testUpdate: сервер отверг save с popup'ом: '\" + updatePopupText + \"'. Изменяли поле: \" + filledSnapshot);");
         w.closeBlock();
         // НЕ ЖМЁМ Esc — на стенде Esc после редактирования отменяет несохранённые правки.
         // После 'Сохранить Изменения' изменения уже на сервере; re-навигация ниже сама
