@@ -1343,7 +1343,16 @@ public class TestGenerator {
         w.writeLine("    + \"if (groups[bestKey].length <= idx) return null;\"");
         w.writeLine("    + \"var row = groups[bestKey][idx];\"");
         w.writeLine("    + \"var cells = row.querySelectorAll('.x-grid3-cell, .x-grid-cell, td');\"");
-        w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) { var ce = cells[ci]; if (ce.offsetHeight > 0 && ce.offsetWidth > 0) return ce; }\"");
+        // Кликаем НЕ по первой ячейке (это колонка номера строки и dblclick на ней
+        // часто не открывает запись), а по первой ячейке С ТЕКСТОМ длиннее 2 символов —
+        // это надёжная DATA-ячейка.
+        w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) {\"");
+        w.writeLine("    + \"  var ce = cells[ci]; if (ce.offsetHeight <= 0 || ce.offsetWidth <= 0) continue;\"");
+        w.writeLine("    + \"  var t = (ce.innerText || ce.textContent || '').trim();\"");
+        w.writeLine("    + \"  if (t.length > 2 && !/^\\\\d+$/.test(t)) { window.__lastSelectedCellText = t; return ce; }\"");
+        w.writeLine("    + \"}\"");
+        // Fallback: первая видимая ячейка (как было)
+        w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) { var ce = cells[ci]; if (ce.offsetHeight > 0 && ce.offsetWidth > 0) { window.__lastSelectedCellText = (ce.innerText||'').trim(); return ce; } }\"");
         w.writeLine("    + \"return row;\", idx);");
         // Доп. диагностика: выводим в Java-лог group sizes + первую строку каждой группы.
         // Раньше эта инфа писалась в console.log браузера и не доходила до отчёта; теперь
@@ -1369,6 +1378,14 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("if (firstRow != null)");
+        // Логируем какой текст в выбранной ячейке — для диагностики попали ли мы в реальную
+        // строку данных или в параметрический грид/заголовок.
+        w.openBlock("try");
+        w.writeLine("Object cellTxt = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return window.__lastSelectedCellText || ''\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: будем дбл-кликать на ячейку с текстом '\" + cellTxt + \"' (row idx=\" + idx + \")\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on row idx=\" + idx + \" of largest visible grid group\");");
         // Step 1: single-click to select the row
         w.openBlock("try");

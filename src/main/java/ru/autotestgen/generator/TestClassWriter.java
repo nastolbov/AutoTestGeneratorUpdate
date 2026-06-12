@@ -901,6 +901,15 @@ public class TestClassWriter {
         }
 
         String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
+        // Даём гриду результатов 1с на полную отрисовку после executeSearch — иначе
+        // selectAndOpenRecord может попасть в параметрическую форму или в ещё пустой
+        // результат-грид и dblclick никуда не приведёт.
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(1000);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.writeLine("shot(\"before_select_record\");");
         // 1) Захватываем подпись первой строки ДО открытия карточки — чтобы потом понять,
         //    какую именно запись мы редактировали.
         w.writeLine("String editedRowSignature = captureFirstResultRowSignature();");
