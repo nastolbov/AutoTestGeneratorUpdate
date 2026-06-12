@@ -55,8 +55,7 @@ public class MainController {
     /** Test-type categories: {label, Surefire method-name pattern}. One row per real test method. */
     private static final String[][] TEST_CATEGORIES = {
         {"Поля формы",                       "testFieldsPresent"},
-        {"Создание (полное)",                "testCreate"},
-        {"Создание (только обязательные)",   "testCreateOnlyRequired"},
+        {"Создание",                         "testCreate"},
         {"Изменение",                        "testUpdate"},
         {"Удаление",                         "testDelete"},
         {"Лог. удаление",                    "testLogicalEdit"},

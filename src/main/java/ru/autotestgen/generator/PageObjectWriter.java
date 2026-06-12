@@ -762,11 +762,6 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
-            // 400мс между fill'ами — ExtJS не успевает закрыть редактор предыдущего поля,
-            // и следующий fill попадает в blur'нувшийся редактор вместо нужной ячейки.
-            // Раньше fill'ы шли подряд без пауз и из 3 required-полей визуально подсвечивалось
-            // только 1 (только первый успевал отрисоваться красным).
-            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         }
         w.writeLine("System.out.println(\"  [fillRequiredFields] заполнено \" + lastFilledValues.size() + \" из ожидаемых \" + expectedRequired + \" required-полей (FK-поля считаются как ожидаемые но не попадают в lastFilledValues)\");");
         w.closeBlock();
@@ -789,9 +784,6 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
-            // 400мс пауза между fill'ами — ExtJS не успевает закрыть редактор
-            // предыдущего поля. Без этого визуально подсвечивалось только 1-2 поля.
-            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         }
         w.writeLine("System.out.println(\"  [fillAllFields] заполнено \" + lastFilledValues.size() + \" полей\");");
         w.closeBlock();
