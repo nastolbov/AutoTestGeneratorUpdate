@@ -695,8 +695,12 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
-        w.writeLine("shot(\"all_fields_filled\");");
+        // Заполняем ТОЛЬКО ОБЯЗАТЕЛЬНЫЕ поля (по запросу пользователя). fillAllFields
+        // заполнял слишком много полей и часть попадала в чужие PropertyGrid'ы (вложенный
+        // документ), сервер при save видел «не заполнено» по главной форме. Со всего на
+        // только required — меньше шанса промахнуться, картинка чище.
+        w.writeLine("step(\"fill required fields\", () -> page.fillRequiredFields());");
+        w.writeLine("shot(\"required_filled\");");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
@@ -776,23 +780,18 @@ public class TestClassWriter {
         w.writeLine("fail(\"testCreate: сервер отверг save с popup'ом валидации: '\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
         w.writeLine("    + \". ExtJS rec.set вернул OK, но сервер при save видит эти поля пустыми — возможно поле зависит от FK/wizard-шага которого мы не проходили.\");");
         w.closeBlock();
-        // Закрываем карточку через Esc / Отмена ТОЛЬКО если popup НЕ был валидационным.
-        // На стенде «Сведения» после save может оставаться открытым read-only — нам надо
-        // вернуться к гриду чтобы посчитать запись. Esc не вызовет отмены сохранения,
-        // т.к. save уже произошёл.
-        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("System.out.println(\"testCreate: карточка осталась открытой после save — закрываем Esc, переходим к проверке грида\");");
-        w.openBlock("try");
-        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
-        w.writeLine("Thread.sleep(500);");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
+        // НЕ ЖМЁМ Esc / Отмена — на стенде Esc отменяет несохранённые правки. Если save
+        // успешный, диалог либо сам закроется через 1-2с, либо останется открытым
+        // read-only. Re-навигация ниже сама уйдёт со страницы. Если перед уходом
+        // выскочит «Сохранить изменения? Да/Нет» — confirmDialogYes ещё раз кликнет Да.
+        w.writeLine("confirmDialogYes();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
         // Re-navigate к таблице результатов и заново выполнить поиск — так получаем
         // СВЕЖИЙ грид и видим: появилась наша запись с маркером или нет.
+        // На стенде уход с карточки может выкинуть «Сохранить изменения? Да/Нет» —
+        // confirmDialogYes ещё раз перед navigateToEntity, чтобы не заблокировать переход.
+        w.writeLine("confirmDialogYes();");
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -950,28 +949,14 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // 5) Save: дропдаун-«Сохранить Изменения» → нижняя «Готово» → «Сохранить» → Enter.
+        // 5) Save через ТОЛЬКО дропдаун «Редактирование → Сохранить Изменения» —
+        //    на карточке записи это единственный путь сохранения (см. скриншоты пользователя).
+        //    Никаких Готово / Сохранить / Enter — таких кнопок в карточке нет, и попытка
+        //    их кликнуть могла лишь промахнуться по чужому элементу.
         w.writeLine("boolean savedClicked = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Сохранить Изменения' (dropdown)=\" + savedClicked);");
-        w.openBlock("if (!savedClicked)");
-        w.writeLine("savedClicked = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Готово' (button)=\" + savedClicked);");
-        w.closeBlock();
-        w.openBlock("if (!savedClicked)");
-        w.writeLine("savedClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Сохранить' (button)=\" + savedClicked);");
-        w.closeBlock();
-        w.openBlock("if (!savedClicked)");
-        w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
-        w.writeLine("savedClicked = true;");
-        w.writeLine("System.out.println(\"testUpdate: Enter отправлен как save-жест\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testUpdate: Enter-fallback провалился: \" + e.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(savedClicked, \"testUpdate: ни 'Сохранить Изменения' (dropdown), ни 'Готово', ни 'Сохранить', ни Enter не сработали\");");
+        w.writeLine("System.out.println(\"testUpdate: 'Редактирование → Сохранить Изменения' clicked=\" + savedClicked);");
+        w.writeLine("assertTrue(savedClicked, \"testUpdate: не удалось через 'Редактирование' открыть дропдаун или кликнуть 'Сохранить Изменения'. \"");
+        w.writeLine("    + \"Возможно карточка не догрузилась или дропдаун не появился. См. dumpCardDiagnostics в логе.\");");
         // 6) Popup-диагностика. После «Сохранить Изменения» стенд может показать
         //    подтверждение или сразу сохранить молча. Если popup явно про ошибку
         //    валидации — фейлим без хождения в грид.
@@ -989,21 +974,18 @@ public class TestClassWriter {
         w.writeLine("shot(\"update_validation_error\");");
         w.writeLine("fail(\"testUpdate: сервер отверг save с popup'ом: '\" + updatePopupText + \"'. Изменяли поле: \" + filledSnapshot);");
         w.closeBlock();
-        // Закрываем карточку Esc — на стенде после save карточка остаётся открытой read-only.
-        w.openBlock("if (isOnRecordCard() || isDialogOpen())");
-        w.writeLine("System.out.println(\"testUpdate: карточка осталась открытой после save — закрываем Esc и идём проверять грид\");");
-        w.openBlock("try");
-        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
-        w.writeLine("Thread.sleep(600);");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
+        // НЕ ЖМЁМ Esc — на стенде Esc после редактирования отменяет несохранённые правки.
+        // После 'Сохранить Изменения' изменения уже на сервере; re-навигация ниже сама
+        // уйдёт со страницы. Если при уходе всплывёт «Сохранить изменения? Да/Нет» —
+        // confirmDialogYes ещё раз кликнет Да.
+        w.writeLine("confirmDialogYes();");
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"testUpdate: после save появилась ошибка на стенде\");");
         w.writeLine();
         // 8) Re-навигация к гриду результатов и поиск нового значения по тем же 3 уровням,
-        //    что в testCreate (DOM → ExtJS store → фильтрованный поиск).
+        //    что в testCreate (DOM → ExtJS store → фильтрованный поиск). Перед уходом
+        //    ловим «Сохранить изменения? Да/Нет» если стенд его покажет.
+        w.writeLine("confirmDialogYes();");
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
