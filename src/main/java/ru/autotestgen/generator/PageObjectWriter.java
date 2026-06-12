@@ -83,15 +83,10 @@ public class PageObjectWriter {
         // живой пользовательский ввод (click + sendKeys + ENTER).
         // СТРАТЕГИЯ B (DOM): активируем editor ячейки и вводим значение.
         w.openBlock("try");
-        // ESC чтобы закрыть любой висящий редактор (от предыдущего fillX). Без этого
-        // editor предыдущего поля оставался активным, клик по новой ячейке игнорировался,
-        // sendKeys уходил в старый редактор → текущее поле оставалось пустым.
-        w.openBlock("try");
-        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
-        w.writeLine("Thread.sleep(150);");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
+        // НЕ ИСПОЛЬЗУЕМ Esc — в ExtJS PropertyGrid Esc отменяет inline-add и УДАЛЯЕТ
+        // последнюю добавленную строку (см. фидбек пользователя 'то первую строку удаляешь').
+        // Editor предыдущего fillX закрывается через ENTER в самом конце той fillX, так что
+        // к моменту нового fillX редактор уже закрыт сам.
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
         w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
@@ -364,13 +359,17 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
         w.writeLine("String pickedText = pick.getText() == null ? \"\" : pick.getText().trim();");
+        // 1с пауза ПЕРЕД кликом — выпадашка появилась в DOM, но ExtJS ещё биндит её
+        // обработчики. Без этого клик иногда проходил «впустую» и значение не выбиралось.
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ждём 1с и кликаем элемент '\" + pickedText + \"'\");");
+        w.writeLine("Thread.sleep(1000);");
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(pick).click().perform();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(300);");
         // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
         // может не зафиксироваться без явного коммита. ENTER заставляет combobox завершить
         // выбор и закрыть picker, привязывая значение к record'у. Потом TAB сдвигает фокус
