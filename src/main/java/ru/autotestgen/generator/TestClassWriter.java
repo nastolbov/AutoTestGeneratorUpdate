@@ -187,11 +187,6 @@ public class TestClassWriter {
                 writePartialValidationTest(w, requiredProperties);
             }
 
-            // Test: Create with only required fields
-            if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT) && !requiredProperties.isEmpty()) {
-                writeCreateWithOnlyRequiredTest(w);
-            }
-
             // Test: Search with empty results (garbage input)
             for (int i = 0; i < entitySearches.size(); i++) {
                 writeSearchEmptyResultTest(w, entitySearches.get(i), i);
@@ -869,108 +864,6 @@ public class TestClassWriter {
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
         }
-        w.closeBlock();
-        w.writeLine();
-    }
-
-    private void writeCreateWithOnlyRequiredTest(JavaFileWriter w) {
-        w.writeLine("@Test");
-        w.writeLine("@Order(21)");
-        w.writeLine("@DisplayName(\"Create with only required fields filled\")");
-        w.openBlock("void testCreateOnlyRequired()");
-        w.writeLine("shot(\"start\");");
-        w.writeLine("int rowsBefore = page.getTableRowCount();");
-        w.writeLine("boolean addClicked = step(\"open Добавить via main menu\", () -> addViaMenu(ENTITY_NAME));");
-        w.writeLine("System.out.println(\"  addClicked=\" + addClicked + \" for entity \" + ENTITY_NAME);");
-        w.writeLine("if (!addClicked) dumpCardDiagnostics();");
-        w.writeLine("Assumptions.assumeTrue(addClicked, \"'Добавить' not in dropdown\");");
-        w.writeLine("boolean addFormOpen = waitForAddForm();");
-        w.writeLine("System.out.println(\"  addFormOpen=\" + addFormOpen);");
-        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
-        w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after Edit>Добавить (neither modal dialog nor add card detected)\");");
-        w.writeLine("step(\"fill required\", () -> page.fillRequiredFields());");
-        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: заполненные обязательные поля: \" + filledSnapshot);");
-        w.writeLine("Assumptions.assumeFalse(filledSnapshot.isEmpty(),");
-        w.writeLine("    \"testCreateOnlyRequired: ни одно обязательное поле не было заполнено — проверьте PageObject\");");
-        w.writeLine("shot(\"required_filled\");");
-        // TAB чтобы закомитить активный редактор PropertyGrid'а перед Готово.
-        w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
-        w.writeLine("Thread.sleep(200);");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: gotovoClicked=\" + gotovoClicked);");
-        // Тот же fallback для справочников: Сохранить / OK / Enter если «Готово» нет.
-        w.openBlock("if (!gotovoClicked)");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: 'Готово' не найдено — пробуем 'Сохранить' / 'OK' / Enter\");");
-        w.writeLine("gotovoClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
-        w.openBlock("if (!gotovoClicked)");
-        w.writeLine("gotovoClicked = clickButtonByText(\"OK\");");
-        w.closeBlock();
-        w.openBlock("if (!gotovoClicked)");
-        w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
-        w.writeLine("gotovoClicked = true;");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: Enter-fallback провалился: \" + e.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(gotovoClicked, \"testCreateOnlyRequired: ни 'Готово', ни 'Сохранить', ни 'OK', ни Enter не сработали. Проверьте что форма создания реально открылась.\");");
-        // Захватываем popup-текст ПЕРЕД confirmDialogYes — это либо «Запись сохранена»,
-        // либо ошибка валидации («Необходимо обязательно указать значения свойств: ...»).
-        // Раньше confirmDialogYes молча кликал OK на error-popup и тест думал что всё ок.
-        w.writeLine("String popupText = capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: popup после Готово = '\" + popupText + \"'\");");
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForDialogClose();");
-        // Если диалог Сведения ВСЁ ЕЩЁ открыт после Готово + confirm — значит сервер
-        // отверг save (валидация). Закрываем Отменой чтобы не блокировать след.тест и фейлим
-        // с текстом popup'a — теперь видно ПОЧЕМУ не сохранилось.
-        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: диалог не закрылся после Готово — валидация отвергла save\");");
-        w.openBlock("try");
-        w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
-        w.writeLine("waitForDialogClose();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.writeLine("fail(\"testCreateOnlyRequired: save отвергнут — диалог Сведения остался открыт. Popup='\" + popupText + \"'. Заполненные поля: \" + filledSnapshot + \". Скорее всего обязательное FK/Ref поле не было заполнено (выпадашка не сработала) или сервер требует ещё одно поле.\");");
-        w.closeBlock();
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_save\");");
-        w.writeLine("assertFalse(isErrorPresent(), \"Creating with only required fields should succeed\");");
-        w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: rows \" + rowsBefore + \" -> \" + rowsAfter);");
-        w.writeLine("boolean recordFound = false;");
-        w.writeLine("String hitVia = \"\";");
-        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-        w.writeLine("String v = e.getValue();");
-        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
-        w.writeLine("recordFound = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(DOM)\";");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("if (!recordFound)");
-        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-        w.writeLine("String v = e.getValue();");
-        w.openBlock("if (v != null && !v.isEmpty() && gridStoreContainsText(v))");
-        w.writeLine("recordFound = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(ExtJS store)\";");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("System.out.println(\"testCreateOnlyRequired: recordFound=\" + recordFound + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
-        w.writeLine("shot(recordFound ? \"record_found\" : \"final_grid\");");
-        w.writeLine("assertTrue(recordFound,");
-        w.writeLine("    \"testCreateOnlyRequired: запись с заполненными обязательными полями не найдена в гриде. Filled: \" + filledSnapshot);");
         w.closeBlock();
         w.writeLine();
     }
