@@ -77,72 +77,11 @@ public class PageObjectWriter {
         w.writeLine("fillFKViaDropdown(fieldName);");
         w.writeLine("return;");
         w.closeBlock();
-        // СТРАТЕГИЯ A (надёжная): прямой rec.set('value', v) на record PropertyGrid'а через
-        // ExtJS API. ТАК ЖЕ работает fillFKViaDropdown для FK полей — поэтому FK сохраняются,
-        // а текст/дата раньше нет: для них использовался DOM-editor + dispatchEvent(change),
-        // но ExtJS PropertyGrid читает rec.data.value при save, а не DOM input.value.
-        // Дополнительно после установки делаем view.refresh() чтобы значение отрисовалось.
-        w.openBlock("try");
-        w.writeLine("Object apiResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
-        w.writeLine("    + \"  var name = arguments[0]; var val = arguments[1];\"");
-        // Скоупим поиск PropertyGrid'а к АКТИВНОМУ окну. У карточки «Сведения совещания/ГСК»
-        // есть вложенный PropertyGrid документа (Название, НДЗ, Председатель, Присутствовал) —
-        // раньше rec.set попадал в чужой грид, возвращал OK, главная форма оставалась пустой,
-        // сервер отвергал save валидацией. Теперь ограничиваемся PropertyGrid'ами внутри
-        // активного диалога; если активного нет — fall back на полный обход.
-        w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
-        w.writeLine("    + \"  if (!mgr || !mgr.all) return 'no-mgr';\"");
-        w.writeLine("    + \"  var allItems = [];\"");
-        w.writeLine("    + \"  if (mgr.all.items) allItems = mgr.all.items;\"");
-        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){allItems.push(c);});\"");
-        w.writeLine("    + \"  else for (var k in mgr.all) allItems.push(mgr.all[k]);\"");
-        w.writeLine("    + \"  var activeWin = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
-        w.writeLine("    + \"  var activeDom = null;\"");
-        w.writeLine("    + \"  if (activeWin && activeWin.getEl) { try { activeDom = activeWin.getEl().dom; } catch(e) {} }\"");
-        w.writeLine("    + \"  var items = [];\"");
-        w.writeLine("    + \"  if (activeDom) {\"");
-        w.writeLine("    + \"    for (var i = 0; i < allItems.length; i++) {\"");
-        w.writeLine("    + \"      var c = allItems[i]; if (!c || !c.getEl) continue;\"");
-        w.writeLine("    + \"      try { var dom = c.getEl().dom; if (dom && activeDom.contains(dom)) items.push(c); } catch(e) {}\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  if (items.length === 0) items = allItems;\"");
-        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
-        w.writeLine("    + \"    var c = items[i];\"");
-        w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors) continue;\"");
-        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0 || c.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
-        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
-        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
-        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue; var d = rec.data;\"");
-        w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
-        w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
-        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
-        w.writeLine("    + \"        try { rec.set('value', val); } catch(e) { return 'err-set:' + e.message; }\"");
-        // rec.commit + store.commitChanges — заставляем ExtJS закомитить запись в store,
-        // иначе при save сервер читает рекорд из «dirty» состояния и видит старое значение.
-        w.writeLine("    + \"        try { if (rec.commit) rec.commit(); } catch(e) {}\"");
-        w.writeLine("    + \"        try { if (s.commitChanges) s.commitChanges(); } catch(e) {}\"");
-        w.writeLine("    + \"        try { if (c.view && c.view.refresh) c.view.refresh(); } catch(e) {}\"");
-        w.writeLine("    + \"        return 'OK:' + (dn || nn);\"");
-        w.writeLine("    + \"      }\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-match';\"");
-        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
-        w.writeLine("String apiStr = apiResult == null ? \"null\" : String.valueOf(apiResult);");
-        // ВАЖНО: даже если rec.set отработал, мы НЕ возвращаемся — форма ExtJS на этом
-        // стенде принимает значение только при настоящем клавиатурном вводе. Strategy A
-        // оставлена для совместимости (на случаях где Strategy B не находит ячейку),
-        // но Strategy B (sendKeys+ENTER) запускается всегда — это даёт «красное» поле.
-        w.writeLine("System.out.println(\"  [fill-A] '\" + fieldName + \"' rec.set result=\" + apiStr + \" — далее ввод с клавиатуры через Strategy B\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception apiEx)");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API threw: \" + apiEx.getMessage());");
-        w.closeBlock();
-        // СТРАТЕГИЯ B (DOM fallback): активируем editor ячейки и вводим значение.
-        // Используется только если ExtJS API не нашёл PropertyGrid / record.
+        // СТРАТЕГИЯ A (ExtJS rec.set) УБРАНА — она лазала по всем компонентам через
+        // ComponentMgr и как побочный эффект переключала табы (Сведения → Документы).
+        // Теперь только Strategy B: ищем ВИДИМУЮ ячейку текущего таба и эмулируем
+        // живой пользовательский ввод (click + sendKeys + ENTER).
+        // СТРАТЕГИЯ B (DOM): активируем editor ячейки и вводим значение.
         w.openBlock("try");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
@@ -247,104 +186,13 @@ public class PageObjectWriter {
         // только выбор из готового списка справочника.
         w.openBlock("private void fillFKViaDropdown(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
-        // СТРАТЕГИЯ A (по требованию заказчика): без кликов и UI-жестов.
-        // Через ExtJS API находим PropertyGrid'у этого поля customEditor.field — это ComboBox.
-        // Триггерим store.load() и ждём пока справочник догрузится (до 3с). Затем берём из
-        // store случайную запись и ставим rec.set('value', displayValue) в PropertyGrid.
-        // Если ничего не нашли (нет combo / пустой store даже после load) — переходим к
-        // СТРАТЕГИИ B (клики по ячейке как fallback).
-        w.openBlock("try");
-        w.writeLine("Object loadInfo = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
-        w.writeLine("    + \"  var name = arguments[0];\"");
-        w.writeLine("    + \"  var all = Ext.ComponentMgr && Ext.ComponentMgr.all ? Ext.ComponentMgr.all : (Ext.ComponentManager && Ext.ComponentManager.all ? Ext.ComponentManager.all : null);\"");
-        w.writeLine("    + \"  if (!all) return 'no-mgr';\"");
-        w.writeLine("    + \"  var items = [];\"");
-        w.writeLine("    + \"  if (all.items) items = all.items;\"");
-        w.writeLine("    + \"  else if (all.each) all.each(function(c){items.push(c);});\"");
-        w.writeLine("    + \"  else for (var k in all) items.push(all[k]);\"");
-        w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
-        w.writeLine("    + \"    var c = items[i]; if (!c || !c.rendered || !c.getStore || !c.customEditors) continue;\"");
-        w.writeLine("    + \"    if (c.getEl && c.getEl().dom && (c.getEl().dom.offsetWidth === 0 || c.getEl().dom.offsetHeight === 0)) continue;\"");
-        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
-        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
-        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue; var d = rec.data;\"");
-        w.writeLine("    + \"      var dn = d.displayName != null ? String(d.displayName) : '';\"");
-        w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
-        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
-        w.writeLine("    + \"        var key = nn || dn; var ed = c.customEditors[key];\"");
-        // Если нет под прямым ключом — пробуем по всем ключам найти редактор у которого
-        // dataIndex/name/displayName совпадает с искомым name.
-        w.writeLine("    + \"        if (!ed) {\"");
-        w.writeLine("    + \"          var allKeys = c.customEditors ? Object.keys(c.customEditors) : [];\"");
-        w.writeLine("    + \"          for (var ki = 0; ki < allKeys.length; ki++) {\"");
-        w.writeLine("    + \"            var k = allKeys[ki]; var maybe = c.customEditors[k];\"");
-        w.writeLine("    + \"            if (k === name || k.indexOf(name) === 0 || name.indexOf(k) === 0) { ed = maybe; key = k; break; }\"");
-        w.writeLine("    + \"          }\"");
-        w.writeLine("    + \"        }\"");
-        w.writeLine("    + \"        if (!ed) return 'no-editor:' + key + ' keys=' + (c.customEditors ? Object.keys(c.customEditors).join(',') : 'NONE');\"");
-        w.writeLine("    + \"        var cb = ed.field || ed;\"");
-        w.writeLine("    + \"        if (!cb || !cb.getStore) return 'no-combo:' + key + ' cls=' + (cb && cb.constructor ? (cb.constructor.name || cb.xtype || 'unknown') : 'null');\"");
-        w.writeLine("    + \"        var st = cb.getStore();\"");
-        w.writeLine("    + \"        var cnt = st && st.getCount ? st.getCount() : 0;\"");
-        // Сохраняем grid+rec+cb в окне для второго JS-вызова (после ожидания загрузки).
-        w.writeLine("    + \"        window.__fkCtx = { propGrid: c, propRec: rec, combo: cb, store: st, key: key };\"");
-        // Триггерим store.load если пустой
-        w.writeLine("    + \"        if (cnt === 0 && st.load) { try { st.load(); } catch (le) {} }\"");
-        w.writeLine("    + \"        return 'found:' + key + '/count=' + cnt;\"");
-        w.writeLine("    + \"      }\"");
-        w.writeLine("    + \"    }\"");
-        w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-match';\"");
-        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' lookup: \" + loadInfo);");
-        w.openBlock("if (loadInfo != null && String.valueOf(loadInfo).startsWith(\"found:\"))");
-        // Полл-ждём пока store догрузится (до 3с). Шаг 200мс.
-        w.writeLine("long deadline = System.currentTimeMillis() + 3000;");
-        w.writeLine("int storeCount = 0;");
-        w.openBlock("while (System.currentTimeMillis() < deadline)");
-        w.writeLine("Object c = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"return (window.__fkCtx && window.__fkCtx.store && window.__fkCtx.store.getCount) ? window.__fkCtx.store.getCount() : 0;\");");
-        w.writeLine("storeCount = c == null ? 0 : ((Number) c).intValue();");
-        w.openBlock("if (storeCount > 0)");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
-        w.closeBlock();
-        w.openBlock("if (storeCount == 0)");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (store stayed empty after load)\");");
-        w.writeLine("return;");
-        w.closeBlock();
-        // Берём случайную запись и ставим в PropertyGrid
-        w.writeLine("Object setResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try {\"");
-        w.writeLine("    + \"  var ctx = window.__fkCtx; if (!ctx) return 'no-ctx';\"");
-        w.writeLine("    + \"  var st = ctx.store; var cb = ctx.combo; var rec = ctx.propRec; var grid = ctx.propGrid;\"");
-        w.writeLine("    + \"  var n = st.getCount(); if (n === 0) return 'empty-after-load';\"");
-        w.writeLine("    + \"  var idx = Math.floor(Math.random() * n);\"");
-        w.writeLine("    + \"  var fkRec = st.getAt(idx);\"");
-        w.writeLine("    + \"  var vf = cb.valueField || 'id'; var df = cb.displayField || 'name';\"");
-        w.writeLine("    + \"  var fkId = fkRec.get ? fkRec.get(vf) : null;\"");
-        w.writeLine("    + \"  var fkDisp = fkRec.get ? fkRec.get(df) : '';\"");
-        // Ставим displayValue в PropertyGrid record. Если у combo есть rawValue / valueField,
-        // PropertyGrid рендерит displayValue, но при сохранении передаёт реальный id.
-        w.writeLine("    + \"  try { rec.set('value', fkDisp); } catch (eS1) { try { rec.set('value', fkId); } catch (eS2) {} }\"");
-        w.writeLine("    + \"  if (grid.view && grid.view.refresh) try { grid.view.refresh(); } catch (eR) {}\"");
-        w.writeLine("    + \"  return 'OK:' + fkDisp + '(id=' + fkId + ')';\"");
-        w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\");");
-        w.writeLine("System.out.println(\"  [fill-FK-A] '\" + fieldName + \"' rec.set result=\" + setResult + \" — далее ОБЯЗАТЕЛЬНО реальный клик по пикеру для триггера form-binding\");");
-        // НЕ возвращаемся: rec.set может выставить displayValue в record, но форма
-        // не зафиксирует значение пока пользователь не выберет элемент в реальном пикере.
-        // Strategy B ниже открывает выпадашку и кликает по элементу — это делает поле красным.
-        w.closeBlock();
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ExtJS API didn't find combo — trying DOM clicks fallback\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception apiEx)");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' API path threw: \" + apiEx.getMessage());");
-        w.closeBlock();
+        // СТРАТЕГИЯ A (ExtJS rec.set) УБРАНА — она лазала по всем компонентам через
+        // ComponentMgr и переключала табы как побочный эффект. Теперь только реальный
+        // клик: ищем ВИДИМУЮ ячейку поля в текущем активном табе и кликаем dblclick.
+        // ExtJS откроет пикер / выпадашку, мы выберем случайный элемент.
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' — открываем пикер реальным кликом\");");
 
-        // === СТРАТЕГИЯ B: DOM клики (fallback) ===
+        // === СТРАТЕГИЯ B: реальный клик по ячейке value FK-поля ===
         w.openBlock("try");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
