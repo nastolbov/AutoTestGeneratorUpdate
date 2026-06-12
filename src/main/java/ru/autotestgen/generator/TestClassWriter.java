@@ -716,16 +716,19 @@ public class TestClassWriter {
         // напрямую (например, поле-маркер не отображается в результирующей таблице).
         w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
         w.writeLine("System.out.println(\"testCreate: запомнили заполненные поля: \" + filledSnapshot);");
-        // Раньше: step("click Готово", () -> clickButtonByText("Готово")); — результат click'a
-        // выбрасывался. Если Готово не находился (ExtJS-кнопка с вложенным span), тест шёл
-        // дальше, диалог оставался открытым, запись не создавалась, а assert падал
-        // как "не найдено в гриде" — диагностика была ложной.
+        // Перед Готово — TAB чтобы закомитить активный редактор PropertyGrid'а (последнее
+        // вписанное значение). Без этого первый клик Готово часто работает как «blur» и
+        // нужный сейв не происходит.
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
         // Fallback для справочников (lookup-таблиц): у них «Добавить» открывает inline-режим
-        // в гриде, а не модальный «Сведения»; кнопка save — «Сохранить» или просто Enter
-        // в редактируемой ячейке. Если «Готово» нет — пробуем «Сохранить», потом «OK»,
-        // потом просто Enter на активном элементе.
+        // в гриде, а не модальный «Сведения»; кнопка save — «Сохранить» или просто Enter.
         w.openBlock("if (!gotovoClicked)");
         w.writeLine("System.out.println(\"testCreate: 'Готово' не найдено — пробуем 'Сохранить' / 'OK' / Enter (вероятно справочник с inline-сохранением)\");");
         w.writeLine("gotovoClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
@@ -744,27 +747,37 @@ public class TestClassWriter {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("assertTrue(gotovoClicked, \"testCreate: ни 'Готово', ни 'Сохранить', ни 'OK', ни Enter не сработали. Проверьте что форма создания реально открылась.\");");
-        // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
-        // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
-        // отверг save. Если это «Запись сохранена» — confirmDialogYes просто его закроет.
+        // Захватываем popup ПОСЛЕ Готово и сразу жмём «Да» (confirmDialogYes). На стенде
+        // встречаются wizard-формы (с кнопкой «<< Назад») — Готово может быть шагом
+        // мастера, а не финальным save'ом. Делаем до 3 итераций: каждый раз
+        // captureconfirm → confirmDialogYes → если диалог всё ещё открыт и видна
+        // кнопка Готово, нажимаем её снова (следующий шаг wizard'a).
         w.writeLine("String createPopupText = capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("System.out.println(\"testCreate: popup после Готово = '\" + createPopupText + \"'\");");
-        // После «Готово» стенд может показать модалку-подтверждение ("Запись сохранена",
-        // ExtJS message box). Жмём «ОК»/«Да» если она есть.
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
-        // Иногда диалог визуально остаётся открытым даже после успешного сохранения.
-        // Не полагаемся на это: на всякий случай давим «Отмена» если диалог ещё висит,
-        // потом РЕ-НАВИГИРУЕМ к таблице результатов и ищем маркер ТАМ — это единственный
-        // надёжный критерий «реально сохранилось».
-        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("System.out.println(\"testCreate: диалог не закрылся, давим Отмену и проверим грид\");");
-        w.openBlock("try");
-        w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
+        w.openBlock("for (int i = 0; i < 3 && (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\")); i++)");
+        w.writeLine("System.out.println(\"testCreate: диалог не закрылся — итерация \" + (i+1) + \" wizard'a, жмём Готово ещё раз\");");
+        w.writeLine("boolean again = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("System.out.println(\"testCreate: повторный Готово=\" + again);");
+        w.writeLine("String iterPopup = capturePopupText(\"wizard-iter-\" + (i+1));");
+        w.openBlock("if (!iterPopup.isEmpty())");
+        w.writeLine("createPopupText = iterPopup;");
+        w.writeLine("System.out.println(\"testCreate: popup на итерации \" + (i+1) + \" = '\" + iterPopup + \"'\");");
+        w.closeBlock();
+        w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
         w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
+        // КЛЮЧЕВОЕ: если диалог всё ещё открыт после всех попыток — НЕ ЖМЁМ Отмена
+        // (раньше тут была эта строка и она УБИВАЛА только что введённые данные —
+        // запись никогда не сохранялась). Просто фейлим тест с диагностикой; пусть
+        // следующий тест сам откроется через свой шаг навигации.
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.writeLine("System.out.println(\"testCreate: диалог НЕ закрылся после 3 попыток — save не прошёл, popup='\" + createPopupText + \"'\");");
+        w.writeLine("shot(\"dialog_stuck_open\");");
+        w.writeLine("fail(\"testCreate: диалог 'Сведения' остался открыт после Готово + 3 попыток. \"");
+        w.writeLine("    + \"Popup сервера='\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
+        w.writeLine("    + \". Скорее всего сервер отверг save (валидация / FK) либо это wizard с другим путём подтверждения.\");");
         w.closeBlock();
         w.writeLine("shot(\"after_save\");");
         w.writeLine();
@@ -882,10 +895,13 @@ public class TestClassWriter {
         w.writeLine("Assumptions.assumeFalse(filledSnapshot.isEmpty(),");
         w.writeLine("    \"testCreateOnlyRequired: ни одно обязательное поле не было заполнено — проверьте PageObject\");");
         w.writeLine("shot(\"required_filled\");");
-        // Раньше: step(\"click Готово\", () -> clickButtonByText(\"Готово\")); — результат click'a
-        // выбрасывался. Если Готово не находился (ExtJS-кнопка с вложенным span), тест шёл
-        // дальше, диалог оставался открытым, запись не создавалась, а assert падал
-        // как «не найдено в гриде» — диагностика была ложной.
+        // TAB чтобы закомитить активный редактор PropertyGrid'а перед Готово.
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreateOnlyRequired: gotovoClicked=\" + gotovoClicked);");
         // Тот же fallback для справочников: Сохранить / OK / Enter если «Готово» нет.

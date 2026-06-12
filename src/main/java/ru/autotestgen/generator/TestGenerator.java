@@ -1480,8 +1480,9 @@ public class TestGenerator {
         w.openBlock("protected boolean confirmDialogYes()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        // confirmDialogYes: ждём popup до 1.5с — на стенде он появляется сразу или вообще нет.
-        w.writeLine("long deadline = System.currentTimeMillis() + 1500;");
+        // confirmDialogYes: ждём popup до 3.5с — на некоторых стендах подтверждение
+        // прилетает позже (после round-trip к серверу).
+        w.writeLine("long deadline = System.currentTimeMillis() + 3500;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
         w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(");
         w.writeLine("    \"//div[contains(@class,'x-window') or contains(@class,'x-message-box')]//button[\"");
