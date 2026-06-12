@@ -122,6 +122,20 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
+        // ScrollIntoView + лог Y-координаты — иначе верхние ячейки (Наименование, Включён)
+        // после прокрутки формы уезжали за viewport и клик не активировал редактор.
+        // Используем scrollIntoView({block:'center'}) чтобы ячейка оказалась посередине
+        // окна (не у самого верха, где её может перекрыть заголовок диалога).
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});\", valueCell);");
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Object rect = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var r = arguments[0].getBoundingClientRect(); return r.top + ',' + r.left + ',' + r.width + ',' + r.height;\", valueCell);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' value-cell rect=\" + rect);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // Активируем editor через click + pause + click (тот же жест что для FK)
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver)");
@@ -134,7 +148,7 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { valueCell.click(); Thread.sleep(200); valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(300);");
         // Найти видимый input редактора
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
         w.writeLine("WebElement editor = null;");
@@ -171,8 +185,23 @@ public class PageObjectWriter {
         // ENTER подтверждает значение в редакторе PropertyGrid; ExtJS закрывает редактор
         // и применяет value к rec.data. TAB перенесёт фокус не туда и иногда «теряет» ввод.
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via sendKeys+ENTER)\");");
+        w.writeLine("Thread.sleep(200);");
+        // Верификация: читаем ОБРАТНО текст value-ячейки. Если в ней нет нашего value —
+        // sendKeys ушёл не туда (например в чужой редактор), и поле осталось пустым.
+        w.openBlock("try");
+        w.writeLine("Object cellText = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"return (arguments[0].innerText || arguments[0].textContent || '').trim();\", valueCell);");
+        w.writeLine("String actual = cellText == null ? \"\" : String.valueOf(cellText);");
+        w.openBlock("if (actual.contains(value))");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' видно в ячейке)\");");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = WARN sendKeys прошёл но в ячейке '\" + actual + \"' нет '\" + value + \"' — value не зафиксирован!\");");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via sendKeys+ENTER, verify failed)\");");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
@@ -233,6 +262,15 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
+        // Scroll cell into view — иначе верхние FK (Включён, Тип) уезжали за viewport
+        // после прокрутки формы и dblclick по ним не работал.
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});\", valueCell);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // Запомним id активного окна ДО клика — иначе если пикер не открылся, Ext.WindowMgr
         // вернёт тот же диалог Сведения, и мы dblclick'нем его property-row (как было в прошлой
         // версии — пик попал на 'Дата изменения').
