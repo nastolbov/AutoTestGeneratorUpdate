@@ -2565,17 +2565,15 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        // Signal A: tab-strip (ExtJS 3/4/5)
-        w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text, [role='tab']\"));");
-        w.openBlock("if (tabs.stream().anyMatch(WebElement::isDisplayed))");
-        w.writeLine("return true;");
-        w.closeBlock();
-        // Signal B: "Единый объект" text in the page header / breadcrumb
+        // Signal B: "Единый объект" text — РОВНО для карточки записи. Раньше также проверялся
+        // Signal A (.x-tab-strip-text) но эти табы есть и на странице поиска тоже, что
+        // приводило к false-positive: тест думал карточка открыта, хотя мы всё ещё в списке
+        // результатов. Признаки A удалены.
         w.writeLine("List<WebElement> ed = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0415\\u0434\\u0438\\u043d\\u044b\\u0439 \\u043e\\u0431\\u044a\\u0435\\u043a\\u0442')]\"));");
         w.openBlock("if (ed.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("return true;");
         w.closeBlock();
-        // Signal C: card-only toolbar buttons («Редактирование» dropdown OR «Обновить»+«Печать»)
+        // Signal C: card-only toolbar button «Редактирование»
         w.writeLine("List<WebElement> editBtn = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
         w.openBlock("if (editBtn.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("return true;");
