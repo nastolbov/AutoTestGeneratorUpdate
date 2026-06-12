@@ -90,10 +90,22 @@ public class PageObjectWriter {
         w.writeLine("    + \"  var name = arguments[0];\"");
         w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
         w.writeLine("    + \"  if (!mgr || !mgr.all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var allItems = [];\"");
+        w.writeLine("    + \"  if (mgr.all.items) allItems = mgr.all.items;\"");
+        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){allItems.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in mgr.all) allItems.push(mgr.all[k]);\"");
+        // СКОУП к активному окну. Без этого startEditing мог попасть в SEARCH PARAMS
+        // PropertyGrid вместо «Сведения ГСК/ОГСК», и row=1 был не Наименование а Тип.
+        w.writeLine("    + \"  var activeWin = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  var activeDom = (activeWin && activeWin.getEl) ? (activeWin.getEl().dom || activeWin.getEl()) : null;\"");
         w.writeLine("    + \"  var items = [];\"");
-        w.writeLine("    + \"  if (mgr.all.items) items = mgr.all.items;\"");
-        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){items.push(c);});\"");
-        w.writeLine("    + \"  else for (var k in mgr.all) items.push(mgr.all[k]);\"");
+        w.writeLine("    + \"  if (activeDom) {\"");
+        w.writeLine("    + \"    for (var i = 0; i < allItems.length; i++) {\"");
+        w.writeLine("    + \"      var c = allItems[i]; if (!c || !c.getEl) continue;\"");
+        w.writeLine("    + \"      try { var dom = c.getEl().dom; if (dom && activeDom.contains(dom)) items.push(c); } catch(e) {}\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  if (items.length === 0) items = allItems;\"");
         w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
         w.writeLine("    + \"    var c = items[i];\"");
         w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors || !c.startEditing) continue;\"");
@@ -103,13 +115,16 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue;\"");
         w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
         w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
-        w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
+        // СТРОГОЕ сравнение: ТОЧНОЕ совпадение по displayName ИЛИ name. Partial match
+        // (indexOf...===0) убран — он давал ложные срабатывания (Наименование ГСК/ОГСК
+        // матчился с другими «Наименование...» записями).
+        w.writeLine("    + \"      if (dn === name || nn === name) {\"");
         w.writeLine("    + \"        try { c.startEditing(j, 1); } catch(e) { return 'err-start:' + e.message; }\"");
-        w.writeLine("    + \"        return 'OK:grid=' + (c.id || '?') + '/row=' + j + '/dn=' + dn;\"");
+        w.writeLine("    + \"        return 'OK:grid=' + (c.id || '?') + '/row=' + j + '/dn=' + dn + '/nn=' + nn;\"");
         w.writeLine("    + \"      }\"");
         w.writeLine("    + \"    }\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-match';\"");
+        w.writeLine("    + \"  return 'no-match-in-active';\"");
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing result: \" + startResult);");
         w.openBlock("if (startResult != null && String.valueOf(startResult).startsWith(\"OK:\"))");
