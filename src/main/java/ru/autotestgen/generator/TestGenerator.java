@@ -291,6 +291,13 @@ public class TestGenerator {
         w.writeLine("WebDriverManager.chromedriver().setup();");
         w.writeLine("ChromeOptions options = new ChromeOptions();");
         w.writeLine("options.addArguments(\"--remote-allow-origins=*\");");
+        // У стенда rrpo.cmirit.ru самоподписанный сертификат — Chrome по умолчанию
+        // показывает «Подключение не защищено / NET::ERR_CERT_AUTHORITY_INVALID» и
+        // тест на первом get() висит. Эти флаги говорят Chrome принимать invalid
+        // certs без интерстишала.
+        w.writeLine("options.setAcceptInsecureCerts(true);");
+        w.writeLine("options.addArguments(\"--ignore-certificate-errors\");");
+        w.writeLine("options.addArguments(\"--allow-insecure-localhost\");");
         // Headless по флагу -Dheadless=true (быстрее ~20-30%, нет окна для наблюдения).
         // По умолчанию выключен — пользователь видит браузер. --headless=new = новый
         // headless-режим Chrome (старый --headless deprecated).
