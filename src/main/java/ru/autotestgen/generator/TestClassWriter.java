@@ -939,17 +939,8 @@ public class TestClassWriter {
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
         w.writeLine("shot(\"record_opened\");");
-        // Селектор теперь УТОЧНЁН — только x-tab-strip-text / x-tab-inner (это таб-стрип
-        // карточки записи). НЕ матчит навигационное дерево сверху. Принудительно
-        // переключаем на Сведения если карточка открылась на Документы (ExtJS помнит
-        // последний активный таб).
-        w.writeLine("ensureSvedeniyaTabActive();");
-        w.writeLine("shot(\"svedeniya_tab_active\");");
-        w.openBlock("try");
-        w.writeLine("Thread.sleep(500);");
-        w.closeBlock();
-        w.openBlock("catch (InterruptedException ignored)");
-        w.closeBlock();
+        // Карточка открывается на табе «Сведения» сама по себе (см. скриншот пользователя),
+        // принудительный клик по табу не нужен — он только тыкал бы лишний раз.
         // 3) Меняем РОВНО ОДНО поле — первое STRING. Остальные значения, которые уже
         //    есть в карточке, не трогаем (никаких clear/fillAll — обновлять надо именно
         //    одно поле, чтобы остальные не уехали в null и сервер не отверг save).
