@@ -132,12 +132,11 @@ public class PageObjectWriter {
         w.writeLine("    + \"  return 'no-match';\"");
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
         w.writeLine("String apiStr = apiResult == null ? \"null\" : String.valueOf(apiResult);");
-        w.openBlock("if (apiStr.startsWith(\"OK\"))");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS rec.set)\");");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS rec.set didn't apply (\" + apiStr + \") — falling back to DOM editor click\");");
+        // ВАЖНО: даже если rec.set отработал, мы НЕ возвращаемся — форма ExtJS на этом
+        // стенде принимает значение только при настоящем клавиатурном вводе. Strategy A
+        // оставлена для совместимости (на случаях где Strategy B не находит ячейку),
+        // но Strategy B (sendKeys+ENTER) запускается всегда — это даёт «красное» поле.
+        w.writeLine("System.out.println(\"  [fill-A] '\" + fieldName + \"' rec.set result=\" + apiStr + \" — далее ввод с клавиатуры через Strategy B\");");
         w.closeBlock();
         w.openBlock("catch (Exception apiEx)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API threw: \" + apiEx.getMessage());");
@@ -204,21 +203,28 @@ public class PageObjectWriter {
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible)\");");
         w.writeLine("return;");
         w.closeBlock();
-        // Очистка + ввод. JS-путь надёжнее sendKeys для ExtJS — пробрасывает change-event так,
-        // что ExtJS field фиксирует значение в своей модели и далее в form data.
+        // Очистка + ввод как с клавиатуры. ExtJS form-binding читает значение из input
+        // только если оно пришло через keypress/keyup events — JS-set'тер игнорируется.
+        // Поэтому: editor.clear() + editor.sendKeys(value посимвольно) + ENTER чтобы
+        // ExtJS зафиксировал значение и закрыл редактор ячейки.
         w.openBlock("try");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"var inp = arguments[0]; var v = arguments[1];\"");
-        w.writeLine("    + \"inp.focus();\"");
-        w.writeLine("    + \"var setter = Object.getOwnPropertyDescriptor(inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value').set;\"");
-        w.writeLine("    + \"setter.call(inp, v);\"");
-        w.writeLine("    + \"inp.dispatchEvent(new Event('input', {bubbles: true}));\"");
-        w.writeLine("    + \"inp.dispatchEvent(new Event('change', {bubbles: true}));\", editor, value);");
-        // 100мс — компромисс: меньше провоцирует ExtJS на drop-edit, но не тормозит сильно.
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.TAB);");
+        w.writeLine("editor.click();");
+        w.writeLine("Thread.sleep(80);");
+        w.writeLine("try { editor.clear(); } catch (Exception ignored) {}");
+        // selectAll + delete как страховка от случаев когда clear() не очищает ExtJS-инпут
+        w.openBlock("try");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.DELETE);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("editor.sendKeys(value);");
         w.writeLine("Thread.sleep(120);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via editor input)\");");
+        // ENTER подтверждает значение в редакторе PropertyGrid; ExtJS закрывает редактор
+        // и применяет value к rec.data. TAB перенесёт фокус не туда и иногда «теряет» ввод.
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via sendKeys+ENTER)\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = FAIL (\" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \")\");");
