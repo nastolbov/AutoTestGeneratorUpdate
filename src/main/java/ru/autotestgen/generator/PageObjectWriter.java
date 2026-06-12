@@ -333,8 +333,10 @@ public class PageObjectWriter {
         w.writeLine("    + \"  if (grid.view && grid.view.refresh) try { grid.view.refresh(); } catch (eR) {}\"");
         w.writeLine("    + \"  return 'OK:' + fkDisp + '(id=' + fkId + ')';\"");
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\");");
-        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK via ExtJS API (\" + setResult + \")\");");
-        w.writeLine("return;");
+        w.writeLine("System.out.println(\"  [fill-FK-A] '\" + fieldName + \"' rec.set result=\" + setResult + \" — далее ОБЯЗАТЕЛЬНО реальный клик по пикеру для триггера form-binding\");");
+        // НЕ возвращаемся: rec.set может выставить displayValue в record, но форма
+        // не зафиксирует значение пока пользователь не выберет элемент в реальном пикере.
+        // Strategy B ниже открывает выпадашку и кликает по элементу — это делает поле красным.
         w.closeBlock();
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ExtJS API didn't find combo — trying DOM clicks fallback\");");
         w.closeBlock();
