@@ -770,7 +770,7 @@ public class TestClassWriter {
         // и остаётся на экране). НЕ фейлим на «диалог открыт» — единственный надёжный
         // критерий «сохранилось» = запись видна в обновлённом гриде.
         w.openBlock("try");
-        w.writeLine("Thread.sleep(5000);  // даём серверу 5с на коммит save (AJAX round-trip)");
+        w.writeLine("Thread.sleep(3000);");
         w.closeBlock();
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
@@ -793,13 +793,6 @@ public class TestClassWriter {
         // На стенде уход с карточки может выкинуть «Сохранить изменения? Да/Нет» —
         // confirmDialogYes ещё раз перед navigateToEntity, чтобы не заблокировать переход.
         w.writeLine("confirmDialogYes();");
-        // Ещё 2с до re-навигации — save мог уйти AJAX'ом и сервер ещё не успел
-        // отразить запись в next-page fetch'е.
-        w.openBlock("try");
-        w.writeLine("Thread.sleep(2000);");
-        w.closeBlock();
-        w.openBlock("catch (InterruptedException ignored)");
-        w.closeBlock();
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -980,7 +973,7 @@ public class TestClassWriter {
         w.writeLine("waitForDialogClose();");
         // Ждём 3с round-trip на сервер.
         w.openBlock("try");
-        w.writeLine("Thread.sleep(5000);  // даём серверу 5с на коммит save (AJAX round-trip)");
+        w.writeLine("Thread.sleep(3000);");
         w.closeBlock();
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
@@ -1000,13 +993,6 @@ public class TestClassWriter {
         //    что в testCreate (DOM → ExtJS store → фильтрованный поиск). Перед уходом
         //    ловим «Сохранить изменения? Да/Нет» если стенд его покажет.
         w.writeLine("confirmDialogYes();");
-        // Ещё 2с до re-навигации — save после 'Сохранить Изменения' уходит AJAX'ом,
-        // не закрываем окно слишком быстро.
-        w.openBlock("try");
-        w.writeLine("Thread.sleep(2000);");
-        w.closeBlock();
-        w.openBlock("catch (InterruptedException ignored)");
-        w.closeBlock();
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
