@@ -145,19 +145,44 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine("Thread.sleep(300);");
         // Найти видимый input редактора
-        w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']), input.x-form-field:not([type='hidden']), textarea.x-form-textarea\"));");
+        // КРИТИЧНО: ищем editor правильно. Раньше findElements без скоупа брал ПЕРВЫЙ
+        // input на странице — а это часто readonly-комбо чужого поля. Сейчас:
+        // 1) Сначала document.activeElement (то что в фокусе после клика по ячейке).
+        // 2) Если не подходит — ищем не-readonly INPUT в области координат ячейки.
         w.writeLine("WebElement editor = null;");
+        w.openBlock("try");
+        w.writeLine("WebElement active = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var a = document.activeElement;\"");
+        w.writeLine("    + \"if (!a) return null;\"");
+        w.writeLine("    + \"if (a.tagName !== 'INPUT' && a.tagName !== 'TEXTAREA') return null;\"");
+        w.writeLine("    + \"if (a.readOnly) return null;\"");
+        w.writeLine("    + \"if (a.className && a.className.indexOf('x-combo-noedit') >= 0) return null;\"");
+        w.writeLine("    + \"return a;\");");
+        w.openBlock("if (active != null && active.isDisplayed())");
+        w.writeLine("editor = active;");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor найден через document.activeElement: id=\" + editor.getAttribute(\"id\") + \" class=\" + editor.getAttribute(\"class\"));");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        // Fallback: общий поиск, но ОТФИЛЬТРОВАННЫЙ от readonly и x-combo-noedit.
+        w.openBlock("if (editor == null)");
+        w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']):not([readonly]), input.x-form-field:not([type='hidden']):not([readonly]), textarea.x-form-textarea:not([readonly])\"));");
         w.openBlock("for (WebElement ed : inputs)");
         w.openBlock("try");
-        w.openBlock("if (ed.isDisplayed())");
-        w.writeLine("editor = ed; break;");
+        w.writeLine("String cls = ed.getAttribute(\"class\");");
+        w.openBlock("if (ed.isDisplayed() && (cls == null || cls.indexOf(\"x-combo-noedit\") < 0))");
+        w.writeLine("editor = ed;");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через fallback findElements: id=\" + ed.getAttribute(\"id\") + \" class=\" + cls);");
+        w.writeLine("break;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
+        w.closeBlock();
         w.openBlock("if (editor == null)");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible — клик по ячейке не активировал editor)\");");
         w.writeLine("return;");
         w.closeBlock();
         // Очистка + ввод как с клавиатуры. ExtJS form-binding читает значение из input
