@@ -938,28 +938,14 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // 5) Save: дропдаун-«Сохранить Изменения» → нижняя «Готово» → «Сохранить» → Enter.
+        // 5) Save ТОЛЬКО через дропдаун «Редактирование → Сохранить Изменения».
+        //    В карточке записи нет кнопок «Готово»/«Сохранить»/Enter — попытка их кликнуть
+        //    лишь промахивалась по чужим элементам и тест думал что save прошёл, хотя
+        //    реально ничего не сохранилось. Если дропдаун не сработал — реальный fail.
         w.writeLine("boolean savedClicked = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Сохранить Изменения' (dropdown)=\" + savedClicked);");
-        w.openBlock("if (!savedClicked)");
-        w.writeLine("savedClicked = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Готово' (button)=\" + savedClicked);");
-        w.closeBlock();
-        w.openBlock("if (!savedClicked)");
-        w.writeLine("savedClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
-        w.writeLine("System.out.println(\"testUpdate: 'Сохранить' (button)=\" + savedClicked);");
-        w.closeBlock();
-        w.openBlock("if (!savedClicked)");
-        w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
-        w.writeLine("savedClicked = true;");
-        w.writeLine("System.out.println(\"testUpdate: Enter отправлен как save-жест\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testUpdate: Enter-fallback провалился: \" + e.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(savedClicked, \"testUpdate: ни 'Сохранить Изменения' (dropdown), ни 'Готово', ни 'Сохранить', ни Enter не сработали\");");
+        w.writeLine("System.out.println(\"testUpdate: 'Редактирование → Сохранить Изменения' clicked=\" + savedClicked);");
+        w.writeLine("assertTrue(savedClicked, \"testUpdate: не удалось через 'Редактирование' открыть дропдаун и кликнуть 'Сохранить Изменения'. \"");
+        w.writeLine("    + \"Возможно карточка не догрузилась или кнопка 'Редактирование' не нашлась — см. dumpCardDiagnostics в логе.\");");
         // 6) Popup-диагностика. После «Сохранить Изменения» стенд может показать
         //    подтверждение или сразу сохранить молча. Если popup явно про ошибку
         //    валидации — фейлим без хождения в грид.

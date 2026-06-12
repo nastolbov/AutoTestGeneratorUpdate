@@ -736,6 +736,15 @@ public class PageObjectWriter {
         w.openBlock("public void fillRequiredFields()");
         w.writeLine("lastFilledValues.clear();");
         w.writeLine("String __uniq = String.valueOf(System.nanoTime());");
+        // Подсчёт сколько required-полей мы ОЖИДАЕМ заполнить — потом сравним с реально
+        // вписанными (lastFilledValues.size()). Если меньше — fillPropertyGridField
+        // промахнулся для части полей.
+        int expectedCount = 0;
+        for (Property prop : properties) {
+            if (!prop.isRequired() || isSystemField(prop)) continue;
+            expectedCount++;
+        }
+        w.writeLine("int expectedRequired = " + expectedCount + ";");
         for (Property prop : properties) {
             if (!prop.isRequired() || isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
@@ -748,7 +757,13 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
+            // 400мс между fill'ами — ExtJS не успевает закрыть редактор предыдущего поля,
+            // и следующий fill попадает в blur'нувшийся редактор вместо нужной ячейки.
+            // Раньше fill'ы шли подряд без пауз и из 3 required-полей визуально подсвечивалось
+            // только 1 (только первый успевал отрисоваться красным).
+            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         }
+        w.writeLine("System.out.println(\"  [fillRequiredFields] заполнено \" + lastFilledValues.size() + \" из ожидаемых \" + expectedRequired + \" required-полей (FK-поля считаются как ожидаемые но не попадают в lastFilledValues)\");");
         w.closeBlock();
         w.writeLine();
     }
