@@ -83,6 +83,15 @@ public class PageObjectWriter {
         // живой пользовательский ввод (click + sendKeys + ENTER).
         // СТРАТЕГИЯ B (DOM): активируем editor ячейки и вводим значение.
         w.openBlock("try");
+        // ESC чтобы закрыть любой висящий редактор (от предыдущего fillX). Без этого
+        // editor предыдущего поля оставался активным, клик по новой ячейке игнорировался,
+        // sendKeys уходил в старый редактор → текущее поле оставалось пустым.
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(150);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
         w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");

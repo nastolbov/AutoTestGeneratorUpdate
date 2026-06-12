@@ -2295,23 +2295,26 @@ public class TestGenerator {
         // fillX и clickEditDropdownAction работали с правильным разделом карточки.
         w.openBlock("protected boolean ensureSvedeniyaTabActive()");
         w.openBlock("try");
+        // ВАЖНО: ищем ТОЛЬКО таб-стрип (x-tab-strip-text / x-tab-inner), НЕ строки в
+        // навигационном дереве сверху. У навигационного дерева ячейки .x-grid3-cell-inner —
+        // если кликнуть туда, ExtJS откроет другой раздел карточки.
         w.writeLine("List<WebElement> tabs = driver.findElements(By.xpath(");
-        w.writeLine("    \"//span[contains(@class,'x-tab-strip-text')][starts-with(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')]\"");
-        w.writeLine("    + \" | //a[contains(@class,'x-tab')][.//span[starts-with(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')]]\"));");
+        w.writeLine("    \"//span[contains(@class,'x-tab-strip-text') or contains(@class,'x-tab-inner')]\"");
+        w.writeLine("    + \"[starts-with(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')]\"));");
         w.openBlock("for (WebElement t : tabs)");
         w.openBlock("try");
         w.openBlock("if (t.isDisplayed())");
         w.writeLine("String txt = t.getText().trim();");
-        w.writeLine("System.out.println(\"ensureSvedeniyaTabActive: кликаем таб '\" + txt + \"'\");");
+        w.writeLine("System.out.println(\"ensureSvedeniyaTabActive: кликаем таб-стрип '\" + txt + \"'\");");
         w.writeLine("tryClickAllWays(t);");
-        w.writeLine("Thread.sleep(400);");
+        w.writeLine("Thread.sleep(500);");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("System.out.println(\"ensureSvedeniyaTabActive: таб 'Сведения...' не найден — карточка либо уже на нужном табе либо без табов\");");
+        w.writeLine("System.out.println(\"ensureSvedeniyaTabActive: таб-стрип 'Сведения...' не найден\");");
         w.writeLine("return false;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");

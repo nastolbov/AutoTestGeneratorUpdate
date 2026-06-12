@@ -939,11 +939,17 @@ public class TestClassWriter {
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
         w.writeLine("shot(\"record_opened\");");
-        // НЕ кликаем по табу 'Сведения' принудительно — карточка по умолчанию открывается
-        // на Сведения, а наш ensureSvedeniyaTabActive находил первый элемент с текстом
-        // «Сведения» (мог быть в навигационном дереве сверху) и кликал по нему, что
-        // открывало другую вкладку. fillX и так найдёт правильный PropertyGrid через
-        // ExtJS API + DOM editor click.
+        // Селектор теперь УТОЧНЁН — только x-tab-strip-text / x-tab-inner (это таб-стрип
+        // карточки записи). НЕ матчит навигационное дерево сверху. Принудительно
+        // переключаем на Сведения если карточка открылась на Документы (ExtJS помнит
+        // последний активный таб).
+        w.writeLine("ensureSvedeniyaTabActive();");
+        w.writeLine("shot(\"svedeniya_tab_active\");");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
         // 3) Меняем РОВНО ОДНО поле — первое STRING. Остальные значения, которые уже
         //    есть в карточке, не трогаем (никаких clear/fillAll — обновлять надо именно
         //    одно поле, чтобы остальные не уехали в null и сервер не отверг save).
