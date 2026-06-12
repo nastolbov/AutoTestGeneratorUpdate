@@ -120,6 +120,10 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var nn = d.name != null ? String(d.name) : '';\"");
         w.writeLine("    + \"      if (dn === name || nn === name || dn.indexOf(name) === 0 || nn.indexOf(name) === 0) {\"");
         w.writeLine("    + \"        try { rec.set('value', val); } catch(e) { return 'err-set:' + e.message; }\"");
+        // rec.commit + store.commitChanges — заставляем ExtJS закомитить запись в store,
+        // иначе при save сервер читает рекорд из «dirty» состояния и видит старое значение.
+        w.writeLine("    + \"        try { if (rec.commit) rec.commit(); } catch(e) {}\"");
+        w.writeLine("    + \"        try { if (s.commitChanges) s.commitChanges(); } catch(e) {}\"");
         w.writeLine("    + \"        try { if (c.view && c.view.refresh) c.view.refresh(); } catch(e) {}\"");
         w.writeLine("    + \"        return 'OK:' + (dn || nn);\"");
         w.writeLine("    + \"      }\"");

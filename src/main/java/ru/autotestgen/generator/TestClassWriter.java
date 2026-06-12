@@ -187,10 +187,9 @@ public class TestClassWriter {
                 writePartialValidationTest(w, requiredProperties);
             }
 
-            // Test: Search with empty results (garbage input)
-            for (int i = 0; i < entitySearches.size(); i++) {
-                writeSearchEmptyResultTest(w, entitySearches.get(i), i);
-            }
+            // testSearchEmpty убран по требованию пользователя: на стенде он почти всегда
+            // SKIP (форма поиска не открывается / FK обязателен и без него поиск не запускается),
+            // даёт шум в отчёте и не несёт диагностической ценности.
         }
 
         w.closeBlock(); // end class
@@ -711,15 +710,25 @@ public class TestClassWriter {
         // напрямую (например, поле-маркер не отображается в результирующей таблице).
         w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
         w.writeLine("System.out.println(\"testCreate: запомнили заполненные поля: \" + filledSnapshot);");
-        // Перед Готово — TAB чтобы закомитить активный редактор PropertyGrid'а (последнее
+        // Даём ExtJS время прокинуть значения PropertyGrid'а из rec.set(...) в form.
+        // Без этой паузы Готово отрабатывает раньше чем ExtJS закоммитит последние rec.set,
+        // и сервер видит часть полей пустыми (popup: «Необходимо заполнить ...» хотя в
+        // snapshot значения есть).
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(1500);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        // TAB чтобы закомитить активный редактор PropertyGrid'а (последнее
         // вписанное значение). Без этого первый клик Готово часто работает как «blur» и
         // нужный сейв не происходит.
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
-        w.writeLine("Thread.sleep(200);");
+        w.writeLine("Thread.sleep(400);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.writeLine("shot(\"before_gotovo\");");
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
         // Fallback для справочников (lookup-таблиц): у них «Добавить» открывает inline-режим
@@ -908,10 +917,22 @@ public class TestClassWriter {
         w.writeLine("assertTrue(opened, \"testUpdate: не удалось открыть первую запись на редактирование\");");
         w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"edit form opened\");");
         w.writeLine("waitForCardLoaded(10);");
+        // Карточка может рендериться лениво (ExtJS подгружает PropertyGrid + значения
+        // полей по AJAX уже ПОСЛЕ того как waitForCardLoaded считает её открытой).
+        // Без паузы fill попадает в ещё не загрузившийся редактор → save видит null.
+        w.writeLine("System.out.println(\"testUpdate: ждём 2.5с пока карточка догрузит значения полей\");");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(2500);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
         w.writeLine("shot(\"record_opened\");");
-        // 3) Вписываем новое значение в первое STRING-поле. Запоминаем snapshot.
+        // 3) Меняем РОВНО ОДНО поле — первое STRING. Остальные значения, которые уже
+        //    есть в карточке, не трогаем (никаких clear/fillAll — обновлять надо именно
+        //    одно поле, чтобы остальные не уехали в null и сервер не отверг save).
         w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
         w.writeLine("page.lastFilledValues.clear();");
+        w.writeLine("System.out.println(\"testUpdate: меняем ОДНО поле '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' на '\" + updatedValue + \"' (остальные поля карточки не трогаем)\");");
         w.writeLine("step(\"type new value\", () -> page." + methodName + "(updatedValue));");
         w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
         w.writeLine("System.out.println(\"testUpdate: новое значение '\" + updatedValue + \"' в поле \" + filledSnapshot.keySet());");
@@ -1236,37 +1257,6 @@ public class TestClassWriter {
         }
         w.writeLine("int resultRows = getVisibleRowCount();");
         w.writeLine("System.out.println(\"Search returned \" + resultRows + \" visible row(s)\");");
-        w.closeBlock();
-        w.writeLine();
-    }
-
-    private void writeSearchEmptyResultTest(JavaFileWriter w, Search search, int index) {
-        String testName = "testSearchEmpty" + (index > 0 ? index : "");
-        w.writeLine("@Test");
-        w.writeLine("@Order(" + (30 + index) + ")");
-        w.writeLine("@DisplayName(\"Search with no results: " + search.getName() + "\")");
-        w.openBlock("void " + testName + "()");
-        w.writeLine("shot(\"start\");");
-        w.writeLine("step(\"open search\", () -> openSearch(\"" + search.getName().replace("\"", "\\\"") + "\"));");
-        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"search_opened\");");
-        String paramName = search.getParams().isEmpty() ? "q" : search.getParams().get(0).getName();
-        w.writeLine("java.util.LinkedHashMap<String, String> __sp = new java.util.LinkedHashMap<>();");
-        w.writeLine("__sp.put(\"" + paramName.replace("\"", "\\\"") + "\", \"ZZZZZ_NO_MATCH_99999\");");
-        w.writeLine("logSearchParams(\"" + search.getName().replace("\"", "\\\"") + " (garbage)\", __sp);");
-        w.writeLine("fillSearchParam(\"" + paramName.replace("\"", "\\\"") + "\", \"ZZZZZ_NO_MATCH_99999\");");
-        w.writeLine("step(\"execute search\", () -> executeSearch());");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_search\");");
-        w.writeLine("assertFalse(isErrorPresent(), \"Empty search should not produce errors\");");
-        // Two outcomes are meaningful:
-        //   * 0 rows → filter actually applied: PASS
-        //   * non-zero → filter NOT applied (likely because fillSearchParam couldn't find the
-        //     input on this build). Treat as SKIP not FAIL — it's a tooling limit, not a product
-        //     bug, and the diagnostic log already says "no input matched".
-        w.writeLine("int resultRows = getVisibleRowCount();");
-        w.writeLine("Assumptions.assumeTrue(resultRows == 0,");
-        w.writeLine("    \"Garbage search returned \" + resultRows + \" row(s) — filter likely not applied (form input not findable on this build)\");");
         w.closeBlock();
         w.writeLine();
     }
