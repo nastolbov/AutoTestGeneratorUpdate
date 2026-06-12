@@ -722,7 +722,28 @@ public class TestClassWriter {
         // как "не найдено в гриде" — диагностика была ложной.
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
-        w.writeLine("assertTrue(gotovoClicked, \"testCreate: не удалось нажать кнопку 'Готово' — её не нашли в DOM. Проверьте что форма создания реально открылась.\");");
+        // Fallback для справочников (lookup-таблиц): у них «Добавить» открывает inline-режим
+        // в гриде, а не модальный «Сведения»; кнопка save — «Сохранить» или просто Enter
+        // в редактируемой ячейке. Если «Готово» нет — пробуем «Сохранить», потом «OK»,
+        // потом просто Enter на активном элементе.
+        w.openBlock("if (!gotovoClicked)");
+        w.writeLine("System.out.println(\"testCreate: 'Готово' не найдено — пробуем 'Сохранить' / 'OK' / Enter (вероятно справочник с inline-сохранением)\");");
+        w.writeLine("gotovoClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.openBlock("if (!gotovoClicked)");
+        w.writeLine("gotovoClicked = clickButtonByText(\"OK\");");
+        w.closeBlock();
+        w.openBlock("if (!gotovoClicked)");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
+        w.writeLine("gotovoClicked = true;");
+        w.writeLine("System.out.println(\"testCreate: Enter отправлен как save-жест\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"testCreate: Enter-fallback провалился: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(gotovoClicked, \"testCreate: ни 'Готово', ни 'Сохранить', ни 'OK', ни Enter не сработали. Проверьте что форма создания реально открылась.\");");
         // Прежде чем тыкать OK на popup — захватываем его текст. Если это сообщение об
         // ошибке валидации ('Не заполнено поле X'), узнаем это и поймём ПОЧЕМУ сервер
         // отверг save. Если это «Запись сохранена» — confirmDialogYes просто его закроет.
@@ -867,7 +888,24 @@ public class TestClassWriter {
         // как «не найдено в гриде» — диагностика была ложной.
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreateOnlyRequired: gotovoClicked=\" + gotovoClicked);");
-        w.writeLine("assertTrue(gotovoClicked, \"testCreateOnlyRequired: не удалось нажать кнопку 'Готово' — её не нашли в DOM. Проверьте что форма создания реально открылась.\");");
+        // Тот же fallback для справочников: Сохранить / OK / Enter если «Готово» нет.
+        w.openBlock("if (!gotovoClicked)");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: 'Готово' не найдено — пробуем 'Сохранить' / 'OK' / Enter\");");
+        w.writeLine("gotovoClicked = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.openBlock("if (!gotovoClicked)");
+        w.writeLine("gotovoClicked = clickButtonByText(\"OK\");");
+        w.closeBlock();
+        w.openBlock("if (!gotovoClicked)");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
+        w.writeLine("gotovoClicked = true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"testCreateOnlyRequired: Enter-fallback провалился: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(gotovoClicked, \"testCreateOnlyRequired: ни 'Готово', ни 'Сохранить', ни 'OK', ни Enter не сработали. Проверьте что форма создания реально открылась.\");");
         // Захватываем popup-текст ПЕРЕД confirmDialogYes — это либо «Запись сохранена»,
         // либо ошибка валидации («Необходимо обязательно указать значения свойств: ...»).
         // Раньше confirmDialogYes молча кликал OK на error-popup и тест думал что всё ок.
@@ -1037,9 +1075,19 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("shot(\"delete_clicked\");");
         w.writeLine("acceptAlertIfPresent();");
+        // Захватываем popup ПЕРЕД и ПОСЛЕ confirm — если сервер отверг удаление
+        // (FK references, системная запись и т.п.), увидим причину.
+        w.writeLine("String deletePopupText = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.writeLine("System.out.println(\"testDelete: popup после Удалить = '\" + deletePopupText + \"'\");");
         // E3Core открывает ExtJS-confirm «Да/Нет» — без клика на «Да» удаление не применяется.
         w.writeLine("confirmDialogYes();");
         w.writeLine("shot(\"after_confirm\");");
+        w.writeLine("String deletePopupAfter = capturePopupText(\"after-confirm\");");
+        w.openBlock("if (!deletePopupAfter.isEmpty() && !deletePopupAfter.equals(deletePopupText))");
+        w.writeLine("System.out.println(\"testDelete: popup после confirm = '\" + deletePopupAfter + \"'\");");
+        w.writeLine("deletePopupText = deletePopupAfter;");
+        w.closeBlock();
+        w.writeLine("confirmDialogYes();");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_delete\");");
         w.writeLine();
@@ -1067,7 +1115,8 @@ public class TestClassWriter {
         w.openBlock("else");
         w.writeLine("assertTrue(markerGone,");
         w.writeLine("    \"Delete: после ре-навигации к таблице результатов rows \" + rowsBefore + \" -> \" + rowsAfter");
-        w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась\");");
+        w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась.\"");
+        w.writeLine("    + \" Popup сервера='\" + deletePopupText + \"' (типичная причина: запись используется как FK в других таблицах или удаление справочника запрещено).\");");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();

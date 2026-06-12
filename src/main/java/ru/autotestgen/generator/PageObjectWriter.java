@@ -87,12 +87,28 @@ public class PageObjectWriter {
         w.writeLine("    \"try {\"");
         w.writeLine("    + \"  if (typeof Ext === 'undefined') return 'no-ext';\"");
         w.writeLine("    + \"  var name = arguments[0]; var val = arguments[1];\"");
+        // Скоупим поиск PropertyGrid'а к АКТИВНОМУ окну. У карточки «Сведения совещания/ГСК»
+        // есть вложенный PropertyGrid документа (Название, НДЗ, Председатель, Присутствовал) —
+        // раньше rec.set попадал в чужой грид, возвращал OK, главная форма оставалась пустой,
+        // сервер отвергал save валидацией. Теперь ограничиваемся PropertyGrid'ами внутри
+        // активного диалога; если активного нет — fall back на полный обход.
         w.writeLine("    + \"  var mgr = Ext.ComponentMgr || Ext.ComponentManager;\"");
         w.writeLine("    + \"  if (!mgr || !mgr.all) return 'no-mgr';\"");
+        w.writeLine("    + \"  var allItems = [];\"");
+        w.writeLine("    + \"  if (mgr.all.items) allItems = mgr.all.items;\"");
+        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){allItems.push(c);});\"");
+        w.writeLine("    + \"  else for (var k in mgr.all) allItems.push(mgr.all[k]);\"");
+        w.writeLine("    + \"  var activeWin = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"  var activeDom = null;\"");
+        w.writeLine("    + \"  if (activeWin && activeWin.getEl) { try { activeDom = activeWin.getEl().dom; } catch(e) {} }\"");
         w.writeLine("    + \"  var items = [];\"");
-        w.writeLine("    + \"  if (mgr.all.items) items = mgr.all.items;\"");
-        w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){items.push(c);});\"");
-        w.writeLine("    + \"  else for (var k in mgr.all) items.push(mgr.all[k]);\"");
+        w.writeLine("    + \"  if (activeDom) {\"");
+        w.writeLine("    + \"    for (var i = 0; i < allItems.length; i++) {\"");
+        w.writeLine("    + \"      var c = allItems[i]; if (!c || !c.getEl) continue;\"");
+        w.writeLine("    + \"      try { var dom = c.getEl().dom; if (dom && activeDom.contains(dom)) items.push(c); } catch(e) {}\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  if (items.length === 0) items = allItems;\"");
         w.writeLine("    + \"  for (var i = 0; i < items.length; i++) {\"");
         w.writeLine("    + \"    var c = items[i];\"");
         w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors) continue;\"");
