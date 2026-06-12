@@ -2698,29 +2698,46 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // gridContainsRow(marker): true if any visible grid row contains the marker text.
-        // Used by testCreate to verify the new record landed in the grid by a unique marker
-        // value, instead of trusting only row-count increments (which can race with other users).
+        // gridContainsRow(marker): true if any visible row of the RESULT grid contains marker.
+        // Раньше использовали обычный By.cssSelector(".x-grid3-row, .x-grid-row, tbody tr") —
+        // он матчил ВСЕ tbody/grid-строки на странице, включая параметрический грид формы
+        // поиска. testCreate (Уровень 3) сам вписывает маркер в параметр «Наименование …»,
+        // эта строка тоже tbody tr — и gridContainsRow ВСЕГДА возвращал true, даже когда
+        // result-grid был пуст ("Записи с 1 по 0"). Получался ложный PASS.
+        // Теперь сначала через JS находим САМЫЙ БОЛЬШОЙ грид на странице (та же эвристика,
+        // что в captureFirstResultRowSignature) — это и есть таблица результатов, у формы
+        // поиска параметров обычно 1-3 строки, она отсеивается автоматически.
         w.openBlock("protected boolean gridContainsRow(String marker)");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
-        w.openBlock("try");
-        w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, tbody tr\"));");
-        w.openBlock("for (WebElement r : rows)");
-        w.openBlock("try");
-        w.openBlock("if (r.isDisplayed() && r.getText() != null && r.getText().contains(marker))");
-        w.writeLine("return true;");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
+        w.openBlock("if (marker == null || marker.isEmpty())");
         w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var marker = arguments[0];\"");
+        w.writeLine("    + \"var rows = document.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"var groups = {};\"");
+        w.writeLine("    + \"for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"  var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"  var p = r.parentElement;\"");
+        w.writeLine("    + \"  while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"  var key = p ? (p.id || p.className) : 'none';\"");
+        w.writeLine("    + \"  if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"var bestKey = null, bestCount = 0;\"");
+        w.writeLine("    + \"for (var k in groups) { if (groups[k].length > bestCount) { bestCount = groups[k].length; bestKey = k; } }\"");
+        w.writeLine("    + \"if (!bestKey) return false;\"");
+        w.writeLine("    + \"var resultRows = groups[bestKey];\"");
+        w.writeLine("    + \"for (var i = 0; i < resultRows.length; i++) {\"");
+        w.writeLine("    + \"  var txt = resultRows[i].innerText || resultRows[i].textContent || '';\"");
+        w.writeLine("    + \"  if (txt.indexOf(marker) >= 0) return true;\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"return false;\",");
+        w.writeLine("    marker);");
+        w.writeLine("return Boolean.TRUE.equals(result);");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"gridContainsRow failed: \" + e.getMessage());");
         w.writeLine("return false;");
-        w.closeBlock();
-        w.openBlock("finally");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();
@@ -2825,6 +2842,9 @@ public class TestGenerator {
         // этот метод обходит ВСЕ записи store, включая те, что на «следующих страницах»
         // пейджинации. Используется testCreate как fallback если маркер не видно в DOM.
         w.openBlock("protected boolean gridStoreContainsText(String marker)");
+        w.openBlock("if (marker == null || marker.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
         w.openBlock("try");
         w.writeLine("Object result = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"if (typeof Ext === 'undefined') return false;\"");
@@ -2834,6 +2854,15 @@ public class TestGenerator {
         w.writeLine("    + \"  grids = [];\"");
         w.writeLine("    + \"  Ext.ComponentMgr.all.each(function(c) { if (c.getStore && c.getColumnModel) grids.push(c); });\"");
         w.writeLine("    + \"}\"");
+        // Отсеиваем propertygrid'ы (параметрическая форма поиска): они содержат значения,
+        // которые тест сам туда вписал, и давали ложный positive когда result-grid пуст.
+        w.writeLine("    + \"grids = grids.filter(function(g) {\"");
+        w.writeLine("    + \"  var xt = (g.getXType && g.getXType()) || g.xtype || '';\"");
+        w.writeLine("    + \"  if (xt === 'propertygrid' || xt === 'property') return false;\"");
+        w.writeLine("    + \"  var cls = (g.el && g.el.dom && g.el.dom.className) || '';\"");
+        w.writeLine("    + \"  if (cls.indexOf('x-property-grid') >= 0) return false;\"");
+        w.writeLine("    + \"  return true;\"");
+        w.writeLine("    + \"});\"");
         w.writeLine("    + \"for (var gi = 0; gi < grids.length; gi++) {\"");
         w.writeLine("    + \"  var store = grids[gi].getStore ? grids[gi].getStore() : null;\"");
         w.writeLine("    + \"  if (!store) continue;\"");
