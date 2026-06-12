@@ -695,8 +695,13 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
-        w.writeLine("shot(\"all_fields_filled\");");
+        // По уточнению workflow: заполняем ОБЯЗАТЕЛЬНЫЕ поля (после заполнения они должны
+        // подсветиться красным как индикация что значение принято формой), потом Готово.
+        w.writeLine("step(\"fill required fields\", () -> page.fillRequiredFields());");
+        w.writeLine("shot(\"required_filled\");");
+        // Логируем сколько required-полей реально получили значение в snapshot —
+        // если меньше чем ожидалось, fillPropertyGridField промахнулся.
+        w.writeLine("System.out.println(\"testCreate: после fillRequiredFields lastFilledValues=\" + page.lastFilledValues);");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
@@ -803,47 +808,18 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after creating a record\");");
         w.writeLine();
-        // Стратегия поиска созданной записи (3 уровня — от дешёвого к дорогому):
-        // 1) НЕФИЛЬТРОВАННЫЙ грид — маркер или любое заполненное значение видно в DOM
-        // 2) ExtJS store — маркер есть в store (обходит пейджинацию)
-        // 3) ФИЛЬТРОВАННЫЙ поиск — ре-навигируем, вписываем маркер в форму поиска, ищем
-        //    Делаем это ПОСЛЕДНИМ, т.к. page.fillX() на форме поиска может исказить
-        //    параметры и вернуть неверный resultset.
+        // Проверка как у пользователя в видео: ПОИСК по маркеру в форме поиска.
+        // Это primary способ. Если маркер найден → запись точно сохранилась.
+        // Раньше primary был gridContainsRow в нефильтрованном гриде — но он шумит:
+        // на стенде грид может показывать другие записи и маркер «прячется» на следующих
+        // страницах пейджинации. Поиск надёжнее.
         w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("boolean markerInGrid = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
-        w.writeLine("String hitVia = markerInGrid ? \"marker(DOM)\" : \"\";");
-        w.writeLine();
-        // Уровень 1б: проверяем заполненные значения в видимых строках
-        w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
-        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-        w.writeLine("String v = e.getValue();");
-        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
-        w.writeLine("markerInGrid = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(DOM)\";");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine();
-        // Уровень 2: ExtJS store — обходит пейджинацию
-        w.openBlock("if (!markerInGrid && !createdMarker.isEmpty())");
-        w.openBlock("if (gridStoreContainsText(createdMarker))");
-        w.writeLine("markerInGrid = true;");
-        w.writeLine("hitVia = \"marker(ExtJS store)\";");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine();
+        w.writeLine("boolean markerInGrid = false;");
+        w.writeLine("String hitVia = \"\";");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
-            // Уровень 3: фильтрованный поиск — ре-навигируем чисто, вписываем маркер, ищем
-            w.openBlock("if (!markerInGrid)");
-            w.writeLine("System.out.println(\"testCreate: маркер не найден в DOM/store, пробуем фильтрованный поиск\");");
-            w.writeLine("resetState();");
-            w.writeLine("navigationAttempted = false;");
-            w.writeLine("cardOpenAttempted = false;");
-            w.writeLine("addDialogFailed = false;");
-            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
-            w.writeLine("waitForGridSettle();");
+            // Уровень 1 (PRIMARY): ФИЛЬТРОВАННЫЙ поиск — вписываем маркер в форму поиска
+            w.writeLine("System.out.println(\"testCreate: ищем маркер '\" + createdMarker + \"' через форму поиска\");");
             w.openBlock("try");
             w.writeLine("page." + fillMethod + "(createdMarker);");
             w.writeLine("executeSearchIfPresent();");
@@ -857,19 +833,31 @@ public class TestClassWriter {
             w.writeLine("markerInGrid = true;");
             w.writeLine("hitVia = \"marker(filtered search)\";");
             w.closeBlock();
-            // Fallback: проверяем заполненные значения и в фильтрованном гриде
-            w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
-            w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-            w.writeLine("String v = e.getValue();");
-            w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
-            w.writeLine("markerInGrid = true;");
-            w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(filtered)\";");
-            w.writeLine("break;");
-            w.closeBlock();
-            w.closeBlock();
-            w.closeBlock();
-            w.closeBlock();
         }
+        w.writeLine();
+        // Уровень 2 (fallback): маркер в нефильтрованном DOM грида
+        w.openBlock("if (!markerInGrid && !createdMarker.isEmpty() && gridContainsRow(createdMarker))");
+        w.writeLine("markerInGrid = true;");
+        w.writeLine("hitVia = \"marker(DOM unfiltered)\";");
+        w.closeBlock();
+        w.writeLine();
+        // Уровень 3 (fallback): ExtJS store
+        w.openBlock("if (!markerInGrid && !createdMarker.isEmpty() && gridStoreContainsText(createdMarker))");
+        w.writeLine("markerInGrid = true;");
+        w.writeLine("hitVia = \"marker(ExtJS store)\";");
+        w.closeBlock();
+        w.writeLine();
+        // Уровень 4 (последний): любое из заполненных значений видно
+        w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
+        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
+        w.writeLine("String v = e.getValue();");
+        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
+        w.writeLine("markerInGrid = true;");
+        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(DOM)\";");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("System.out.println(\"testCreate: markerInGrid=\" + markerInGrid + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia) + \" rowsAfter=\" + rowsAfter);");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
@@ -1002,8 +990,9 @@ public class TestClassWriter {
         w.writeLine("shot(\"after_save\");");
         w.writeLine("assertFalse(isErrorPresent(), \"testUpdate: после save появилась ошибка на стенде\");");
         w.writeLine();
-        // 8) Re-навигация к гриду результатов и поиск нового значения по тем же 3 уровням,
-        //    что в testCreate (DOM → ExtJS store → фильтрованный поиск).
+        // 8) Re-навигация к гриду результатов и подтверждение через ПОИСК — как делает
+        //    пользователь руками: вписать новое значение в форму поиска и убедиться что
+        //    запись находится.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1012,21 +1001,10 @@ public class TestClassWriter {
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_renavigate\");");
         w.writeLine();
-        w.writeLine("boolean updateApplied = gridContainsRow(updatedValue);");
-        w.writeLine("String hitVia = updateApplied ? \"DOM\" : \"\";");
-        w.openBlock("if (!updateApplied && gridStoreContainsText(updatedValue))");
-        w.writeLine("updateApplied = true;");
-        w.writeLine("hitVia = \"ExtJS store\";");
-        w.closeBlock();
-        // Фильтрованный поиск как fallback — вписываем updatedValue в форму поиска
-        w.openBlock("if (!updateApplied)");
-        w.writeLine("System.out.println(\"testUpdate: значение не найдено в DOM/store, пробуем фильтрованный поиск\");");
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
-        w.writeLine("waitForGridSettle();");
+        // PRIMARY: фильтрованный поиск
+        w.writeLine("boolean updateApplied = false;");
+        w.writeLine("String hitVia = \"\";");
+        w.writeLine("System.out.println(\"testUpdate: ищем '\" + updatedValue + \"' через форму поиска\");");
         w.openBlock("try");
         w.writeLine("page." + methodName + "(updatedValue);");
         w.writeLine("executeSearchIfPresent();");
@@ -1039,6 +1017,14 @@ public class TestClassWriter {
         w.writeLine("updateApplied = true;");
         w.writeLine("hitVia = \"filtered search\";");
         w.closeBlock();
+        // Fallback DOM/store
+        w.openBlock("if (!updateApplied && gridContainsRow(updatedValue))");
+        w.writeLine("updateApplied = true;");
+        w.writeLine("hitVia = \"DOM\";");
+        w.closeBlock();
+        w.openBlock("if (!updateApplied && gridStoreContainsText(updatedValue))");
+        w.writeLine("updateApplied = true;");
+        w.writeLine("hitVia = \"ExtJS store\";");
         w.closeBlock();
         w.writeLine();
         w.writeLine("System.out.println(\"testUpdate: updateApplied=\" + updateApplied + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
