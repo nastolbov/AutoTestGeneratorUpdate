@@ -909,7 +909,16 @@ public class TestClassWriter {
         //    проблема системная, а не «не та строка».
         w.writeLine("boolean opened = step(\"select + open record\", () -> selectAndOpenRecord());");
         w.writeLine("assertTrue(opened, \"testUpdate: не удалось открыть первую запись на редактирование\");");
-        w.writeLine("waitUntil(d -> isOnRecordCard() || isDialogOpen(), 6, \"edit form opened\");");
+        // ВАЖНО: selectAndOpenRecord возвращает true просто после клика — даже если карточка
+        // НЕ открылась (например dblclick попал в заголовок грида). Проверяем РЕАЛЬНО что
+        // карточка появилась. Раньше тест ехал дальше и fill попадал в PropertyGrid
+        // формы поиска вместо карточки записи.
+        w.writeLine("boolean cardOpened = waitUntil(d -> isOnRecordCard() || isDialogOpen(), 8, \"edit form opened\");");
+        w.openBlock("if (!cardOpened)");
+        w.writeLine("dumpCardDiagnostics();");
+        w.writeLine("shot(\"card_not_opened\");");
+        w.writeLine("fail(\"testUpdate: карточка записи НЕ открылась после selectAndOpenRecord (dblclick попал не на строку либо запись запрещена к редактированию). См. dumpCardDiagnostics в логе и скриншот card_not_opened.\");");
+        w.closeBlock();
         w.writeLine("waitForCardLoaded(10);");
         // Карточка может рендериться лениво (ExtJS подгружает PropertyGrid + значения
         // полей по AJAX уже ПОСЛЕ того как waitForCardLoaded считает её открытой).

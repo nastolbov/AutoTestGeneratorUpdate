@@ -133,11 +133,16 @@ public class PageObjectWriter {
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName, value);");
         w.writeLine("String apiStr = apiResult == null ? \"null\" : String.valueOf(apiResult);");
         w.openBlock("if (apiStr.startsWith(\"OK\"))");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS rec.set)\");");
-        w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
-        w.writeLine("return;");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via ExtJS rec.set) — теперь ещё через DOM editor для триггера change-events формы\");");
+        // ВАЖНО: НЕ возвращаемся после Strategy A. Сервер при save читает данные из формы,
+        // и форма обновляется по DOM change-events, а не по rec.set напрямую. Без этого
+        // popup 'Необходимо заполнить ...' появлялся для полей у которых rec.set успешно
+        // выставлял значение. Гибрид: rec.set КОМИТИТ store, потом DOM-editor КЛИКАЕТ
+        // ячейку и печатает — это вызывает 'input'/'change' события которые слушает форма.
         w.closeBlock();
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS rec.set didn't apply (\" + apiStr + \") — falling back to DOM editor click\");");
+        w.openBlock("else");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS rec.set didn't apply (\" + apiStr + \") — пробуем DOM editor click\");");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception apiEx)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' ExtJS API threw: \" + apiEx.getMessage());");
