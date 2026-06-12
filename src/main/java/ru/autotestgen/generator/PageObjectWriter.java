@@ -789,7 +789,11 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
+            // 400мс пауза между fill'ами — ExtJS не успевает закрыть редактор
+            // предыдущего поля. Без этого визуально подсвечивалось только 1-2 поля.
+            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
         }
+        w.writeLine("System.out.println(\"  [fillAllFields] заполнено \" + lastFilledValues.size() + \" полей\");");
         w.closeBlock();
         w.writeLine();
     }

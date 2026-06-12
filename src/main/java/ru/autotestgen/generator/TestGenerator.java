@@ -1345,6 +1345,29 @@ public class TestGenerator {
         w.writeLine("    + \"var cells = row.querySelectorAll('.x-grid3-cell, .x-grid-cell, td');\"");
         w.writeLine("    + \"for (var ci = 0; ci < cells.length; ci++) { var ce = cells[ci]; if (ce.offsetHeight > 0 && ce.offsetWidth > 0) return ce; }\"");
         w.writeLine("    + \"return row;\", idx);");
+        // Доп. диагностика: выводим в Java-лог group sizes + первую строку каждой группы.
+        // Раньше эта инфа писалась в console.log браузера и не доходила до отчёта; теперь
+        // видно В КАКОЙ грид попадает клик (results vs параметрический vs дерево поисков).
+        w.openBlock("try");
+        w.writeLine("Object diag = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var aw = (typeof Ext !== 'undefined' && Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
+        w.writeLine("    + \"var root = (aw && aw.getEl) ? (aw.getEl().dom || aw.getEl()) : document;\"");
+        w.writeLine("    + \"var rows = root.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"var groups = {};\"");
+        w.writeLine("    + \"for (var i = 0; i < rows.length; i++) {\"");
+        w.writeLine("    + \"  var r = rows[i]; if (r.offsetHeight === 0 || r.offsetWidth === 0) continue;\"");
+        w.writeLine("    + \"  var p = r.parentElement;\"");
+        w.writeLine("    + \"  while (p && !(p.classList && (p.classList.contains('x-grid3') || p.classList.contains('x-grid-panel') || p.classList.contains('x-grid')))) p = p.parentElement;\"");
+        w.writeLine("    + \"  var key = p ? (p.id || p.className).substring(0, 40) : 'none';\"");
+        w.writeLine("    + \"  if (!groups[key]) groups[key] = []; groups[key].push(r);\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"var out = '';\"");
+        w.writeLine("    + \"for (var k in groups) { out += '\\\\n  group=[' + k + '] count=' + groups[k].length + ' firstRowText=[' + (groups[k][0].innerText || '').replace(/\\\\n/g,'|').substring(0,80) + ']'; }\"");
+        w.writeLine("    + \"return out;\");");
+        w.writeLine("System.out.println(\"selectAndOpenRecord: visible grid groups:\" + diag);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.openBlock("if (firstRow != null)");
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on row idx=\" + idx + \" of largest visible grid group\");");
         // Step 1: single-click to select the row

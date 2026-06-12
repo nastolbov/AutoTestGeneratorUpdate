@@ -695,13 +695,13 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // По уточнению workflow: заполняем ОБЯЗАТЕЛЬНЫЕ поля (после заполнения они должны
-        // подсветиться красным как индикация что значение принято формой), потом Готово.
-        w.writeLine("step(\"fill required fields\", () -> page.fillRequiredFields());");
-        w.writeLine("shot(\"required_filled\");");
-        // Логируем сколько required-полей реально получили значение в snapshot —
-        // если меньше чем ожидалось, fillPropertyGridField промахнулся.
-        w.writeLine("System.out.println(\"testCreate: после fillRequiredFields lastFilledValues=\" + page.lastFilledValues);");
+        // По запросу пользователя: заполняем ВООБЩЕ ВСЕ поля (не только обязательные).
+        // fillAllFields сам пропустит FK/Ref-поля что не могут быть заполнены вводом
+        // (для них генератор не имеет dropdown picker'а — они идут как null в fillFKViaDropdown,
+        // который пытается выбрать первый элемент списка).
+        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        w.writeLine("shot(\"all_fields_filled\");");
+        w.writeLine("System.out.println(\"testCreate: после fillAllFields lastFilledValues=\" + page.lastFilledValues);");
         if (markerField != null) {
             String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
             w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
