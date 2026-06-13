@@ -1258,10 +1258,18 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 6b. Подтверждение: маркер в гриде ИЛИ в сторе ExtJS (стор содержит все загруженные
-        //     записи — устойчиво к пагинации, когда новая строка не на видимой странице).
+        // 6b. ЧЕСТНАЯ проверка: перечитываем список ЗАНОВО с сервера. Стор/грид ДО ре-навигации
+        //     содержат введённое значение даже если сервер отклонил save (ложный успех). Свежая
+        //     загрузка отражает реальное состояние БД.
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
         w.writeLine("boolean createdFound = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
-        w.writeLine("assertTrue(createdFound, \"testCreate (inline): маркер '\" + createdMarker + \"' не найден ни в таблице, ни в сторе после save\");");
+        w.writeLine("assertTrue(createdFound, \"testCreate (inline): маркер '\" + createdMarker + \"' НЕ найден в свежем списке после ре-навигации — запись не сохранилась на сервере\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -1346,11 +1354,17 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 5. Подтверждение: новое значение видно в карточке (серверное, red) ИЛИ в таблице списка.
-        w.writeLine("Boolean inViewL = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var w=ws[i]; if (w.offsetWidth>0 && (w.innerText||'').indexOf(arguments[0])>=0) return true; } return false; } catch(e){ return false; }\", updatedValue);");
-        w.writeLine("boolean inView = (inViewL != null && inViewL) || gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
-        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' не видно после save (ни в карточке, ни в таблице, ни в сторе) — изменение не сохранилось\");");
+        // 5. ЧЕСТНАЯ проверка: перечитываем список ЗАНОВО с сервера (карточка/стор ДО ре-навигации
+        //    содержат введённое значение даже без реального сохранения — это и был ложный успех).
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"after_renavigate\");");
+        w.writeLine("boolean inView = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
+        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после ре-навигации — изменение не сохранилось на сервере\");");
         w.closeBlock();
         w.writeLine();
     }
