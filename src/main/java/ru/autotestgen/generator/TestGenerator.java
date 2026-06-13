@@ -79,8 +79,14 @@ public class TestGenerator {
             } else if (cls.kind == EntityKind.CHILD) {
                 child++;
                 if (cls.parentEntity != null && cls.parentGrid != null) {
+                    // grid-tab child (e.g. История/Документы ГСК)
                     pageWriter.write(entity, srcDir);
                     testWriter.writeChildTest(entity, model, srcDir, cls);
+                } else if (cls.parentEntity != null) {
+                    // tree-node child (addFromTree=1, e.g. Повестка совещания) — reached by opening
+                    // the parent card and expanding the tree node, not from the main menu.
+                    pageWriter.write(entity, srcDir);
+                    testWriter.writeTreeChildTest(entity, model, srcDir, cls);
                 }
             } else {
                 ref++;
@@ -698,7 +704,16 @@ public class TestGenerator {
         // Helper: navigate to entity. First call does the real work; subsequent calls in the
         // same test class instance return the cached result so failed navigation does not
         // pay a 10-second cost on every @BeforeEach.
+        // 2-arg overload keeps the original behaviour (entity has a «Найти» search form).
         w.openBlock("protected void navigateToEntity(String entityName, String featureName)");
+        w.writeLine("navigateToEntity(entityName, featureName, true);");
+        w.closeBlock();
+        w.writeLine();
+        // hasSearchForm=false для справочников-списков, открываемых прямым кликом (своих поисков
+        // нет). Для них шаг «Дерево поисков → по параметрам → Выполнить поиск» лишний: грид уже
+        // открыт самим кликом по пункту меню, а попытка найти несуществующую форму поиска лишь
+        // тратит ~9с и рискует оставить окно поиска поверх грида.
+        w.openBlock("protected void navigateToEntity(String entityName, String featureName, boolean hasSearchForm)");
         w.openBlock("if (navigationAttempted)");
         w.writeLine("navigationOk = cachedNavigationOk;");
         w.writeLine("return;");
@@ -714,12 +729,16 @@ public class TestGenerator {
         // After "Найти" lands on the parameters page, automatically run the empty search so
         // the result grid is populated. Without this, isFieldDisplayed sees only the parameter
         // form (Тип/Наименование) and reports "Fields found: 0 of N".
-        w.openBlock("if (navigationOk)");
+        w.openBlock("if (navigationOk && hasSearchForm)");
         // After Найти, E3Core opens a "Дерево поисков" window but leaves the form blank
         // until the user double-clicks the "по параметрам" tree node. Without this step
         // the parameter form never renders and executeSearchIfPresent can't find its button.
         w.writeLine("openParamSearchInTree();");
         w.writeLine("executeSearchIfPresent();");
+        w.closeBlock();
+        // Прямой клик (hasSearchForm=false): грид уже открыт — просто дождёмся его стабилизации.
+        w.openBlock("else if (navigationOk)");
+        w.writeLine("waitForGridSettle();");
         w.closeBlock();
         w.writeLine("cachedNavigationOk = navigationOk;");
         w.openBlock("if (!navigationOk)");

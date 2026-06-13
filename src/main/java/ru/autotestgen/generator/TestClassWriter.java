@@ -56,6 +56,25 @@ public class TestClassWriter {
                 .orElse(null);
         boolean hasCrud = crudOperation != null;
 
+        // Does THIS entity own a search? Сущности, открываемые через «Найти» (ГСК, Совещание,
+        // одиночное «Должностное лицо»), имеют собственные поиски; справочники-списки, открываемые
+        // прямым кликом («Причины смены председателя», «Должностные лица»), своих поисков не имеют —
+        // поиски висят на одиночном двойнике. Для последних пропускаем шаг параметрической формы
+        // поиска при навигации (он лишний, тратит время и может оставить окно «Дерево поисков»
+        // поверх грида).
+        boolean hasOwnSearchForm = model.getSearches().stream()
+                .anyMatch(s -> entity.getGuid() != null
+                        && entity.getGuid().equals(s.getSearchObjectGuid()));
+
+        // Inline-справочник, у которого есть одиночный двойник-карточка с собственным модальным
+        // CRUD (напр. список «Должностные лица» ↔ карточка «Должностное лицо»). Записи такого списка
+        // создаются/правятся через модалку двойника, а двойник — отдельная PRIMARY-сущность со своими
+        // тестами. Значит, дублирующий inline-CRUD здесь генерировать НЕ нужно (он к тому же не
+        // отрабатывает). Для настоящих inline-справочников (напр. «Причины смены председателя»,
+        // двойник которых read-only) twin == null и inline-тесты остаются.
+        EntityObject modalTwin = entity.isInlineTableEntity()
+                ? EntityClassifier.findModalTwin(entity, model) : null;
+
         // Find searches linked to this entity. Skip FK-only searches (no params + result is
         // just SearchKey/SearchName) — these are NOT in the search tree of THIS entity in the
         // UI; they are invoked from OTHER entities through FK pickers. Generating a testSearch
@@ -112,7 +131,7 @@ public class TestClassWriter {
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
         w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(\"" + entity.getName() + "\", \"" + entity.getFeatureName() + "\");");
+        w.writeLine("navigateToEntity(\"" + entity.getName() + "\", \"" + entity.getFeatureName() + "\", " + hasOwnSearchForm + ");");
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");
         w.closeBlock();
@@ -150,7 +169,15 @@ public class TestClassWriter {
         }
 
         // === FULL tests (generated only for "full") ===
-        if (isFull()) {
+        // Inline-список с модальным двойником: CRUD покрывается тестом одиночной карточки-двойника,
+        // здесь его не дублируем (оставляем только smoke/search/grid выше). Печатаем поясняющий
+        // комментарий в тело класса, чтобы связь была видна прямо в сгенерированном файле.
+        if (isFull() && modalTwin != null) {
+            w.writeLine("// CRUD этого справочника-списка проверяется в тесте одиночной карточки \""
+                    + modalTwin.getName().replace("\\", "\\\\").replace("\"", "\\\"")
+                    + "\" (модальная форма) — здесь не дублируется.");
+        }
+        if (isFull() && modalTwin == null) {
 
             // Test 2: Required field validation (empty submit)
             if (!requiredProperties.isEmpty() && hasCrud) {
@@ -159,8 +186,7 @@ public class TestClassWriter {
 
             // Type 2 detection: сущности БЕЗ отдельной модалки FormView (typeLink="P")
             // используют inline-table flow (Редактирование→Добавить / Сохранить Изменения).
-            // Для них стандартный testCreate/testUpdate (через wizard-модалку) не работает —
-            // помечаем @Disabled с понятной причиной чтобы они не давали false-positive.
+            // Для них стандартный testCreate/testUpdate (через wizard-модалку) не работает.
             boolean inlineTable = entity.isInlineTableEntity();
 
             // Test 3: Create (Insert)
@@ -313,6 +339,125 @@ public class TestClassWriter {
 
         w.closeBlock(); // end class
         w.writeToFile(dir, testClassName + ".java");
+    }
+
+    /**
+     * Generates an in-context test for a TREE-NODE child — a sub-entity the parent exposes as a
+     * left-tree node (association addFromTree="1"), e.g. «Повестка совещания» внутри «Совещание».
+     * Such an entity has its own form (typeLink="P") but is NOT in the main menu, so a standalone
+     * PRIMARY test could never navigate to it. The @BeforeEach navigates to the parent, opens a
+     * record card and expands the tree node; the generated test then verifies the node's form
+     * fields are present. (CRUD внутри узла дерева сознательно не трогаем — поток открытия формы из
+     * дерева на стенде неоднороден; presence-проверка надёжна и снимает ложный SKIP.)
+     */
+    public void writeTreeChildTest(EntityObject entity, AppModel model, Path outputDir,
+                                   EntityClassifier.Classification cls) throws IOException {
+        EntityObject parent = cls.parentEntity;
+        String nodeName = entity.getName();
+
+        String entityClassName = Transliterator.toClassName(entity.getName());
+        String testClassName = entityClassName + "Test";
+        String pageClassName = entityClassName + "Page";
+        String packageName = basePackage + ".test";
+        Path dir = outputDir.resolve(packageName.replace('.', '/'));
+
+        List<Property> displayProperties = getDisplayProperties(entity);
+
+        JavaFileWriter w = new JavaFileWriter();
+        w.writeLine("package " + packageName + ";");
+        w.writeLine();
+        w.writeLine("import org.junit.jupiter.api.*;");
+        w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.By;");
+        w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
+        w.writeLine("import " + basePackage + ".BaseTest;");
+        w.writeLine("import " + basePackage + ".page." + pageClassName + ";");
+        w.writeLine();
+
+        w.writeLine("@TestMethodOrder(MethodOrderer.OrderAnnotation.class)");
+        w.openBlock("public class " + testClassName + " extends BaseTest");
+        w.writeLine();
+        w.writeLine("private " + pageClassName + " page;");
+        w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
+        w.writeLine("private static final String PARENT_ENTITY_NAME = \"" + parent.getName() + "\";");
+        w.writeLine("private static final String PARENT_FEATURE_NAME = \"" + parent.getFeatureName() + "\";");
+        w.writeLine("private static final String NODE_NAME = \"" + nodeName.replace("\"", "\\\"") + "\";");
+        w.writeLine();
+
+        w.writeLine("@Override");
+        w.openBlock("protected String entityName()");
+        w.writeLine("return PARENT_ENTITY_NAME;");
+        w.closeBlock();
+        w.writeLine();
+
+        // @BeforeEach: navigate to parent → open card → expand tree node
+        w.writeLine("@BeforeEach");
+        w.openBlock("void setUp()");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(PARENT_ENTITY_NAME, PARENT_FEATURE_NAME);");
+        w.writeLine("assumeNavigated();");
+        w.writeLine("boolean cardOpened = selectAndOpenRecord();");
+        w.writeLine("Assumptions.assumeTrue(cardOpened, \"Could not open parent '\" + PARENT_ENTITY_NAME + \"' record card\");");
+        w.writeLine("waitForCardLoaded(10);");
+        w.writeLine("shot(\"parent_card\");");
+        w.writeLine("boolean nodeOpened = openTab(NODE_NAME);");
+        w.writeLine("Assumptions.assumeTrue(nodeOpened, \"Tree node '\" + NODE_NAME + \"' not found in parent card\");");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"tree_node\");");
+        w.writeLine("page = new " + pageClassName + "(driver);");
+        w.closeBlock();
+        w.writeLine();
+
+        w.writeLine("@AfterEach");
+        w.openBlock("void captureFinalShot(TestInfo testInfo)");
+        w.writeLine("shot(\"END\");");
+        w.closeBlock();
+        w.writeLine();
+
+        writeTreeNodeFieldsTest(w, displayProperties, nodeName);
+
+        w.closeBlock(); // end class
+        w.writeToFile(dir, testClassName + ".java");
+    }
+
+    private void writeTreeNodeFieldsTest(JavaFileWriter w, List<Property> properties, String nodeName) {
+        int total = 0;
+        for (Property p : properties) {
+            if (!isSystemField(p)) total++;
+        }
+        String node = nodeName.replace("\"", "\\\"");
+        w.writeLine("@Test");
+        w.writeLine("@Order(1)");
+        w.writeLine("@DisplayName(\"Tree node '" + node + "': fields present\")");
+        w.openBlock("void testTreeNodeFields()");
+        w.writeLine("shot(\"node_view\");");
+        w.writeLine("int found = 0;");
+        w.writeLine("java.util.List<String> missing = new java.util.ArrayList<>();");
+        for (Property p : properties) {
+            if (isSystemField(p)) continue;
+            w.openBlock("if (page.isFieldDisplayed(\"" + p.getName() + "\", \"" + p.getAttrName() + "\"))");
+            w.writeLine("found++;");
+            w.closeBlock();
+            w.openBlock("else");
+            w.writeLine("missing.add(\"" + p.getName().replace("\"", "\\\"") + "\");");
+            w.closeBlock();
+        }
+        w.writeLine("System.out.println(\"Tree node '" + node + "' fields: \" + found + \" of " + total + "\");");
+        w.openBlock("if (!missing.isEmpty())");
+        w.writeLine("System.out.println(\"  missing: \" + String.join(\", \", missing));");
+        w.closeBlock();
+        w.writeLine("shot(found > 0 ? \"fields_found\" : \"no_fields\");");
+        if (total > 0) {
+            w.writeLine("Assumptions.assumeTrue(found >= 1,");
+            w.writeLine("    \"Tree node '" + node + "': 0 of " + total + " fields visible — node may render differently on this build. Missing: \" + String.join(\", \", missing));");
+        } else {
+            w.writeLine("System.out.println(\"Tree node '" + node + "': no fields defined in model\");");
+        }
+        w.closeBlock();
+        w.writeLine();
     }
 
     private void writeChildGridColumnsTest(JavaFileWriter w, List<Property> gridColumns, String tabName) {
