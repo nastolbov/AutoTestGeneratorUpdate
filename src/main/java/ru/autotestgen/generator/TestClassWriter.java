@@ -1258,8 +1258,10 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 6b. Подтверждение: маркер в гриде
-        w.writeLine("assertTrue(gridContainsRow(createdMarker), \"testCreate (inline): маркер '\" + createdMarker + \"' не найден в таблице после save\");");
+        // 6b. Подтверждение: маркер в гриде ИЛИ в сторе ExtJS (стор содержит все загруженные
+        //     записи — устойчиво к пагинации, когда новая строка не на видимой странице).
+        w.writeLine("boolean createdFound = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
+        w.writeLine("assertTrue(createdFound, \"testCreate (inline): маркер '\" + createdMarker + \"' не найден ни в таблице, ни в сторе после save\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -1347,8 +1349,8 @@ public class TestClassWriter {
         // 5. Подтверждение: новое значение видно в карточке (серверное, red) ИЛИ в таблице списка.
         w.writeLine("Boolean inViewL = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var w=ws[i]; if (w.offsetWidth>0 && (w.innerText||'').indexOf(arguments[0])>=0) return true; } return false; } catch(e){ return false; }\", updatedValue);");
-        w.writeLine("boolean inView = (inViewL != null && inViewL) || gridContainsRow(updatedValue);");
-        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' не видно после save (ни в карточке, ни в таблице) — изменение не сохранилось\");");
+        w.writeLine("boolean inView = (inViewL != null && inViewL) || gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
+        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' не видно после save (ни в карточке, ни в таблице, ни в сторе) — изменение не сохранилось\");");
         w.closeBlock();
         w.writeLine();
     }
