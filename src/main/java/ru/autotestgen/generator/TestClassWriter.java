@@ -1098,13 +1098,17 @@ public class TestClassWriter {
 
     /** Emits JS that commits the active editor of window.__t2grid into its record (Ext3/Ext4). */
     private void writeCommitGridEditorScript(JavaFileWriter w) {
+        // Завершаем редактирование во ВСЕХ editor-гридах + blur активного инпута, чтобы открытый
+        // редактор ячейки / датапикер не перехватывал клик по тулбару «Редактирование» (из-за чего
+        // «Сохранить Изменения» не появлялось в дропдауне).
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if (!g) return;\"");
-        w.writeLine("    + \" try { if (g.stopEditing) g.stopEditing(false); } catch(e){}\"");
-        w.writeLine("    + \" try { if (g.activeEditor && g.activeEditor.completeEdit) g.activeEditor.completeEdit(); } catch(e){}\"");
-        w.writeLine("    + \" try { if (g.editingPlugin && g.editingPlugin.completeEdit) g.editingPlugin.completeEdit(); } catch(e){}\"");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return;\"");
+        w.writeLine("    + \" var gs=[]; if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('editorgrid,gridpanel,grid,propertygrid');\"");
+        w.writeLine("    + \" else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.stopEditing) gs.push(c);} }\"");
+        w.writeLine("    + \" for (var i=0;i<gs.length;i++){ try{ if(gs[i].stopEditing) gs[i].stopEditing(false); }catch(e){} try{ if(gs[i].activeEditor && gs[i].activeEditor.completeEdit) gs[i].activeEditor.completeEdit(); }catch(e){} }\"");
+        w.writeLine("    + \" try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}\"");
         w.writeLine("    + \"} catch(e){}\");");
-        w.writeLine("try { Thread.sleep(300); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
     }
 
     /**
