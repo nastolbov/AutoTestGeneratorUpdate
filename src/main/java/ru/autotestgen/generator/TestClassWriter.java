@@ -695,11 +695,15 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("shot(\"dialog_opened\");");
         w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open after main menu Добавить (neither modal dialog nor add card detected)\");");
-        // По запросу пользователя: заполняем ВООБЩЕ ВСЕ поля (не только обязательные).
-        // fillAllFields сам пропустит FK/Ref-поля что не могут быть заполнены вводом
-        // (для них генератор не имеет dropdown picker'а — они идут как null в fillFKViaDropdown,
-        // который пытается выбрать первый элемент списка).
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        if (markerField != null) {
+            // Пропускаем markerField в fillAllFields — иначе будет двойной fill
+            // (Test_GBS_NAME_X потом AT_Y), и ExtJS editor reuse может склеить
+            // их в 'AT_YTest_GBS_NAME_X' вместо чистой замены.
+            String mfDisplay = markerField.getName().replace("\\", "\\\\").replace("\"", "\\\"");
+            w.writeLine("step(\"fill all fields (except marker)\", () -> page.fillAllFieldsExcept(\"" + mfDisplay + "\"));");
+        } else {
+            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        }
         w.writeLine("shot(\"all_fields_filled\");");
         w.writeLine("System.out.println(\"testCreate: после fillAllFields lastFilledValues=\" + page.lastFilledValues);");
         if (markerField != null) {

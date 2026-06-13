@@ -798,13 +798,22 @@ public class PageObjectWriter {
     }
 
     private void writeFillAllFieldsMethod(JavaFileWriter w, List<Property> properties) {
+        // fillAllFields() — заполнить всё. fillAllFieldsExcept(skip) — пропустить
+        // поле с переданным displayName (нужно для testCreate: marker stamp заменяет
+        // эту fill, иначе sendKeys приклеивает marker к Test_GBS_NAME → 'AT...Test_...').
         w.openBlock("public void fillAllFields()");
+        w.writeLine("fillAllFieldsExcept(null);");
+        w.closeBlock();
+        w.writeLine();
+        w.openBlock("public void fillAllFieldsExcept(String skipDisplayName)");
         w.writeLine("lastFilledValues.clear();");
         w.writeLine("String __uniq = String.valueOf(System.nanoTime());");
         for (Property prop : properties) {
             if (isSystemField(prop)) continue;
             String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
+            String displayName = prop.getName().replace("\\", "\\\\").replace("\"", "\\\"");
             String value = TestDataFactory.generateValue(prop);
+            w.openBlock("if (skipDisplayName == null || !skipDisplayName.equals(\"" + displayName + "\"))");
             if (value == null) {
                 w.writeLine("// " + prop.getName() + " — FK/Ref, dropdown picker");
                 w.writeLine(methodName + "(null);");
@@ -813,8 +822,9 @@ public class PageObjectWriter {
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
+            w.closeBlock();
         }
-        w.writeLine("System.out.println(\"  [fillAllFields] заполнено \" + lastFilledValues.size() + \" полей\");");
+        w.writeLine("System.out.println(\"  [fillAllFields] заполнено \" + lastFilledValues.size() + \" полей (skip=\" + skipDisplayName + \")\");");
         w.closeBlock();
         w.writeLine();
     }
