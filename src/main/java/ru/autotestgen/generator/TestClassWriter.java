@@ -1244,30 +1244,22 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testCreate (inline): новая (последняя) строка rowIdx=\" + rowIdx);");
         writeSelectGridRowScript(w, "rowIdx");
         w.writeLine("shot(\"row_selected\");");
-        // 4. Перебираем колонки, startEditing(rowIdx, col), пишем маркер
-        w.writeLine("int filledCount = 0;");
-        w.openBlock("for (long col = 0; col < colCount; col++)");
-        w.openBlock("try");
-        writeOpenCellEditorScript(w, "rowIdx");
-        w.openBlock("if (editor == null)");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("String tag = editor.getTagName();");
-        w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
-        w.writeLine("continue;");
-        w.closeBlock();
-        writeTypeIntoEditorScript(w, "createdMarker + \"_\" + col");
-        w.writeLine("filledCount++;");
-        w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" OK\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" FAIL: \" + e.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): ни одна ячейка новой строки не заполнилась (строка добавлена, но ввод данных не прошёл)\");");
+        // 4. Заполняем поля новой записи ПРОГРАММНО через record.set (текст → marker_col, дата →
+        //    валидная), НЕ открывая cell-редакторы. Иначе редактор ячейки-даты залипает, блокирует
+        //    остальные колонки и тулбар «Сохранить Изменения». Так — чисто и без датапикера.
+        w.writeLine("Long filledL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; var rec=g.getStore().getAt(arguments[0]); if(!rec) return -1;\"");
+        w.writeLine("    + \" var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return -1; var n=cm.getColumnCount?cm.getColumnCount():0; var f=0;\"");
+        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue;\"");
+        w.writeLine("    + \"   var ed=cm.getCellEditor?cm.getCellEditor(c,0):null; if(!ed) continue;\"");
+        w.writeLine("    + \"   var fld=ed.field?ed.field:ed; var isDate=false; try{ var xt=fld.getXType?(''+fld.getXType()):(''+(fld.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) isDate=true; if(fld.format && /[dmy]/i.test(''+fld.format)) isDate=true; }catch(e){}\"");
+        w.writeLine("    + \"   try{ rec.set(di, isDate ? '01.01.2020' : (arguments[1] + '_' + c)); f++; }catch(e){}\"");
+        w.writeLine("    + \" } return f; } catch(e){ return -1; }\", (long) rowIdx, createdMarker);");
+        w.writeLine("int filledCount = (filledL == null) ? 0 : filledL.intValue();");
+        w.writeLine("System.out.println(\"testCreate (inline): заполнено полей новой записи (record.set) = \" + filledCount);");
+        w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): не удалось заполнить поля новой записи через record.set (грид не редактируемый?)\");");
         w.writeLine("shot(\"cells_filled\");");
-        // 5. Закоммитить редактор ячейки в запись и сохранить через Редактирование → Сохранить Изменения.
-        //    Без коммита открытый редактор перехватывает клик по меню → «Сохранить Изменения» не жмётся.
+        // 5. Сохранить через Редактирование → Сохранить Изменения (редакторы не открывали — закрывать нечего).
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
