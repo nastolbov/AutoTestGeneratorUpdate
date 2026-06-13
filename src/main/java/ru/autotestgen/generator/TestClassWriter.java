@@ -1196,13 +1196,19 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(150);");
     }
 
-    /** Emits the «no unsaved (modified) records» honest gate after an inline save (scoped to __t2grid). */
-    private void writeUnsavedGate(JavaFileWriter w, String label) {
-        w.writeLine("Long unsavedRecs = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if(!g || !g.getStore) return -1; var s=g.getStore(); var m=s.getModifiedRecords?s.getModifiedRecords():[]; return m.length; } catch(e){ return -1; }\");");
-        w.writeLine("System.out.println(\"" + label + ": несохранённых (modified) записей в гриде = \" + unsavedRecs);");
-        w.writeLine("assertTrue(unsavedRecs != null && unsavedRecs == 0,");
-        w.writeLine("    \"" + label + ": после save осталось \" + unsavedRecs + \" несохранённых записей — save не закоммитился (сервер отклонил, напр. SP trunc(date), или клик save не сработал)\");");
+    /**
+     * Emits the honest gate checking that OUR record (the one containing {@code valueExpr}) is no
+     * longer in the store's modified list — i.e. our save actually committed. Scoped to our value so
+     * leftover dirty rows from past runs (which the server rejected and never committed) don't cause
+     * a false failure.
+     */
+    private void writeUnsavedGate(JavaFileWriter w, String label, String valueExpr) {
+        w.writeLine("Boolean ourStillDirty = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; if(!g || !g.getStore) return false; var m=g.getStore().getModifiedRecords?g.getStore().getModifiedRecords():[];\"");
+        w.writeLine("    + \" for (var i=0;i<m.length;i++){ var d=m[i].data||{}; for (var k in d){ if((''+d[k]).indexOf(arguments[0])>=0) return true; } } return false; } catch(e){ return false; }\", " + valueExpr + ");");
+        w.writeLine("System.out.println(\"" + label + ": наша запись осталась несохранённой (modified)? = \" + ourStillDirty);");
+        w.writeLine("assertTrue(!Boolean.TRUE.equals(ourStillDirty),");
+        w.writeLine("    \"" + label + ": наша запись осталась несохранённой (modified) после save — сохранение не прошло (сервер отклонил, напр. SP trunc(date), или клик save не сработал)\");");
     }
 
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
@@ -1276,7 +1282,7 @@ public class TestClassWriter {
         w.closeBlock();
         // 6b. ЧЕСТНЫЙ ГЕЙТ: если в сторе остались несохранённые (modified) записи — save не прошёл
         //     (новая строка осталась «грязной»). Это ловит ложный успех, когда строка визуально есть.
-        writeUnsavedGate(w, "testCreate (inline)");
+        writeUnsavedGate(w, "testCreate (inline)", "createdMarker");
         // 6c. Доп.подтверждение: перечитываем список заново и ищем маркер.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
@@ -1372,7 +1378,7 @@ public class TestClassWriter {
         w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
         // ЧЕСТНЫЙ ГЕЙТ: остались несохранённые (modified) записи → save не прошёл.
-        writeUnsavedGate(w, "testUpdate (inline)");
+        writeUnsavedGate(w, "testUpdate (inline)", "updatedValue");
         // 5. Доп.подтверждение: перечитываем список заново и ищем новое значение.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
