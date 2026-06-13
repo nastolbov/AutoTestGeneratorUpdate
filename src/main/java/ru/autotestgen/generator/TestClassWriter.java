@@ -1307,15 +1307,25 @@ public class TestClassWriter {
             w.writeLine("Thread.sleep(60);");
         } else {
             // CREATE: ЧИСТАЯ КЛАВИАТУРА (как просил заказчик — «с клавы, а не вставкой»).
-            // Никакой JS-инъекции value='' и НИКАКОГО record.set в конце: они обходили штатный
-            // commit поля и оставляли строку «чёрной». Ctrl+A выделяет старое, sendKeys
-            // перетирает, ENTER коммитит правку штатно → строка краснеет (dirty).
-            w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
-            w.writeLine("Thread.sleep(60);");
+            // Строка НОВАЯ и ПУСТАЯ — чистить нечего. Ctrl+A в ExtJS inline-редакторе нестабилен
+            // (закрывает/расфокусирует редактор, sendKeys уходит «в воздух» → строка остаётся
+            // пустой) — поэтому НЕ используем его. Физически кликаем в ячейку (фокус), печатаем
+            // значение с клавы и жмём ENTER — это штатно коммитит правку → строка краснеет.
+            // Никакого JS value='' и record.set: значение вводится ТОЛЬКО клавиатурой.
+            w.openBlock("try");
+            w.writeLine("editor.click();");
+            w.writeLine("Thread.sleep(80);");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
             w.writeLine("editor.sendKeys(toType);");
-            w.writeLine("Thread.sleep(120);");
+            w.writeLine("Thread.sleep(150);");
             w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
             w.writeLine("Thread.sleep(200);");
+            // Закрываем редактор этой ячейки штатно (без отмены), чтобы значение зафиксировалось
+            // в записи и грид пометил строку изменённой (красной).
+            w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+            w.writeLine("Thread.sleep(120);");
         }
         w.writeLine("filled++;");
         w.writeLine("if (isDateCol) dateFilled++;");
