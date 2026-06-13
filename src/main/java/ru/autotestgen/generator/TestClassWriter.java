@@ -157,14 +157,50 @@ public class TestClassWriter {
                 writeRequiredFieldValidationTest(w, requiredProperties);
             }
 
+            // Type 2 detection: сущности БЕЗ отдельной модалки FormView (typeLink="P")
+            // используют inline-table flow (Редактирование→Добавить / Сохранить Изменения).
+            // Для них стандартный testCreate/testUpdate (через wizard-модалку) не работает —
+            // помечаем @Disabled с понятной причиной чтобы они не давали false-positive.
+            boolean inlineTable = entity.isInlineTableEntity();
+
             // Test 3: Create (Insert)
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT)) {
-                writeCreateTest(w, displayProperties);
+                if (inlineTable) {
+                    w.writeLine("@Test");
+                    w.writeLine("@org.junit.jupiter.api.Disabled(\"Type 2 (inline-table) entity — create через 'Редактирование → Добавить' в таблице, не через wizard-модалку. Требуется отдельная реализация.\")");
+                    w.openBlock("void testCreate()");
+                    w.writeLine("// Заглушка: эта сущность редактируется прямо в строках таблицы,");
+                    w.writeLine("// а не через wizard-модалку. Реализация create-flow для inline-table:");
+                    w.writeLine("// 1) Открыть таблицу через меню сущности");
+                    w.writeLine("// 2) Клик 'Редактирование' (внизу таблицы) → дропдаун");
+                    w.writeLine("// 3) Клик 'Добавить' в дропдауне → новая пустая строка появится в гриде");
+                    w.writeLine("// 4) Кликнуть в ячейки новой строки и заполнить");
+                    w.writeLine("// 5) Снова 'Редактирование' → 'Сохранить Изменения'");
+                    w.writeLine("// 6) Поиск маркера для подтверждения");
+                    w.closeBlock();
+                    w.writeLine();
+                } else {
+                    writeCreateTest(w, displayProperties);
+                }
             }
 
             // Test 4: Update
             if (hasCrud && hasModifier(crudOperation, ModifyType.UPDATE)) {
-                writeUpdateTest(w, displayProperties);
+                if (inlineTable) {
+                    w.writeLine("@Test");
+                    w.writeLine("@org.junit.jupiter.api.Disabled(\"Type 2 (inline-table) entity — update через клик по ячейке строки + 'Редактирование → Сохранить Изменения'. Требуется отдельная реализация.\")");
+                    w.openBlock("void testUpdate()");
+                    w.writeLine("// Заглушка: update для inline-table:");
+                    w.writeLine("// 1) Открыть таблицу через меню сущности");
+                    w.writeLine("// 2) Клик по ячейке первой строки (выделяет запись)");
+                    w.writeLine("// 3) Ввести новое значение (с предварительной очисткой)");
+                    w.writeLine("// 4) Пока запись выбрана: 'Редактирование' → 'Сохранить Изменения'");
+                    w.writeLine("// 5) Поиск нового значения для подтверждения");
+                    w.closeBlock();
+                    w.writeLine();
+                } else {
+                    writeUpdateTest(w, displayProperties);
+                }
             }
 
             // Test 5: Delete

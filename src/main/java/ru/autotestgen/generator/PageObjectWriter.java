@@ -155,13 +155,21 @@ public class PageObjectWriter {
         w.writeLine("    \"return document.activeElement;\");");
         w.openBlock("if (startedEditor != null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через startEditing: id=\" + startedEditor.getAttribute(\"id\") + \" class=\" + startedEditor.getAttribute(\"class\"));");
-        w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
+        // ЯВНАЯ JS-очистка editor.value перед вводом нового значения. Раньше Ctrl+A
+        // иногда не выделял (ExtJS editor reuse), и sendKeys склеивал новое значение
+        // со старым (например при stamp marker: 'AT16198Test_GBS_NAME_...').
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].value = ''; arguments[0].dispatchEvent(new Event('input', {bubbles: true}));\", startedEditor);");
         w.writeLine("Thread.sleep(80);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("startedEditor.sendKeys(value);");
         w.writeLine("Thread.sleep(150);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+sendKeys+ENTER)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+JS clear+sendKeys+ENTER)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();

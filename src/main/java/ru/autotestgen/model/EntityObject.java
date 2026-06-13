@@ -44,4 +44,14 @@ public class EntityObject {
                 .findFirst()
                 .orElse(null);
     }
+
+    /**
+     * Type 2 (inline table) — у сущности НЕТ отдельной модалки FormView (typeLink="P").
+     * Данные редактируются прямо в строках таблицы; create/update через
+     * Редактирование → Добавить / Сохранить Изменения. Примеры: справочники-причины,
+     * сущности-перечисления.
+     */
+    public boolean isInlineTableEntity() {
+        return getFormView() == null;
+    }
 }
