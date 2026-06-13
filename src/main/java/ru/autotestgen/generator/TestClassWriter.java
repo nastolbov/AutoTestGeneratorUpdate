@@ -1194,6 +1194,10 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(150);");
+        // Закрываем редактор ИМЕННО этой ячейки сразу (особенно дату — её редактор/пикер иначе
+        // остаётся активным, блокирует следующий startEditing и тулбар «Сохранить Изменения»).
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+        w.writeLine("try { Thread.sleep(150); } catch (InterruptedException ignored) {}");
     }
 
     /**
