@@ -2495,6 +2495,42 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // dismissErrorPopup: если на экране висит окно серверной ОШИБКИ (напр. SP_GSK_S_CAUSE /
+        // trunc(date)), закрывает его кнопкой OK и возвращает true. В отличие от проверки в конце
+        // теста (которая честно фейлит), этот метод нужен ВО ВРЕМЯ заполнения inline-строки: на
+        // стенде коммит ячейки/даты может сразу выбросить серверный попап, который перехватывает
+        // клики и не даёт дозаполнить остальные поля. Закрываем и продолжаем.
+        w.openBlock("protected boolean dismissErrorPopup()");
+        w.openBlock("try");
+        w.writeLine("Boolean hasErr = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var wn=ws[i]; if (wn.offsetWidth<=0) continue; var t=(wn.innerText||''); if (t.indexOf('\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410')>=0 || t.toLowerCase().indexOf('trunc')>=0 || t.indexOf('SP_')>=0) return true; } return false; } catch(e){ return false; }\");");
+        w.openBlock("if (!Boolean.TRUE.equals(hasErr))");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [dismissErrorPopup] серверный попап обнаружен — закрываем OK и продолжаем\");");
+        // Кликаем OK (или «Закрыть»/«Да») чтобы убрать модальное окно ошибки и продолжить ввод.
+        w.writeLine("boolean closed = clickButtonByText(\"OK\");");
+        w.writeLine("if (!closed) closed = clickButtonByText(\"\\u0417\\u0430\\u043a\\u0440\\u044b\\u0442\\u044c\");");
+        w.writeLine("if (!closed) closed = clickButtonByText(\"\\u0414\\u0430\");");
+        // Фолбэк: ESC закрывает верхнее модальное окно.
+        w.openBlock("if (!closed)");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("closed = true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("try { Thread.sleep(300); } catch (InterruptedException ignored) {}");
+        w.writeLine("return closed;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [dismissErrorPopup] failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // setFieldViaExtApi: устанавливает значение ExtJS form-field'а по его fieldLabel
         // или name через ExtJS API. Это работает даже там, где DOM-инпут не существует
         // (например в свёрнутом PropertyGrid). Возвращает true если поле найдено и значение

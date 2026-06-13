@@ -46,9 +46,11 @@ public class TestRunner {
     }
 
     /**
-     * Runs the generated tests. {@code fastMode=true} adds -DforkCount=3 -Dheadless=true,
-     * giving ~3-4x speedup at the cost of running multiple parallel Chrome instances
-     * (each with its own user-data-dir) and no visible browser window.
+     * Runs the generated tests. {@code fastMode=true} adds -Dheadless=true (без видимого окна
+     * браузера, чуть быстрее). ВАЖНО: forkCount остаётся 1 — НЕ запускаем несколько Chrome
+     * параллельно. На одном стендовом логине (AIS_GSK) параллельные сессии конфликтуют:
+     * правки одной сущности гоняются между сессиями + теряется фокус у клавиатурных Actions,
+     * из-за чего create/update не сохраняются. Надёжность важнее скорости для мутирующих тестов.
      */
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
                              Consumer<String> lineConsumer, String testFilter, boolean fastMode) throws IOException {
@@ -70,7 +72,9 @@ public class TestRunner {
             cmd.add("-DfailIfNoTests=false");
         }
         if (fastMode) {
-            cmd.add("-DforkCount=3");
+            // forkCount=1: один браузер за раз. 3 параллельных Chrome на одном логине ломали
+            // сохранение (гонки правок одной сущности + потеря фокуса у Actions-клавиатуры).
+            cmd.add("-DforkCount=1");
             cmd.add("-Dheadless=true");
         }
         ProcessBuilder pb = new ProcessBuilder(cmd);

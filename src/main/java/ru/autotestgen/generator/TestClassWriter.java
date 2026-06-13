@@ -1330,6 +1330,10 @@ public class TestClassWriter {
             // в записи и грид пометил строку изменённой (красной).
             w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
             w.writeLine("Thread.sleep(120);");
+            // На стенде коммит ячейки (особенно даты) может сразу выбросить серверный попап
+            // SP_GSK_S_CAUSE/trunc(date), который перехватывает клики и блокирует дозаполнение.
+            // Закрываем его (OK) и продолжаем заполнять остальные поля.
+            w.writeLine("if (dismissErrorPopup()) System.out.println(\"  [inline-fill] серверный попап закрыт, продолжаем заполнение\");");
         }
         w.writeLine("filled++;");
         w.writeLine("if (isDateCol) dateFilled++;");
