@@ -1178,8 +1178,11 @@ public class TestClassWriter {
      * server SP fail).
      */
     private void writeTypeIntoEditorScript(JavaFileWriter w, String fallbackExpr) {
+        // Дата определяется по МОДЕЛИ колонки (тип редактора datefield/format) — надёжнее, чем по
+        // DOM-триггеру, которого у редактора ячейки грида может не быть. Плюс DOM-фолбэк.
         w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var inp=arguments[0]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", editor));");
+        w.writeLine("    \"try { var g=window.__t2grid; if (g && g.getColumnModel){ var cm=g.getColumnModel(); var ed=cm.getCellEditor?cm.getCellEditor(arguments[0],0):null; var f=ed&&ed.field?ed.field:ed; if (f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if (xt.toLowerCase().indexOf('date')>=0) return true; if (f.format && /[dmy]/i.test(''+f.format)) return true; } } } catch(e){}\"");
+        w.writeLine("    + \"try { var inp=arguments[1]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", (long) col, editor));");
         w.writeLine("String toType = isDateField ? \"01.01.2020\" : (" + fallbackExpr + ");");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
         w.writeLine("Thread.sleep(60);");
@@ -1187,6 +1190,18 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(150);");
+    }
+
+    /** Emits the «no unsaved (modified) records» honest gate after an inline save. */
+    private void writeUnsavedGate(JavaFileWriter w, String label) {
+        w.writeLine("Long unsavedRecs = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return -1; var grids=[];\"");
+        w.writeLine("    + \"if (Ext.ComponentQuery && Ext.ComponentQuery.query) grids=Ext.ComponentQuery.query('editorgrid,gridpanel,grid,propertygrid');\"");
+        w.writeLine("    + \"else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore) grids.push(c);} }\"");
+        w.writeLine("    + \"var total=0; for (var i=0;i<grids.length;i++){ try{ var s=grids[i].getStore(); if(s&&s.getModifiedRecords){ total+=s.getModifiedRecords().length; } }catch(e){} } return total; } catch(e){ return -1; }\");");
+        w.writeLine("System.out.println(\"" + label + ": несохранённых (modified) записей = \" + unsavedRecs);");
+        w.writeLine("assertTrue(unsavedRecs != null && unsavedRecs == 0,");
+        w.writeLine("    \"" + label + ": после save осталось \" + unsavedRecs + \" несохранённых записей в гриде — сохранение НЕ прошло (сервер отклонил или save не сработал)\");");
     }
 
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
@@ -1258,9 +1273,10 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 6b. ЧЕСТНАЯ проверка: перечитываем список ЗАНОВО с сервера. Стор/грид ДО ре-навигации
-        //     содержат введённое значение даже если сервер отклонил save (ложный успех). Свежая
-        //     загрузка отражает реальное состояние БД.
+        // 6b. ЧЕСТНЫЙ ГЕЙТ: если в сторе остались несохранённые (modified) записи — save не прошёл
+        //     (новая строка осталась «грязной»). Это ловит ложный успех, когда строка визуально есть.
+        writeUnsavedGate(w, "testCreate (inline)");
+        // 6c. Доп.подтверждение: перечитываем список заново и ищем маркер.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1354,8 +1370,9 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 5. ЧЕСТНАЯ проверка: перечитываем список ЗАНОВО с сервера (карточка/стор ДО ре-навигации
-        //    содержат введённое значение даже без реального сохранения — это и был ложный успех).
+        // ЧЕСТНЫЙ ГЕЙТ: остались несохранённые (modified) записи → save не прошёл.
+        writeUnsavedGate(w, "testUpdate (inline)");
+        // 5. Доп.подтверждение: перечитываем список заново и ищем новое значение.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
