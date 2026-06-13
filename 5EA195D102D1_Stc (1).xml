@@ -1,0 +1,1478 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><md:E3  XMLVersion="2.0" XMLIntName="RVV" GUID="5EA195D102D1" ModelName="" SubSystemName="" ModelPetalVersion="50" xmlns:e="uuid:EDDBACC6-A83C-4937-9748-B7333C7C9272"
+ xmlns:e3="uuid:EF6807BA-EBA2-42E5-9234-A24542B8791C"
+ xmlns:md="urn:ruitsol-ru:E3"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ruitsol-ru:E3 file://nika/ReqPro/E3Schema/E3ModelXMLSchema.xsd">
+<e3:Category CategoryName="Logical View::Гаражно-строительные кооперативы" GUID="5EA196000083">
+<e:Objects>
+<e:Object GUID="5EBB94DA01B8" name="ГСК/ОГСК" keyName="KEY_GB_SOCIETY" featureName="V_GSK_GB_SOCIETY" nameValueModule="loadObjectDataModule" nameValueMethod="GBS_NAME">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EBB9A610392" role_A="KEY_GB_SOCIETY" role_B="KEY_TYPE_SOCIETY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA499803A1" name="Тип ГСК/ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA474301E1" name="Тип гаражно-строительного кооператива" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBB9A65021F" role_A="KEY_GB_SOCIETY" role_B="KEY_DISTRICT" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBB93110250" name="Район"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBB91FD0133" name="Район" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBB9A6A0227" role_A="KEY_GB_SOCIETY" role_B="KEY_OFFICIAL" role_A_caption="Председатель ГСК/Представитель ОГСК" order_number="" flag_display="1" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Председатель ГСК/Представитель ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBB9A6E021E" role_A="KEY_GB_SOCIETY" role_B="KEY_EXIST_CONTRACT" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA43AF0045" name="Наличие договора с РО"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA416101A7" name="Справочник Да/Нет" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBB9A73032E" role_A="KEY_GB_SOCIETY" role_B="KEY_CAUSE" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3B04C0021" name="Причина смены председателя/представителя"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3A29803BA" name="Причина смены председателя/представителя" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBA2330357" role_A="ANCESTOR_KEY" role_B="KEY_GB_SOCIETY" role_A_caption="ГСК/ОГСК" order_number="" flag_display="1" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_GB_SOCIETY" associationID="ANCESTOR_KEY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBCED6803B4" name="Включён в ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBB94DA01B8" name="ГСК/ОГСК" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBAF960226" role_A="KEY_GB_SOCIETY" role_B="KEY_H_GB_SOCIETY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EBBAF7D0314" name="История ГСК/ОГСК" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC78C7901DA" role_A="KEY_GB_SOCIETY" role_B="KEY_DOC_GB_SOCIETY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_DOC_GB_SOCIETY" associationID="KEY_GB_SOCIETY">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EC78C5B0376" name="Документ ГСК/ОГСК" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EBBA2330357" role_B="KEY_GB_SOCIETY" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBCF29102CA" role_B="ANCESTOR_KEY" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBB955103A9" stereoType="" name="Сведения ГСК/ОГСК" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBCECAF0206" stereoType="Directory" name="Включён в ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="ANCESTOR_KEY" table_name="V_GSK_GB_SOCIETY" order_number="10" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBA2330357" PropertiesGUID="5EBB955103A9" PropertyGUID="5EBCECDE0057"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0014" stereoType="Directory" name="Тип ГСК/ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_TYPE_SOCIETY" table_name="V_GSK_GB_SOCIETY" order_number="20" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBB9A610392" PropertiesGUID="5EBA47A901AD" PropertyGUID="5EBA481F0360"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0057" stereoType="" name="Наименование ГСК/ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_NAME" table_name="V_GSK_GB_SOCIETY" order_number="30" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0076" stereoType="" name="Адрес ГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_ADDRESS" table_name="V_GSK_GB_SOCIETY" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE009E" stereoType="Directory" name="Район" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_DISTRICT" table_name="V_GSK_GB_SOCIETY" order_number="50" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBB9A65021F" PropertiesGUID="5EBB928E02DF" PropertyGUID="5EBB92B102FC"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE00DE" stereoType="Directory" name="Председатель ГСК/Представитель ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_GB_SOCIETY" order_number="60" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBB9A6A0227" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE011D" stereoType="" name="ИНН" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="INN" table_name="V_GSK_GB_SOCIETY" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0146" stereoType="" name="Кадастровый номер" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="CADASTRAL_NUMBER" table_name="V_GSK_GB_SOCIETY" order_number="80" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0170" stereoType="Directory" name="Наличие договора с РО" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_EXIST_CONTRACT" table_name="V_GSK_GB_SOCIETY" order_number="90" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBB9A6E021E" PropertiesGUID="5EBA423901AC" PropertyGUID="5EBA437D03A4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE01B5" stereoType="Directory" name="Причина смены председателя/представителя" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CAUSE" table_name="V_GSK_GB_SOCIETY" order_number="100" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBB9A73032E" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A7FD034A"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0201" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_GB_SOCIETY" order_number="110" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE0230" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_GB_SOCIETY" order_number="120" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE025D" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_GB_SOCIETY" order_number="130" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE028F" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_GB_SOCIETY" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCECDE02BF" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_GB_SOCIETY" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F229AC902F7" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_LABEL" table_name="V_GSK_GB_SOCIETY" order_number="31" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EBBFEFE00AA" stereoType="OnDo" operationMethod="SP_GB_SOCIETY" operationModule="PCG_GSK_OBJECT" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="GBS_LABEL" paramType="in" valueType="string" />
+<e3:OperationParam name="ANCESTOR_KEY" paramType="in" valueType="decimal" />
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="DATE_END" paramType="in" valueType="date" />
+<e3:OperationParam name="DATE_BEGIN" paramType="in" valueType="date" />
+<e3:OperationParam name="KEY_CAUSE" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_EXIST_CONTRACT" paramType="in" valueType="decimal" />
+<e3:OperationParam name="CADASTRAL_NUMBER" paramType="in" valueType="string" />
+<e3:OperationParam name="INN" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_OFFICIAL" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_DISTRICT" paramType="in" valueType="decimal" />
+<e3:OperationParam name="GBS_ADDRESS" paramType="in" valueType="string" />
+<e3:OperationParam name="GBS_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_TYPE_SOCIETY" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_GB_SOCIETY" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+<e3:Modifier title="Лог.изменить" modifyType="E" />
+<e3:Modifier title="в Архив" modifyType="A" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+<e:Properties  GUID="5EBBB6EE0111" stereoType="Grid" name="История ГСК/ОГСК" dmodule="aTestEx2" type_link="" order_number="20" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBBB73800B0" stereoType="RoleA" name="KEY_GB_SOCIETY" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_GB_SOCIETY" table_name="V_GSK_H_GB_SOCIETY" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBB7590360" stereoType="ObjectName" name="KEY_H_GB_SOCIETY" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_H_GB_SOCIETY" table_name="V_GSK_H_GB_SOCIETY" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF00F0" stereoType="" name="Включён в ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="ANCESTOR_KEY" table_name="V_GSK_H_GB_SOCIETY" order_number="10" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560020"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0139" stereoType="" name="Тип ГСК/ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_TYPE_SOCIETY" table_name="V_GSK_H_GB_SOCIETY" order_number="20" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF356005A"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0174" stereoType="" name="Наименование ГСК/ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_NAME" table_name="V_GSK_H_GB_SOCIETY" order_number="30" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF356008F"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF01A8" stereoType="" name="Адрес ГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_ADDRESS" table_name="V_GSK_H_GB_SOCIETY" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35600B6"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF01DE" stereoType="" name="Район" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_DISTRICT" table_name="V_GSK_H_GB_SOCIETY" order_number="50" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35600DE"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0215" stereoType="" name="Председатель ГСК/Представитель ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_H_GB_SOCIETY" order_number="60" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560113"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0258" stereoType="" name="ИНН" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="INN" table_name="V_GSK_H_GB_SOCIETY" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560149"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0291" stereoType="" name="Кадастровый номер" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="CADASTRAL_NUMBER" table_name="V_GSK_H_GB_SOCIETY" order_number="80" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560172"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF02CB" stereoType="" name="Наличие договора с РО" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_EXIST_CONTRACT" table_name="V_GSK_H_GB_SOCIETY" order_number="90" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35601A0"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0307" stereoType="" name="Причина смены председателя/представителя" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CAUSE" table_name="V_GSK_H_GB_SOCIETY" order_number="100" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35601E1"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0345" stereoType="" name="НДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_H_GB_SOCIETY" order_number="110" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF356021F"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF0385" stereoType="" name="КДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_H_GB_SOCIETY" order_number="120" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560252"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6AF03C5" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_H_GB_SOCIETY" order_number="130" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF3560285"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6B0001F" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_H_GB_SOCIETY" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35602BA"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6B00062" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_H_GB_SOCIETY" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5EBCF35602EE"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F27E6B000A7" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_LABEL" table_name="V_GSK_H_GB_SOCIETY" order_number="31" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBAF960226" PropertiesGUID="5EBBB2DD006B" PropertyGUID="5F22AAC000D9"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+<e:Properties  GUID="5EC78DA00045" stereoType="Grid" name="Документы ГСК/ОГСК" dmodule="aTestEx2" type_link="" order_number="30" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC78DE003A3" stereoType="RoleA" name="KEY_GB_SOCIETY" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_GB_SOCIETY" table_name="V_GSK_DOC_GB_SOCIETY" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E0E0063" stereoType="ObjectName" name="KEY_DOC_GB_SOCIETY" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_DOC_GB_SOCIETY" table_name="V_GSK_DOC_GB_SOCIETY" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E2801BC" stereoType="" name="Название" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DOC_NAME" table_name="V_GSK_DOC_GB_SOCIETY" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D5502F7"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E28020E" stereoType="" name="Файл" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FILE_NAME" table_name="V_GSK_DOC_GB_SOCIETY" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D55032D"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E280243" stereoType="" name="Дата создания" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_CREATE" table_name="V_GSK_DOC_GB_SOCIETY" order_number="30" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D550351"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E28027C" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_DOC_GB_SOCIETY" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D550370"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E2802B4" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_DOC_GB_SOCIETY" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D550390"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78E2802EB" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_DOC_GB_SOCIETY" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC78C7901DA" PropertiesGUID="5EC78CCA0315" PropertyGUID="5EC78D5503B8"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5ECB8604022B" stereoType="OnDo" operationMethod="SP_GSK_DOC_GB_SOCIETY" operationModule="PCG_GSK_DOC" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="FILE_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="DOC_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_DOC_GB_SOCIETY" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_GB_SOCIETY" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+<e:Properties  GUID="690B444501C5" stereoType="" name="Группа свойств" dmodule="aPropertyViewer" type_link="" order_number="4" flag_display="1">
+<e:Attributes></e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps>
+<e3:ReportsGrp  GUID="690B444A03CC" name="Группа отчётов" displayModule="aReportsGroupViewer" displayMethod="showReportsGroup" flagDisplay="1" orderNumber="1" >
+</e3:ReportsGrp>
+</e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBBAF7D0314" name="История ГСК/ОГСК" keyName="KEY_H_GB_SOCIETY" featureName="V_GSK_H_GB_SOCIETY" nameValueModule="loadObjectDataModule" nameValueMethod="GBS_NAME">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EBBB3ED031E" role_A="KEY_H_GB_SOCIETY" role_B="KEY_TYPE_SOCIETY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA499803A1" name="Тип ГСК/ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA474301E1" name="Тип гаражно-строительного кооператива" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBB3F00354" role_A="KEY_H_GB_SOCIETY" role_B="KEY_CAUSE" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3B04C0021" name="Причина смены председателя/представителя"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3A29803BA" name="Причина смены председателя/представителя" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBB3F30384" role_A="KEY_H_GB_SOCIETY" role_B="KEY_DISTRICT" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBB93110250" name="Район"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBB91FD0133" name="Район" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBB3F7010A" role_A="KEY_H_GB_SOCIETY" role_B="KEY_OFFICIAL" role_A_caption="Председатель ГСК/Представитель ОГСК" order_number="" flag_display="1" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Председатель ГСК/Представитель ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBBB3FA02E4" role_A="KEY_H_GB_SOCIETY" role_B="KEY_EXIST_CONTRACT" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA43AF0045" name="Наличие договора с РО"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA416101A7" name="Справочник Да/Нет" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBCF29102CA" role_A="KEY_H_GB_SOCIETY" role_B="ANCESTOR_KEY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_H_GB_SOCIETY" associationID="KEY_H_GB_SOCIETY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBCED6803B4" name="Включён в ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBB94DA01B8" name="ГСК/ОГСК" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EBBAF960226" role_B="KEY_H_GB_SOCIETY" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBBB2DD006B" stereoType="" name="Сведения истории ГСК/ОГСК" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBCF3560020" stereoType="Ref" name="Включён в ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="ANCESTOR_KEY" table_name="V_GSK_H_GB_SOCIETY" order_number="10" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBCF29102CA" PropertiesGUID="5EBB955103A9" PropertyGUID="5EBCECDE0057"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF356005A" stereoType="Directory" name="Тип ГСК/ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_TYPE_SOCIETY" table_name="V_GSK_H_GB_SOCIETY" order_number="20" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBB3ED031E" PropertiesGUID="5EBA47A901AD" PropertyGUID="5EBA481F0360"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF356008F" stereoType="" name="Наименование ГСК/ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_NAME" table_name="V_GSK_H_GB_SOCIETY" order_number="30" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35600B6" stereoType="" name="Адрес ГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_ADDRESS" table_name="V_GSK_H_GB_SOCIETY" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35600DE" stereoType="Directory" name="Район" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_DISTRICT" table_name="V_GSK_H_GB_SOCIETY" order_number="50" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBB3F30384" PropertiesGUID="5EBB928E02DF" PropertyGUID="5EBB92B102FC"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF3560113" stereoType="Directory" name="Председатель ГСК/Представитель ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_H_GB_SOCIETY" order_number="60" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBB3F7010A" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF3560149" stereoType="" name="ИНН" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="INN" table_name="V_GSK_H_GB_SOCIETY" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF3560172" stereoType="" name="Кадастровый номер" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="CADASTRAL_NUMBER" table_name="V_GSK_H_GB_SOCIETY" order_number="80" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35601A0" stereoType="Directory" name="Наличие договора с РО" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_EXIST_CONTRACT" table_name="V_GSK_H_GB_SOCIETY" order_number="90" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBB3FA02E4" PropertiesGUID="5EBA423901AC" PropertyGUID="5EBA437D03A4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35601E1" stereoType="Directory" name="Причина смены председателя/представителя" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CAUSE" table_name="V_GSK_H_GB_SOCIETY" order_number="100" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBB3F00354" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A7FD034A"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF356021F" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_H_GB_SOCIETY" order_number="110" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF3560252" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_H_GB_SOCIETY" order_number="120" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF3560285" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_H_GB_SOCIETY" order_number="130" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35602BA" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_H_GB_SOCIETY" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCF35602EE" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_H_GB_SOCIETY" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5F22AAC000D9" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="GBS_LABEL" table_name="V_GSK_H_GB_SOCIETY" order_number="31" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBE2F60010A" name="Совещание" keyName="KEY_CONFERENCE" featureName="V_GSK_CONFERENCE" nameValueModule="loadObjectDataModule" nameValueMethod="THEME_CONFERENCE">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EBE319D0198" role_A="KEY_CONFERENCE" role_B="KEY_CHAIRMAN" role_A_caption="Председатель" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_CONFERENCE" associationID="KEY_CONFERENCE">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Председатель"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBE31A302A9" role_A="KEY_CONFERENCE" role_B="KEY_SECRETARY" role_A_caption="Секретарь" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_CONFERENCE" associationID="KEY_CONFERENCE">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Секретарь"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC247C60143" role_A="KEY_CONFERENCE" role_B="KEY_INVITED" role_A_caption="Приглашённые ГСК" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_INVITED" associationID="KEY_CONFERENCE">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EC242EB0386" name="Приглашённый ГСК" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC24C3A0059" role_A="KEY_CONFERENCE" role_B="KEY_PARTICIPANT" role_A_caption="Участник совещания" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_PARTICIPANT" associationID="KEY_CONFERENCE">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EC24A71020A" name="Участник совещания" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC66B570348" role_A="KEY_CONFERENCE" role_B="KEY_AGENDA" role_A_caption="Повестка совещания" order_number="" flag_display="1" addFromTree="1" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_AGENDA" associationID="KEY_CONFERENCE">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EC660460377" name="Повестка совещания" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC785EC0246" role_A="KEY_CONFERENCE" role_B="KEY_DOC_CONFERENCE" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_DOC_CONFERENCE" associationID="KEY_CONFERENCE">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EC785CE02EE" name="Документ совещания" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBE2FD900B2" stereoType="" name="Сведения совещания" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBE30360224" stereoType="" name="Тема совещания" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="THEME_CONFERENCE" table_name="V_GSK_CONFERENCE" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE306501F9" stereoType="" name="Дата и время совещания" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATETIME_CONFERENCE" table_name="V_GSK_CONFERENCE" order_number="20" necessarily="1" attrType="string" flag_display="1" mask="99.99.9999 99:99">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE308C0222" stereoType="" name="Адрес" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="ADDRESS_CONFERENCE" table_name="V_GSK_CONFERENCE" order_number="30" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE30B102C7" stereoType="" name="Кабинет" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="CABINET" table_name="V_GSK_CONFERENCE" order_number="40" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE30D5018C" stereoType="Directory" name="Председатель" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CHAIRMAN" table_name="V_GSK_CONFERENCE" order_number="50" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBE319D0198" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE30FD0325" stereoType="Directory" name="Секретарь (тот, кто ведет протокол)" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_SECRETARY" table_name="V_GSK_CONFERENCE" order_number="60" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBE31A302A9" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE312600A2" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_CONFERENCE" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE312A01A4" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_CONFERENCE" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBE312C01A5" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_CONFERENCE" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EBE7E250158" stereoType="OnDo" operationMethod="SP_GSK_CONFERENCE" operationModule="PCG_GSK_OBJECT" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_SECRETARY" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_CHAIRMAN" paramType="in" valueType="decimal" />
+<e3:OperationParam name="CABINET" paramType="in" valueType="string" />
+<e3:OperationParam name="ADDRESS_CONFERENCE" paramType="in" valueType="string" />
+<e3:OperationParam name="DATETIME_CONFERENCE" paramType="in" valueType="string" />
+<e3:OperationParam name="THEME_CONFERENCE" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_CONFERENCE" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+<e:Properties  GUID="5EC24862006E" stereoType="Grid" name="Приглашённые ГСК" dmodule="aTestEx2" type_link="" order_number="20" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC248C0027B" stereoType="RoleA" name="KEY_CONFERENCE" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CONFERENCE" table_name="V_GSK_INVITED" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC249130011" stereoType="ObjectName" name="KEY_INVITED" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_INVITED" table_name="V_GSK_INVITED" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24961026E" stereoType="" name="Председатель ГСК/Представитель ОГСК" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_INVITED" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC243DD0299"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC2496102C4" stereoType="" name="Присутствовал" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_PRESENCE" table_name="V_GSK_INVITED" order_number="20" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC24414026E"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC2496102FA" stereoType="" name="Вопросы" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="QUESTIONS" table_name="V_GSK_INVITED" order_number="30" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC2448C0264"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC249610330" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_INVITED" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC244B80114"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC249610367" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_INVITED" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC244C803BC"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24961039F" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_INVITED" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC247C60143" PropertiesGUID="5EC243A001AE" PropertyGUID="5EC244D1027C"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EC27D1C0095" stereoType="OnDo" operationMethod="SP_GSK_INVITED" operationModule="PCG_GSK_OBJECT" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="QUESTIONS" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_PRESENCE" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_OFFICIAL" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_INVITED" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_CONFERENCE" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+<e:Properties  GUID="5EC24C9C0220" stereoType="Grid" name="Участники совещания" dmodule="aTestEx2" type_link="" order_number="30" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC24CCA0247" stereoType="RoleA" name="KEY_CONFERENCE" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CONFERENCE" table_name="V_GSK_PARTICIPANT" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC24C3A0059" PropertiesGUID="5EC24AE503DB" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24CE70281" stereoType="ObjectName" name="KEY_PARTICIPANT" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_PARTICIPANT" table_name="V_GSK_PARTICIPANT" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24D15002E" stereoType="" name="Участник" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_PARTICIPANT" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC24C3A0059" PropertiesGUID="5EC24AE503DB" PropertyGUID="5EC24B2603CC"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24D150083" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_PARTICIPANT" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC24C3A0059" PropertiesGUID="5EC24AE503DB" PropertyGUID="5EC24B710304"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24D1500B6" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_PARTICIPANT" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC24C3A0059" PropertiesGUID="5EC24AE503DB" PropertyGUID="5EC24B770239"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EC27D7702A4" stereoType="OnDo" operationMethod="SP_GSK_PARTICIPANT" operationModule="PCG_GSK_OBJECT" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="KEY_OFFICIAL" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_PARTICIPANT" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_CONFERENCE" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+<e:Properties  GUID="5EC788E100CF" stereoType="Grid" name="Документы совещания" dmodule="aTestEx2" type_link="" order_number="40" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC789EF03E2" stereoType="RoleA" name="KEY_CONFERENCE" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CONFERENCE" table_name="V_GSK_DOC_CONFERENCE" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A1B0015" stereoType="ObjectName" name="KEY_DOC_CONFERENCE" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_DOC_CONFERENCE" table_name="V_GSK_DOC_CONFERENCE" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A490078" stereoType="" name="Название" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DOC_NAME" table_name="V_GSK_DOC_CONFERENCE" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC787AA0225"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A4900D5" stereoType="" name="Файл" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FILE_NAME" table_name="V_GSK_DOC_CONFERENCE" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC787E30265"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A490109" stereoType="" name="Дата создания" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_CREATE" table_name="V_GSK_DOC_CONFERENCE" order_number="30" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC78856033F"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A490140" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_DOC_CONFERENCE" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC7889400B0"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A490177" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_DOC_CONFERENCE" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC7889E0005"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78A4901AC" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_DOC_CONFERENCE" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC785EC0246" PropertiesGUID="5EC7864700D5" PropertyGUID="5EC788A30087"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5ECB854A00A2" stereoType="OnDo" operationMethod="SP_GSK_DOC_CONFERENCE" operationModule="PCG_GSK_DOC" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="FILE_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="DOC_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_DOC_CONFERENCE" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_CONFERENCE" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps>
+<e3:ReportsGrp  GUID="5EC3BF4702FF" name="Отчеты" displayModule="aReportsGroupViewer" displayMethod="showReportsGroup" flagDisplay="1" orderNumber="50" >
+<e3:ReportItems>
+<e3:ReportItem  GUID="5ECCE6ED03C1" reportGUID="5EC3C0830352" comment="Список приглашенных участников совещания" >
+</e3:ReportItem>
+<e3:ReportItem  GUID="5ECCE6ED03DE" reportGUID="5ECCE657034B" comment="Протокол совещания" >
+</e3:ReportItem>
+</e3:ReportItems>
+</e3:ReportsGrp>
+</e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EC242EB0386" name="Приглашённый ГСК" keyName="KEY_INVITED" featureName="V_GSK_INVITED" nameValueModule="loadObjectDataModule" nameValueMethod="KEY_INVITED">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EC2452E0017" role_A="KEY_INVITED" role_B="KEY_OFFICIAL" role_A_caption="Председатель ГСК/Представитель ОГСК" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_INVITED" associationID="KEY_INVITED">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Председатель ГСК/Представитель ОГСК"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EC245F90144" role_A="KEY_INVITED" role_B="KEY_PRESENCE" role_A_caption="Присутствовал" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_INVITED" associationID="KEY_INVITED">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA43AF0045" name="Присутствовал"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA416101A7" name="Справочник Да/Нет" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EC247C60143" role_B="KEY_INVITED" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EC243A001AE" stereoType="" name="Сведения приглашённого ГСК" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC243DD0299" stereoType="Directory" name="Председатель ГСК/Представитель ОГСК" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_INVITED" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC2452E0017" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24414026E" stereoType="Directory" name="Присутствовал" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_PRESENCE" table_name="V_GSK_INVITED" order_number="20" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC245F90144" PropertiesGUID="5EBA423901AC" PropertyGUID="5EBA437D03A4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC2448C0264" stereoType="" name="Вопросы" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="QUESTIONS" table_name="V_GSK_INVITED" order_number="30" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC244B80114" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_INVITED" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC244C803BC" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_INVITED" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC244D1027C" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_INVITED" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EC24A71020A" name="Участник совещания" keyName="KEY_PARTICIPANT" featureName="V_GSK_PARTICIPANT" nameValueModule="loadObjectDataModule" nameValueMethod="KEY_PARTICIPANT">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EC24B9300BB" role_A="KEY_PARTICIPANT" role_B="KEY_OFFICIAL" role_A_caption="Участник" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_PARTICIPANT" associationID="KEY_PARTICIPANT">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EB3BB160243" name="Участник"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EC24C3A0059" role_B="KEY_PARTICIPANT" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EC24AE503DB" stereoType="" name="Сведения участника совещания" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC24B2603CC" stereoType="Directory" name="Участник" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_PARTICIPANT" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EC24B9300BB" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24B710304" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_PARTICIPANT" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC24B770239" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_PARTICIPANT" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EC660460377" name="Повестка совещания" keyName="KEY_AGENDA" featureName="V_GSK_AGENDA" nameValueModule="loadObjectDataModule" nameValueMethod="KEY_AGENDA">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EC66B570348" role_B="KEY_AGENDA" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EC669EB0262" stereoType="" name="Сведения повестки совещания" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC66A4103B5" stereoType="" name="Номер вопроса" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="NUMBER_QUESTION" table_name="V_GSK_AGENDA" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC66A7B00AE" stereoType="" name="Вопрос повестки" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="QUESTION" table_name="V_GSK_AGENDA" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC66AAE0081" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_AGENDA" order_number="30" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC66ABA00B3" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_AGENDA" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC66ABB02EC" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_AGENDA" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EC672FF032D" stereoType="OnDo" operationMethod="SP_GSK_AGENDA" operationModule="PCG_GSK_OBJECT" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="KEY_CONFERENCE" paramType="in" valueType="decimal" />
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="QUESTION" paramType="in" valueType="string" />
+<e3:OperationParam name="NUMBER_QUESTION" paramType="in" valueType="decimal" />
+<e3:OperationParam name="KEY_AGENDA" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EC785CE02EE" name="Документ совещания" keyName="KEY_DOC_CONFERENCE" featureName="V_GSK_DOC_CONFERENCE" nameValueModule="loadObjectDataModule" nameValueMethod="DOC_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EC785EC0246" role_B="KEY_DOC_CONFERENCE" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EC7864700D5" stereoType="" name="Сведения документа совещания" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC787AA0225" stereoType="" name="Название" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DOC_NAME" table_name="V_GSK_DOC_CONFERENCE" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC787E30265" stereoType="" name="Файл" dmodule="fileField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FILE_NAME" table_name="V_GSK_DOC_CONFERENCE" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78856033F" stereoType="" name="Дата создания" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_CREATE" table_name="V_GSK_DOC_CONFERENCE" order_number="30" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC7889400B0" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_DOC_CONFERENCE" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC7889E0005" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_DOC_CONFERENCE" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC788A30087" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_DOC_CONFERENCE" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EC78C5B0376" name="Документ ГСК/ОГСК" keyName="KEY_DOC_GB_SOCIETY" featureName="V_GSK_DOC_GB_SOCIETY" nameValueModule="loadObjectDataModule" nameValueMethod="DOC_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EC78C7901DA" role_B="KEY_DOC_GB_SOCIETY" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EC78CCA0315" stereoType="" name="Сведения документа ГСК/ОГСК" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EC78D5502F7" stereoType="" name="Название" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DOC_NAME" table_name="V_GSK_DOC_GB_SOCIETY" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78D55032D" stereoType="" name="Файл" dmodule="fileField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FILE_NAME" table_name="V_GSK_DOC_GB_SOCIETY" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78D550351" stereoType="" name="Дата создания" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_CREATE" table_name="V_GSK_DOC_GB_SOCIETY" order_number="30" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78D550370" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_DOC_GB_SOCIETY" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78D550390" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_DOC_GB_SOCIETY" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EC78D5503B8" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_DOC_GB_SOCIETY" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EB3A29803BA" name="Причина смены председателя/представителя" keyName="KEY_CAUSE" featureName="V_GSK_S_CAUSE" nameValueModule="loadObjectDataModule" nameValueMethod="KEY_CAUSE">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBB9A73032E" role_B="KEY_CAUSE" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBBB3F00354" role_B="KEY_CAUSE" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EB3A5020199" role_B="KEY_CAUSE" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EB3A7770012" stereoType="" name="Сведения причины" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EB3A7FD034A" stereoType="" name="Нименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_NAME" table_name="V_GSK_S_CAUSE" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A86601E5" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_LABEL" table_name="V_GSK_S_CAUSE" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A921021C" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_S_CAUSE" order_number="30" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A9240084" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_S_CAUSE" order_number="40" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A92800F2" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="REMARK" table_name="V_GSK_S_CAUSE" order_number="50" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A938025A" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_S_CAUSE" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3A93A0171" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_S_CAUSE" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EB3A2C3021E" name="Причины смены председателя/представителя" keyName="ANCESTOR_KEY" featureName="V_GSK_S_KLS_D_MAIN" nameValueModule="loadObjectDataModule" nameValueMethod="PROPERTY_NAME">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EB3A5020199" role_A="ANCESTOR_KEY" role_B="KEY_CAUSE" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_S_CAUSE" associationID="ANCESTOR_KEY">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3A29803BA" name="Причина смены председателя/представителя" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EB3AB580248" stereoType="Grid" name="Причины смены председателя/представителя" dmodule="aTestEx2" type_link="" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EB3AB910107" stereoType="RoleA" name="ANCESTOR_KEY" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="ANCESTOR_KEY" table_name="V_GSK_S_CAUSE" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3ABD60223" stereoType="ObjectName" name="KEY_CAUSE" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_CAUSE" table_name="V_GSK_S_CAUSE" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC360108" stereoType="" name="Нименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_NAME" table_name="V_GSK_S_CAUSE" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A7FD034A"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC360171" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_LABEL" table_name="V_GSK_S_CAUSE" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A86601E5"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC3601AD" stereoType="" name="НДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_S_CAUSE" order_number="30" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A921021C"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC3601E4" stereoType="" name="КДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_S_CAUSE" order_number="40" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A9240084"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC36021B" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="REMARK" table_name="V_GSK_S_CAUSE" order_number="50" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A92800F2"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC360251" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_S_CAUSE" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A938025A"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3AC360288" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_S_CAUSE" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3A5020199" PropertiesGUID="5EB3A7770012" PropertyGUID="5EB3A93A0171"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EB536BF032D" stereoType="OnDo" operationMethod="SP_GSK_S_CAUSE" operationModule="PCG_GSK_S_DIRECTORY" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="REMARK" paramType="in" valueType="string" />
+<e3:OperationParam name="DATE_END" paramType="in" valueType="date" />
+<e3:OperationParam name="DATE_BEGIN" paramType="in" valueType="date" />
+<e3:OperationParam name="PROPERTY_LABEL" paramType="in" valueType="string" />
+<e3:OperationParam name="PROPERTY_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_CAUSE" paramType="in" valueType="decimal" />
+<e3:OperationParam name="ANCESTOR_KEY" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EB3B333010E" name="Должностное лицо" keyName="KEY_OFFICIAL" featureName="V_GSK_S_OFFICIAL" nameValueModule="loadObjectDataModule" nameValueMethod="FIO">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EBBABBE01F4" role_A="KEY_OFFICIAL" role_B="KEY_ADDRESS" role_A_caption="Адрес" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_S_OFFICIAL" associationID="KEY_OFFICIAL">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBBA74A03C4" name="Адрес"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA63FF0036" name="Адрес" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EBB9A6A0227" role_B="KEY_OFFICIAL" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBBB3F7010A" role_B="KEY_OFFICIAL" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBE319D0198" role_B="KEY_CHAIRMAN" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBE31A302A9" role_B="KEY_SECRETARY" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EC2452E0017" role_B="KEY_OFFICIAL" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EC24B9300BB" role_B="KEY_OFFICIAL" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EB3B5D501B8" role_B="KEY_OFFICIAL" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EB3B4E1023B" stereoType="" name="Сведения должностного лица" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EB3B6CB0291" stereoType="" name="Фамилия" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="LAST_NAME" table_name="V_GSK_S_OFFICIAL" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B70F01CC" stereoType="" name="Имя" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FIRST_NAME" table_name="V_GSK_S_OFFICIAL" order_number="20" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B730005D" stereoType="" name="Отчество" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="SECOND_NAME" table_name="V_GSK_S_OFFICIAL" order_number="30" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B7680217" stereoType="" name="Должность" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="APPOINTMENT" table_name="V_GSK_S_OFFICIAL" order_number="40" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B79A01B7" stereoType="Ref" name="Адрес" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_ADDRESS" table_name="V_GSK_S_OFFICIAL" order_number="50" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBBABBE01F4" PropertiesGUID="5EBA78FD00A8" PropertyGUID="5EBCDFB60240"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B7D10087" stereoType="" name="Телефон" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PHONE" table_name="V_GSK_S_OFFICIAL" order_number="60" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B7F602F9" stereoType="" name="Электронная почта" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="EMAIL" table_name="V_GSK_S_OFFICIAL" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B81F008D" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_S_OFFICIAL" order_number="80" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B82301E7" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_S_OFFICIAL" order_number="90" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B84C013F" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_S_OFFICIAL" order_number="100" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B85E01B7" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_S_OFFICIAL" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B860034B" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_S_OFFICIAL" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBA14B00B4" stereoType="" name="ФИО и должность" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FIO_APPOINTMENT" table_name="V_GSK_S_OFFICIAL" order_number="" necessarily="" attrType="string" flag_display="0" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EB537AC027C" stereoType="OnDo" operationMethod="SP_GSK_S_OFFICIAL" operationModule="PCG_GSK_S_DIRECTORY" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="DATE_END" paramType="in" valueType="date" />
+<e3:OperationParam name="DATE_BEGIN" paramType="in" valueType="date" />
+<e3:OperationParam name="EMAIL" paramType="in" valueType="string" />
+<e3:OperationParam name="PHONE" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_ADDRESS" paramType="in" valueType="decimal" />
+<e3:OperationParam name="APPOINTMENT" paramType="in" valueType="string" />
+<e3:OperationParam name="SECOND_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="FIRST_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="LAST_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_OFFICIAL" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EB3B5BB00D3" name="Должностные лица" keyName="KEY_ALL" featureName="V_GSK_NSI" nameValueModule="loadObjectDataModule" nameValueMethod="KEY_ALL">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EB3B5D501B8" role_A="KEY_ALL" role_B="KEY_OFFICIAL" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_S_OFFICIAL" associationID="KEY_ALL">
+<e3:Qualifiers></e3:Qualifiers>
+<e3:AssociateItem GUID="5EB3B333010E" name="Должностное лицо" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EB3B8B601BE" stereoType="Grid" name="Должностные лица" dmodule="aTestEx2" type_link="" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EB3B8F4022D" stereoType="RoleA" name="KEY_ALL" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_ALL" table_name="V_GSK_S_OFFICIAL" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EB3B9320096" stereoType="ObjectName" name="KEY_OFFICIAL" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_OFFICIAL" table_name="V_GSK_S_OFFICIAL" order_number="" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE005F" stereoType="" name="Фамилия" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="LAST_NAME" table_name="V_GSK_S_OFFICIAL" order_number="10" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B6CB0291"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE00AC" stereoType="" name="Имя" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FIRST_NAME" table_name="V_GSK_S_OFFICIAL" order_number="20" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B70F01CC"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE00E6" stereoType="" name="Отчество" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="SECOND_NAME" table_name="V_GSK_S_OFFICIAL" order_number="30" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B730005D"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE011E" stereoType="" name="Должность" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="APPOINTMENT" table_name="V_GSK_S_OFFICIAL" order_number="40" necessarily="1" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B7680217"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0155" stereoType="" name="Адрес" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="KEY_ADDRESS" table_name="V_GSK_S_OFFICIAL" order_number="50" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B79A01B7"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0191" stereoType="" name="Телефон" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PHONE" table_name="V_GSK_S_OFFICIAL" order_number="60" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B7D10087"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE01D0" stereoType="" name="Электронная почта" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="EMAIL" table_name="V_GSK_S_OFFICIAL" order_number="70" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B7F602F9"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0210" stereoType="" name="НДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_S_OFFICIAL" order_number="80" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B81F008D"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE024F" stereoType="" name="КДЗ" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_S_OFFICIAL" order_number="90" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B82301E7"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0290" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_S_OFFICIAL" order_number="100" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B84C013F"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE02CE" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_S_OFFICIAL" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B85E01B7"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0310" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_S_OFFICIAL" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EB3B860034B"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBBACEE0351" stereoType="" name="ФИО и должность" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FIO_APPOINTMENT" table_name="V_GSK_S_OFFICIAL" order_number="" necessarily="" attrType="string" flag_display="0" mask="">
+<e3:Property_Ref associationGUID="5EB3B5D501B8" PropertiesGUID="5EB3B4E1023B" PropertyGUID="5EBBA14B00B4"></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EB5388A010A" stereoType="OnDo" operationMethod="SP_GSK_S_OFFICIAL" operationModule="PCG_GSK_S_DIRECTORY" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="DATE_END" paramType="in" valueType="date" />
+<e3:OperationParam name="DATE_BEGIN" paramType="in" valueType="date" />
+<e3:OperationParam name="EMAIL" paramType="in" valueType="string" />
+<e3:OperationParam name="PHONE" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_ADDRESS" paramType="in" valueType="decimal" />
+<e3:OperationParam name="APPOINTMENT" paramType="in" valueType="string" />
+<e3:OperationParam name="SECOND_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="FIRST_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="LAST_NAME" paramType="in" valueType="string" />
+<e3:OperationParam name="KEY_OFFICIAL" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA416101A7" name="Справочник Да/Нет" keyName="KEY" featureName="V_S_YES_NO" nameValueModule="loadObjectDataModule" nameValueMethod="PROPERTY_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBB9A6E021E" role_B="KEY_EXIST_CONTRACT" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBBB3FA02E4" role_B="KEY_EXIST_CONTRACT" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EC245F90144" role_B="KEY_PRESENCE" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA423901AC" stereoType="" name="Сведения справочника да/нет" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA437D03A4" stereoType="" name="Нименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_NAME" table_name="V_S_YES_NO" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA437D03D1" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_LABEL" table_name="V_S_YES_NO" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA437E0007" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_S_YES_NO" order_number="30" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA437E0022" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_S_YES_NO" order_number="40" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA437E0042" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="REMARK" table_name="V_S_YES_NO" order_number="50" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA474301E1" name="Тип гаражно-строительного кооператива" keyName="KEY" featureName="V_S_TYPE_SOCIETY" nameValueModule="loadObjectDataModule" nameValueMethod="PROPERTY_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBB9A610392" role_B="KEY_TYPE_SOCIETY" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBBB3ED031E" role_B="KEY_TYPE_SOCIETY" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA47A901AD" stereoType="" name="Сведения типа гаражно-строительного кооператива" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA481F0360" stereoType="" name="Нименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_NAME" table_name="V_S_TYPE_SOCIETY" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA481F0387" stereoType="" name="Краткое наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="PROPERTY_LABEL" table_name="V_S_TYPE_SOCIETY" order_number="20" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA481F03A2" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_S_TYPE_SOCIETY" order_number="30" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA481F03C0" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_S_TYPE_SOCIETY" order_number="40" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA481F03DD" stereoType="" name="Примечание" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="REMARK" table_name="V_S_TYPE_SOCIETY" order_number="50" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA56B4027D" name="Признак формализации" keyName="KEY_SIGN_FORIML" featureName="V_GSK_S_SIGN_FORIMLIZATION" nameValueModule="loadObjectDataModule" nameValueMethod="SIGN_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBA7C3F0339" role_B="SIGN_FORMALIZATION" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA6225002A" stereoType="" name="Сведения признака формализации" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA628C013B" stereoType="" name="Нименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="SIGN_NAME" table_name="V_GSK_S_SIGN_FORIMLIZATION" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA63FF0036" name="Адрес" keyName="ADDRESS_KEY" featureName="V_GSK_ADDRESS" nameValueModule="loadObjectDataModule" nameValueMethod="Q_ADDRESS">
+<e:AssociationsObject>
+<e:AssociationObjectA GUID="5EBA7C3F0339" role_A="ADDRESS_KEY" role_B="SIGN_FORMALIZATION" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_ADDRESS" associationID="ADDRESS_KEY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA62BD0113" name="Формализованный адрес?"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA56B4027D" name="Признак формализации" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e:AssociationObjectA GUID="5EBA8BED013A" role_A="ADDRESS_KEY" role_B="STREET_HOUSE_KEY" role_A_caption="" order_number="" flag_display="0" addFromTree="0" operationModule="" createMethod="" deleteMethod="" component="operationModule" featureName="V_GSK_ADDRESS" associationID="ADDRESS_KEY">
+<e3:Qualifiers>
+<e3:Qualifier searchGUID="5EBA83ED0270" name="Адрес дома"></e3:Qualifier>
+</e3:Qualifiers>
+<e3:AssociateItem GUID="5EBA7F4002FC" name="Дом на улице" stereoType="Object" ></e3:AssociateItem>
+</e:AssociationObjectA>
+<e3:AssociationObjectB GUID="5EBBABBE01F4" role_B="KEY_ADDRESS" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA78FD00A8" stereoType="" name="Сведения адреса" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA79DF0242" stereoType="Directory" name="Формализованный адрес?" dmodule="dropDownObjectList" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="SIGN_FORMALIZATION" table_name="V_GSK_ADDRESS" order_number="10" necessarily="1" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBA7C3F0339" PropertiesGUID="5EBA6225002A" PropertyGUID="5EBA628C013B"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBA7A2F027A" stereoType="Ref" name="Адрес дома" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="STREET_HOUSE_KEY" table_name="V_GSK_ADDRESS" order_number="20" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="5EBA8BED013A" PropertiesGUID="5EBA7FC0008F" PropertyGUID="5EBA837200D5"></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDEB803D3" stereoType="" name="Квартира: номер" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FLAT_NUMBER" table_name="V_GSK_ADDRESS" order_number="30" necessarily="" attrType="decimal" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDF7E02E3" stereoType="" name="Квартира: литера" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="FLAT_LITER" table_name="V_GSK_ADDRESS" order_number="40" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB60178" stereoType="" name="Неформализованый адрес" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DESCRIPTION" table_name="V_GSK_ADDRESS" order_number="50" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB6019A" stereoType="" name="НДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_BEGIN" table_name="V_GSK_ADDRESS" order_number="60" necessarily="1" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB601BD" stereoType="" name="КДЗ" dmodule="maskField" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_END" table_name="V_GSK_ADDRESS" order_number="70" necessarily="" attrType="date" flag_display="1" mask="99.99.9999">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB601E5" stereoType="" name="Дата изменения" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="DATE_UPDATE" table_name="V_GSK_ADDRESS" order_number="300" necessarily="" attrType="dateTime" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB6020F" stereoType="" name="Оператор" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="USER1" table_name="V_GSK_ADDRESS" order_number="310" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+<e:Property GUID="5EBCDFB60240" stereoType="" name="Наименование адреса" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="Q_ADDRESS" table_name="V_GSK_ADDRESS" order_number="" necessarily="" attrType="string" flag_display="0" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations>
+<e3:Operation  GUID="5EBBA4090243" stereoType="OnDo" operationMethod="SP_GSK_ADDRESS" operationModule="PCG_GSK_S_DIRECTORY" component="operationModule">
+<e3:OperationParams>
+<e3:OperationParam name="DATE_END" paramType="in" valueType="date" />
+<e3:OperationParam name="DATE_BEGIN" paramType="in" valueType="date" />
+<e3:OperationParam name="DESCRIPTION" paramType="in" valueType="string" />
+<e3:OperationParam name="FLAT_LITER" paramType="in" valueType="string" />
+<e3:OperationParam name="FLAT_NUMBER" paramType="in" valueType="decimal" />
+<e3:OperationParam name="STREET_HOUSE_KEY" paramType="in" valueType="decimal" />
+<e3:OperationParam name="SIGN_FORMALIZATION" paramType="in" valueType="decimal" />
+<e3:OperationParam name="ADDRESS_KEY" paramType="in" valueType="decimal" />
+</e3:OperationParams>
+<e3:Modifiers>
+<e3:Modifier title="Добавить" modifyType="I" />
+<e3:Modifier title="Сохранить Изменения" modifyType="U" />
+<e3:Modifier title="Удалить" modifyType="D" />
+</e3:Modifiers>
+</e3:Operation>
+</e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA7F4002FC" name="Дом на улице" keyName="STREET_HOUSE_KEY" featureName="V_STREET_HOUSE_ALL" nameValueModule="loadObjectDataModule" nameValueMethod="STREET_HOUSE">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBA8BED013A" role_B="STREET_HOUSE_KEY" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA7FC0008F" stereoType="" name="Сведения дома на улице" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA837200D5" stereoType="" name="Адрес дома" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="STREET_HOUSE" table_name="V_STREET_HOUSE_ALL" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBA852C00A6" name="Улица" keyName="STREET_KEY" featureName="V_STREET" nameValueModule="loadObjectDataModule" nameValueMethod="STREET">
+<e:AssociationsObject></e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBA85FC029C" stereoType="" name="Сведения улицы" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBA863600CA" stereoType="" name="Наименование улицы" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="STREET" table_name="V_STREET" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+<e:Object GUID="5EBB91FD0133" name="Район" keyName="KEY" featureName="V_S_CITY_DISTRICT" nameValueModule="loadObjectDataModule" nameValueMethod="CITY_DISTRICT_NAME">
+<e:AssociationsObject>
+<e3:AssociationObjectB GUID="5EBB9A65021F" role_B="KEY_DISTRICT" typeRoleGUID=""></e3:AssociationObjectB>
+<e3:AssociationObjectB GUID="5EBBB3F30384" role_B="KEY_DISTRICT" typeRoleGUID=""></e3:AssociationObjectB>
+</e:AssociationsObject>
+<e:PropertiesGrps>
+<e:Properties  GUID="5EBB928E02DF" stereoType="" name="Сведения района" dmodule="aPropertyViewer" type_link="P" order_number="10" flag_display="1">
+<e:Attributes>
+<e:Property GUID="5EBB92B102FC" stereoType="" name="Наименование" dmodule="" lmodule="prMxSvsUC.cnXMLMetadataProduser" attrName="CITY_DISTRICT_NAME" table_name="V_S_CITY_DISTRICT" order_number="10" necessarily="" attrType="string" flag_display="1" mask="">
+<e3:Property_Ref associationGUID="" PropertiesGUID="" PropertyGUID=""></e3:Property_Ref>
+</e:Property>
+</e:Attributes>
+<e3:Operations></e3:Operations>
+</e:Properties>
+</e:PropertiesGrps>
+<e3:ReportsGrps></e3:ReportsGrps>
+</e:Object>
+</e:Objects>
+<e3:Reports>
+<e3:Report  GUID="5EC3C0830352" name="Список приглашенных участников совещания" reporter="jasperReporter" template="report_aisgsk_coference.jrxml">
+<e3:ReportParams>
+<e3:ReportParam  name="KEY_CONFERENCE" title="Ключ совещания" searchGUID="" valueType="decimal" mask="" visible="false" required="true" orderNumber="10" defValueSource="" searchAttribute="param" />
+</e3:ReportParams>
+</e3:Report>
+<e3:Report  GUID="5ECCE657034B" name="Протокол совещания" reporter="jasperReporter" template="report_aisgsk_protocol.jrxml">
+<e3:ReportParams>
+<e3:ReportParam  name="KEY_CONFERENCE" title="Ключ совещания" searchGUID="" valueType="decimal" mask="" visible="false" required="true" orderNumber="10" defValueSource="" searchAttribute="param" />
+</e3:ReportParams>
+</e3:Report>
+<e3:Report  GUID="60A3906F015E" name="Входят в объединение" reporter="jasperReporter" template="ALL_IN_UNITY.jrxml">
+<e3:ReportParams>
+<e3:ReportParam  name="ANCESTOR_KEY" title="Объединение" searchGUID="60A391B40135" valueType="decimal" mask="" visible="true" required="true" orderNumber="10" defValueSource="" searchAttribute="param" />
+</e3:ReportParams>
+</e3:Report>
+</e3:Reports>
+<e3:Searches>
+<e3:Search  GUID="5EBCED6803B4" name="Поиск ОГСК" moduleName="searchModule" searchObjectGUID="5EBB94DA01B8" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT VGGS.KEY_GB_SOCIETY as SearchKey,       VGGS.GBS_NAME as SearchName  FROM V_GSK_GB_SOCIETY vggs WHERE VGGS.KEY_TYPE_SOCIETY = 58602order by VGGS.KEY_GB_SOCIETY"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="60A391B40135" name="Поиск объединений" moduleName="searchModule" searchObjectGUID="5EBB94DA01B8" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT VGS.KEY as SearchKey,       VGS.GBS_NAME as SearchName  FROM V_GB_SOCIETY vgs WHERE VGS.KEY_TYPE_SOCIETY IN (58602, 58604)ORDER BY VGS.KEY"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EB4F94103D9" name="по параметрам" moduleName="searchModule" searchObjectGUID="5EB3B333010E" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT VGSO.KEY_OFFICIAL as SearchKey,       VGSO.LAST_NAME,       VGSO.FIRST_NAME,       VGSO.SECOND_NAME,       VGSO.APPOINTMENT,       VGSO.KEY_ADDRESS,       VGSO.PHONE,       VGSO.EMAIL,       VGSO.DATE_BEGIN,       VGSO.DATE_END,       VGSO.DESCRIPTION  FROM V_GSK_S_OFFICIAL vgso WHERE (UPPER(TRIM(VGSO.LAST_NAME)) LIKE &apos;%&apos; || UPPER(TRIM(:LAST_NAME)) || &apos;%&apos; OR :LAST_NAME IS NULL)       AND (UPPER(TRIM(VGSO.FIRST_NAME)) LIKE &apos;%&apos; || UPPER(TRIM(:FIRST_NAME)) || &apos;%&apos; OR :FIRST_NAME IS NULL)       AND (UPPER(TRIM(VGSO.SECOND_NAME)) LIKE &apos;%&apos; || UPPER(TRIM(:SECOND_NAME)) || &apos;%&apos; OR :SECOND_NAME IS NULL)       AND (TRIM(VGSO.APPOINTMENT) LIKE &apos;%&apos; || TRIM(:APPOINTMENT) || &apos;%&apos; OR :APPOINTMENT IS NULL)       AND (UPPER(TRIM(VGSO.PHONE)) LIKE &apos;%&apos; || UPPER(TRIM(:PHONE)) || &apos;%&apos; OR :PHONE IS NULL)       AND (UPPER(TRIM(VGSO.EMAIL)) LIKE &apos;%&apos; || UPPER(TRIM(:EMAIL)) || &apos;%&apos; OR :EMAIL IS NULL)       AND ((TRUNC(VGSO.DATE_BEGIN) &gt;= :DATE_BEGIN_OT OR :DATE_BEGIN_OT IS NULL)           AND (TRUNC(VGSO.DATE_BEGIN) &lt;= :DATE_BEGIN_DO OR :DATE_BEGIN_DO IS NULL))       AND ((TRUNC(VGSO.DATE_END) &gt;= :DATE_END_OT OR :DATE_END_OT IS NULL)           AND (TRUNC(VGSO.DATE_END) &lt;= :DATE_END_DO OR :DATE_END_DO IS NULL))order by VGSO.LAST_NAME"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+<e3:SearchParam  mask="" name="LAST_NAME" orderNumber="10" required="false" title="Фамилия" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="FIRST_NAME" orderNumber="20" required="false" title="Имя" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="SECOND_NAME" orderNumber="30" required="false" title="Отчество" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="APPOINTMENT" orderNumber="40" required="false" title="Должность" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="PHONE" orderNumber="50" required="false" title="Телефон" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="EMAIL" orderNumber="60" required="false" title="Электронная почта" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="99.99.9999" name="DATE_BEGIN_OT" orderNumber="70" required="false" title="НДЗ от" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="99.99.9999" name="DATE_BEGIN_DO" orderNumber="80" required="false" title="НДЗ до" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="99.99.9999" name="DATE_END_OT" orderNumber="90" required="false" title="КДЗ от" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="99.99.9999" name="DATE_END_DO" orderNumber="100" required="false" title="КДЗ до" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="LAST_NAME" orderNumber="20" title="Фамилия_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="FIRST_NAME" orderNumber="30" title="Имя_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SECOND_NAME" orderNumber="40" title="Отчество_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="APPOINTMENT" orderNumber="50" title="Должность_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="PHONE" orderNumber="60" title="Телефон_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="EMAIL" orderNumber="70" title="Электронная  почта" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DATE_BEGIN" orderNumber="80" title="НДЗ" valueType="date" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DATE_END" orderNumber="90" title="КДЗ" valueType="date" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DESCRIPTION" orderNumber="100" title="Примечание" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBBC39A02A1" name="по  параметрам" moduleName="searchModule" searchObjectGUID="5EBB94DA01B8" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT VGGS.KEY_GB_SOCIETY as SearchKey,       VGGS.KEY_TYPE_SOCIETY,       (select V.PROPERTY_NAME          from V_S_TYPE_SOCIETY v         where V.KEY = VGGS.KEY_TYPE_SOCIETY) as TYPE_SOCIETY,       VGGS.GBS_NAME,       VGGS.GBS_LABEL,       VGGS.GBS_ADDRESS,       VGGS.KEY_DISTRICT,       (select V.CITY_DISTRICT_NAME          from V_S_CITY_DISTRICT v         where V.KEY = VGGS.KEY_DISTRICT) as DISTRICT,       VGGS.KEY_OFFICIAL,       (select V.FIO          from V_GSK_S_OFFICIAL v         where V.KEY_OFFICIAL = VGGS.KEY_OFFICIAL) as OFFICIAL,       (select V.PHONE          from V_GSK_S_OFFICIAL v         where V.KEY_OFFICIAL = VGGS.KEY_OFFICIAL) as PHONE,       VGGS.INN,       VGGS.CADASTRAL_NUMBER,       VGGS.KEY_EXIST_CONTRACT,       (select V.PROPERTY_NAME          from V_S_YES_NO v         where V.KEY = VGGS.KEY_EXIST_CONTRACT) as EXIST_CONTRACT,       VGGS.KEY_CAUSE,       (select V.PROPERTY_NAME          from V_GSK_S_CAUSE v         where V.KEY_CAUSE = VGGS.KEY_CAUSE) as CAUSE,       VGGS.DATE_BEGIN,       VGGS.DATE_END,       VGGS.DESCRIPTION  FROM V_GSK_GB_SOCIETY vggs WHERE (VGGS.KEY_TYPE_SOCIETY = :KEY_TYPE_SOCIETY OR :KEY_TYPE_SOCIETY IS NULL)       AND (UPPER(TRIM(VGGS.GBS_NAME)) LIKE &apos;%&apos; || UPPER(TRIM(:GBS_NAME)) || &apos;%&apos; OR :GBS_NAME IS NULL)       AND (UPPER(TRIM(VGGS.GBS_ADDRESS)) LIKE &apos;%&apos; || UPPER(TRIM(:GBS_ADDRESS)) || &apos;%&apos; OR :GBS_ADDRESS IS NULL)       AND (VGGS.KEY_DISTRICT = :KEY_DISTRICT OR :KEY_DISTRICT IS NULL)       AND (VGGS.KEY_OFFICIAL = :KEY_OFFICIAL OR :KEY_OFFICIAL IS NULL)       AND (UPPER(VGGS.INN) LIKE &apos;%&apos; || UPPER(:INN) || &apos;%&apos; OR :INN IS NULL)       AND (UPPER(VGGS.CADASTRAL_NUMBER) LIKE &apos;%&apos; || UPPER(:CADASTRAL_NUMBER) || &apos;%&apos; OR :CADASTRAL_NUMBER IS NULL)       AND ((VGGS.KEY_EXIST_CONTRACT = 14701 and :KEY_EXIST_CONTRACT = 14701)               OR (VGGS.KEY_EXIST_CONTRACT = 14702 and :KEY_EXIST_CONTRACT = 14702 or VGGS.KEY_EXIST_CONTRACT IS NULL and :KEY_EXIST_CONTRACT = 14702)              OR (VGGS.KEY_EXIST_CONTRACT = 14701 and :KEY_EXIST_CONTRACT IS NULL OR VGGS.KEY_EXIST_CONTRACT = 14702 and :KEY_EXIST_CONTRACT IS NULL                   OR VGGS.KEY_EXIST_CONTRACT is null and :KEY_EXIST_CONTRACT IS NULL))       AND (VGGS.KEY_CAUSE = :KEY_CAUSE OR :KEY_CAUSE IS NULL)       AND ((TRUNC(VGGS.DATE_BEGIN) &gt;= :DATE_BEGIN_OT OR :DATE_BEGIN_OT IS NULL)           AND (TRUNC(VGGS.DATE_BEGIN) &lt;= :DATE_BEGIN_DO OR :DATE_BEGIN_DO IS NULL))       AND ((TRUNC(VGGS.DATE_END) &gt;= :DATE_END_OT OR :DATE_END_OT IS NULL)           AND (TRUNC(VGGS.DATE_END) &lt;= :DATE_END_DO OR :DATE_END_DO IS NULL))order by VGGS.KEY_GB_SOCIETY"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+<e3:SearchParam  mask="" name="KEY_TYPE_SOCIETY" orderNumber="10" required="false" title="Тип ГСК/ОГСК" valueType="decimal" visible="true" searchGUID="5EBA499803A1" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="GBS_NAME" orderNumber="20" required="false" title="Наименование ГСК/ОГСК" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="GBS_ADDRESS" orderNumber="30" required="false" title="Адрес ГСК" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_DISTRICT" orderNumber="40" required="false" title="Район" valueType="decimal" visible="true" searchGUID="5EBB94320023" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_OFFICIAL" orderNumber="50" required="false" title="Председатель ГСК/Представитель ОГСК" valueType="decimal" visible="true" searchGUID="5EB3BB19000D" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="INN" orderNumber="60" required="false" title="ИНН" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="CADASTRAL_NUMBER" orderNumber="70" required="false" title="Кадастровый номер" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_EXIST_CONTRACT" orderNumber="80" required="false" title="Наличие договора с РО" valueType="decimal" visible="true" searchGUID="5EBA43AF0045" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_CAUSE" orderNumber="90" required="false" title="Причина смены председателя/представителя" valueType="decimal" visible="true" searchGUID="5EB3AF870081" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DATE_BEGIN_OT" orderNumber="100" required="false" title="НДЗ от" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DATE_BEGIN_DO" orderNumber="110" required="false" title="НДЗ до" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DATE_END_OT" orderNumber="120" required="false" title="КДЗ от" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DATE_END_DO" orderNumber="130" required="false" title="КДЗ до" valueType="date" visible="true" searchGUID="" ></e3:SearchParam>
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="TYPE_SOCIETY" orderNumber="20" title="Тип  ГСК/ОГСК" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="GBS_NAME" orderNumber="30" title="Наименование  ГСК/ОГСК" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="GBS_ADDRESS" orderNumber="40" title="Адрес  ГСК" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DISTRICT" orderNumber="50" title="Район_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="OFFICIAL" orderNumber="60" title="Председатель  ГСК/Представитель  ОГСК" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="INN" orderNumber="70" title="ИНН_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="CADASTRAL_NUMBER" orderNumber="80" title="Кадастровый  номер" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="EXIST_CONTRACT" orderNumber="90" title="Наличие  догоаора с РО" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="CAUSE" orderNumber="100" title="Причина  смены председателя/представителя" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DATE_BEGIN" orderNumber="110" title="НДЗ" valueType="date" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DATE_END" orderNumber="120" title="КДЗ" valueType="date" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DESCRIPTION" orderNumber="130" title="Примечание" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="GBS_LABEL" orderNumber="31" title="Краткое наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="PHONE" orderNumber="61" title="Телефон" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBE3398033F" name="по   параметрам" moduleName="searchModule" searchObjectGUID="5EBE2F60010A" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT VGC.KEY_CONFERENCE as SearchKey,       VGC.THEME_CONFERENCE,       VGC.DATETIME_CONFERENCE,       VGC.ADDRESS_CONFERENCE,       VGC.CABINET,       VGC.KEY_CHAIRMAN,       (select V.FIO          from V_GSK_S_OFFICIAL v         where V.KEY_OFFICIAL = VGC.KEY_CHAIRMAN) as CHAIRMAN,       VGC.KEY_SECRETARY,       (select V.FIO          from V_GSK_S_OFFICIAL v         where V.KEY_OFFICIAL = VGC.KEY_SECRETARY) as SECRETARY,       VGC.DESCRIPTION  FROM V_GSK_CONFERENCE vgc WHERE (UPPER(TRIM(VGC.THEME_CONFERENCE)) LIKE &apos;%&apos; || UPPER(TRIM(:THEME_CONFERENCE)) || &apos;%&apos; OR :THEME_CONFERENCE IS NULL)       AND (UPPER(VGC.DATETIME_CONFERENCE) LIKE &apos;%&apos; || UPPER(:DATETIME_CONFERENCE) || &apos;%&apos; OR :DATETIME_CONFERENCE IS NULL)       AND (UPPER(TRIM(VGC.ADDRESS_CONFERENCE)) LIKE &apos;%&apos; || UPPER(TRIM(:ADDRESS_CONFERENCE)) || &apos;%&apos; OR :ADDRESS_CONFERENCE IS NULL)       AND (UPPER(TRIM(VGC.CABINET)) LIKE &apos;%&apos; || UPPER(TRIM(:CABINET)) || &apos;%&apos; OR :CABINET IS NULL)       AND (VGC.KEY_CHAIRMAN = :KEY_CHAIRMAN OR :KEY_CHAIRMAN IS NULL)       AND (VGC.KEY_SECRETARY = :KEY_SECRETARY OR :KEY_SECRETARY IS NULL)order by VGC.KEY_CONFERENCE"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+<e3:SearchParam  mask="" name="THEME_CONFERENCE" orderNumber="10" required="false" title="Тема совещания" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DATETIME_CONFERENCE" orderNumber="20" required="false" title="Дата и время совещания" valueType="dateTime" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="ADDRESS_CONFERENCE" orderNumber="30" required="false" title="Адрес" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="CABINET" orderNumber="40" required="false" title="Кабинет" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_CHAIRMAN" orderNumber="50" required="false" title="Председатель" valueType="decimal" visible="true" searchGUID="5EB3BB19000D" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="KEY_SECRETARY" orderNumber="60" required="false" title="Секретарь (тот, кто ведет протокол)" valueType="decimal" visible="true" searchGUID="5EB3BB19000D" ></e3:SearchParam>
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="THEME_CONFERENCE" orderNumber="20" title="Тима  совещания" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DATETIME_CONFERENCE" orderNumber="30" title="Дата и время  совещания" valueType="dateTime" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="ADDRESS_CONFERENCE" orderNumber="40" title="Адрес_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="CABINET" orderNumber="50" title="Кабинет_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="CHAIRMAN" orderNumber="60" title="Председатель_" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SECRETARY" orderNumber="70" title="Секретарь  (тот, кто ведет протокол)" valueType="string" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="DESCRIPTION" orderNumber="80" title="Примечание" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EB3AF870081" name="Причины смены председателя/представителя (поиск)" moduleName="searchModule" searchObjectGUID="5EB3A29803BA" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select GSC.KEY_CAUSE as SearchKey      ,GSC.PROPERTY_NAME as SearchName  from V_GSK_S_CAUSE gscorder by GSC.PROPERTY_NAME"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EB3B04C0021" name="Действующие причины смены председателя/представителя (поиск)" moduleName="searchModule" searchObjectGUID="5EB3A29803BA" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select GSC.KEY_CAUSE as SearchKey      ,GSC.PROPERTY_NAME as SearchName  from V_GSK_S_CAUSE gsc where GSC.DATE_END is nullorder by GSC.PROPERTY_NAME"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EB3BB160243" name="Действующие должностные лица (поиск)" moduleName="searchModule" searchObjectGUID="5EB3B333010E" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select GSO.KEY_OFFICIAL as SearchKey      ,GSO.FIO_APPOINTMENT as SearchName  from V_GSK_S_OFFICIAL gso where GSO.DATE_END is nullorder by GSO.FIO_APPOINTMENT"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EB3BB19000D" name="Должностные лица (поиск)" moduleName="searchModule" searchObjectGUID="5EB3B333010E" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select GSO.KEY_OFFICIAL as SearchKey      ,GSO.FIO_APPOINTMENT as SearchName  from V_GSK_S_OFFICIAL gsoorder by GSO.FIO"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBA43AF0045" name="Да/Нет (поиск)" moduleName="searchModule" searchObjectGUID="5EBA416101A7" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select V.KEY as SearchKey      ,V.PROPERTY_NAME as SearchName  from V_S_YES_NO v"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBA499803A1" name="Тип гаражно-строительного кооператива (поиск)" moduleName="searchModule" searchObjectGUID="5EBA474301E1" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select V.KEY as SearchKey      ,V.PROPERTY_NAME as SearchName  from V_S_TYPE_SOCIETY v"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBA62BD0113" name="Признак формализации (поиск)" moduleName="searchModule" searchObjectGUID="5EBA56B4027D" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select V.KEY_SIGN_FORIML as SearchKey      ,V.SIGN_NAME as SearchName  from V_GSK_S_SIGN_FORIMLIZATION v"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBA83ED0270" name="Поиск дома на улице" moduleName="searchModule" searchObjectGUID="5EBA7F4002FC" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT STREET_KEY,        STREET_HOUSE,       STREET_HOUSE_KEY,        HOUSE_NUMBER  FROM V_STREET_HOUSE_ALL WHERE (STREET_KEY = :STREET_KEY OR :STREET_KEY IS NULL)        AND (HOUSE_NUMBER = :HOUSE_NUMBER OR :HOUSE_NUMBER IS NULL)"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+<e3:SearchParam  mask="" name="STREET_KEY" orderNumber="" required="false" title="Улица" valueType="decimal" visible="true" searchGUID="5EBA866100F4" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="HOUSE_NUMBER" orderNumber="" required="false" title="Номер дома" valueType="decimal" visible="true" searchGUID="" ></e3:SearchParam>
+</e3:SearchParams>
+<e3:SearchResult idObjectName="STREET_HOUSE_KEY" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="STREET_HOUSE_KEY" orderNumber="" title="Идентификатор" valueType="decimal" visible="true"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="STREET_HOUSE" orderNumber="" title="Адрес" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBA866100F4" name="Улица (поиск)" moduleName="searchModule" searchObjectGUID="5EBA852C00A6" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT V.STREET_KEY as SearchKey      ,V.STREET as SearchName  FROM V_STREET v WHERE V.CITY_KEY = 1       AND V.DATE_END IS NULLORDER BY V.STREET"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBB93110250" name="Действующие районы (поиск)" moduleName="searchModule" searchObjectGUID="5EBB91FD0133" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT V.KEY as SearchKey      ,V.CITY_DISTRICT_NAME as SearchName  FROM V_S_CITY_DISTRICT v WHERE V.DATE_END IS NULLORDER BY V.CITY_DISTRICT_NAME"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBB94320023" name="Все районы (поиск)" moduleName="searchModule" searchObjectGUID="5EBB91FD0133" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="SELECT V.KEY as SearchKey      ,V.CITY_DISTRICT_NAME as SearchName  FROM V_S_CITY_DISTRICT vORDER BY V.CITY_DISTRICT_NAME"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="SearchName" orderNumber="20" title="Наименование" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+<e3:Search  GUID="5EBBA74A03C4" name="Поиск адреса" moduleName="searchModule" searchObjectGUID="5EBA63FF0036" maxObjectCount="0" reportsGroupGUID="null" >
+<e3:SearchQuery query="select V.ADDRESS_KEY as SearchKey      ,V.Q_ADDRESS  from V_GSK_ADDRESS v where (V.STREET_KEY = :STREET_KEY or :STREET_KEY is null)   and (upper(V.HOUSE_NUMBER) like &apos;%&apos; || upper(:HOUSE_NUMBER) || &apos;%&apos; or :HOUSE_NUMBER is null)   and (upper(trim(V.DESCRIPTION)) like &apos;%&apos; || upper(trim(:DESCRIPTION_ADR)) || &apos;%&apos; or :DESCRIPTION_ADR is null)order by V.Q_ADDRESS"></e3:SearchQuery>
+<e3:SearchParams minParamCount="0">
+<e3:SearchParam  mask="" name="STREET_KEY" orderNumber="10" required="false" title="Улица" valueType="decimal" visible="true" searchGUID="5EBA866100F4" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="HOUSE_NUMBER" orderNumber="20" required="false" title="Номер дома" valueType="decimal" visible="true" searchGUID="" ></e3:SearchParam>
+<e3:SearchParam  mask="" name="DESCRIPTION_ADR" orderNumber="30" required="false" title="Неформализованный адрес" valueType="string" visible="true" searchGUID="" ></e3:SearchParam>
+</e3:SearchParams>
+<e3:SearchResult idObjectName="SearchKey" moduleName="aBrowser" objectGUIDName="ResultGUID" >
+<e3:SearchResultSet>
+<e3:SearchResultProperty  name="SearchKey" orderNumber="10" title="Ключ" valueType="decimal" visible="false"></e3:SearchResultProperty>
+<e3:SearchResultProperty  name="Q_ADDRESS" orderNumber="20" title="Адрес дома" valueType="string" visible="true"></e3:SearchResultProperty>
+</e3:SearchResultSet>
+</e3:SearchResult>
+</e3:Search>
+</e3:Searches>
+<e3:SearchMenu>
+<e3:SearchGrp GUID="5EB4F91B0376" name="Поиск должностного лица">
+<e3:AssociateItem GUID="5EB4F94103D9" name="" stereoType="Query" ></e3:AssociateItem>
+</e3:SearchGrp>
+<e3:SearchGrp GUID="5EBBC38003CC" name="Поиск ГСК/ОГСК">
+<e3:AssociateItem GUID="5EBBC39A02A1" name="" stereoType="Query" ></e3:AssociateItem>
+</e3:SearchGrp>
+<e3:SearchGrp GUID="5EBE337C0208" name="Поиск совещания">
+<e3:AssociateItem GUID="5EBE3398033F" name="" stereoType="Query" ></e3:AssociateItem>
+</e3:SearchGrp>
+</e3:SearchMenu>
+<e3:Maps></e3:Maps>
+</e3:Category>
+</md:E3>
