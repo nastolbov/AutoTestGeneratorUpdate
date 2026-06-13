@@ -1192,16 +1192,13 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(150);");
     }
 
-    /** Emits the «no unsaved (modified) records» honest gate after an inline save. */
+    /** Emits the «no unsaved (modified) records» honest gate after an inline save (scoped to __t2grid). */
     private void writeUnsavedGate(JavaFileWriter w, String label) {
         w.writeLine("Long unsavedRecs = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { if (typeof Ext==='undefined') return -1; var grids=[];\"");
-        w.writeLine("    + \"if (Ext.ComponentQuery && Ext.ComponentQuery.query) grids=Ext.ComponentQuery.query('editorgrid,gridpanel,grid,propertygrid');\"");
-        w.writeLine("    + \"else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore) grids.push(c);} }\"");
-        w.writeLine("    + \"var total=0; for (var i=0;i<grids.length;i++){ try{ var s=grids[i].getStore(); if(s&&s.getModifiedRecords){ total+=s.getModifiedRecords().length; } }catch(e){} } return total; } catch(e){ return -1; }\");");
-        w.writeLine("System.out.println(\"" + label + ": несохранённых (modified) записей = \" + unsavedRecs);");
+        w.writeLine("    \"try { var g=window.__t2grid; if(!g || !g.getStore) return -1; var s=g.getStore(); var m=s.getModifiedRecords?s.getModifiedRecords():[]; return m.length; } catch(e){ return -1; }\");");
+        w.writeLine("System.out.println(\"" + label + ": несохранённых (modified) записей в гриде = \" + unsavedRecs);");
         w.writeLine("assertTrue(unsavedRecs != null && unsavedRecs == 0,");
-        w.writeLine("    \"" + label + ": после save осталось \" + unsavedRecs + \" несохранённых записей в гриде — сохранение НЕ прошло (сервер отклонил или save не сработал)\");");
+        w.writeLine("    \"" + label + ": после save осталось \" + unsavedRecs + \" несохранённых записей — save не закоммитился (сервер отклонил, напр. SP trunc(date), или клик save не сработал)\");");
     }
 
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
