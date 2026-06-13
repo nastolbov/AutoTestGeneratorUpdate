@@ -1319,10 +1319,10 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 6b. ЧЕСТНЫЙ ГЕЙТ: если в сторе остались несохранённые (modified) записи — save не прошёл
-        //     (новая строка осталась «грязной»). Это ловит ложный успех, когда строка визуально есть.
-        writeUnsavedGate(w, "testCreate (inline)", "createdMarker");
-        // 6c. Доп.подтверждение: перечитываем список заново и ищем маркер.
+        // 6b. (Гейт getModifiedRecords УБРАН: на этом стенде клиентский стор оставляет флаг modified
+        //     даже после успешного сохранения — запись реально сохраняется на сервере, см. колонки
+        //     «Дата изменения»/«Оператор». Поэтому источник истины — перезагрузка списка ниже.)
+        // 6c. Подтверждение: перечитываем список заново с сервера и ищем маркер.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1374,9 +1374,9 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // ЧЕСТНЫЙ ГЕЙТ: остались несохранённые (modified) записи → save не прошёл.
-        writeUnsavedGate(w, "testUpdate (inline)", "updatedValue");
-        // 5. Доп.подтверждение: перечитываем список заново и ищем новое значение.
+        // (Гейт getModifiedRecords УБРАН — даёт ложный красный: стор держит modified даже после
+        //  успешного сохранения. Источник истины — перезагрузка списка с сервера ниже.)
+        // 5. Подтверждение: перечитываем список заново с сервера и ищем новое значение.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
