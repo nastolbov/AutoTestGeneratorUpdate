@@ -1282,6 +1282,7 @@ public class TestClassWriter {
         }
         writeOpenCellEditorScript(w, rowExpr);
         w.openBlock("if (editor == null)");
+        w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" редактор не открылся (skip)\");");
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("String tag = editor.getTagName();");
@@ -1310,30 +1311,29 @@ public class TestClassWriter {
             w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return; var cm=g.getColumnModel(); var di=cm.getDataIndex?cm.getDataIndex(arguments[1]):null; if(di){ rec.set(di, arguments[2]); } }catch(e){}\", (long) (" + rowExpr + "), col, toType);");
             w.writeLine("Thread.sleep(60);");
         } else {
-            // CREATE: ЧИСТАЯ КЛАВИАТУРА (как просил заказчик — «с клавы, а не вставкой»).
-            // Строка НОВАЯ и ПУСТАЯ — чистить нечего. Ctrl+A в ExtJS inline-редакторе нестабилен
-            // (закрывает/расфокусирует редактор, sendKeys уходит «в воздух» → строка остаётся
-            // пустой) — поэтому НЕ используем его. Физически кликаем в ячейку (фокус), печатаем
-            // значение с клавы и жмём ENTER — это штатно коммитит правку → строка краснеет.
-            // Никакого JS value='' и record.set: значение вводится ТОЛЬКО клавиатурой.
-            w.openBlock("try");
-            w.writeLine("editor.click();");
-            w.writeLine("Thread.sleep(80);");
-            w.closeBlock();
-            w.openBlock("catch (Exception ignored)");
-            w.closeBlock();
+            // CREATE: ввод С КЛАВИАТУРЫ. Это рабочий механизм (им же заполняется update-ветка,
+            // и в раунде 2 он реально заполнял ячейки): value='' + dispatch('input') «праймит»/
+            // чистит поле, затем sendKeys печатает значение С КЛАВЫ, ENTER коммитит. Ctrl+A и
+            // editor.click() НЕ используем — на inline-editorgrid редактор так терял фокус и
+            // sendKeys уходил «в воздух» → строка сохранялась пустой. record.set («вставку»)
+            // НЕ добавляем: персист — через ENTER-commit, как в способе 1 (модалка работает без него).
+            w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+            w.writeLine("Thread.sleep(60);");
             w.writeLine("editor.sendKeys(toType);");
             w.writeLine("Thread.sleep(150);");
             w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
             w.writeLine("Thread.sleep(200);");
-            // Закрываем редактор этой ячейки штатно (без отмены), чтобы значение зафиксировалось
-            // в записи и грид пометил строку изменённой (красной).
             w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
             w.writeLine("Thread.sleep(120);");
             // На стенде коммит ячейки (особенно даты) может сразу выбросить серверный попап
             // SP_GSK_S_CAUSE/trunc(date), который перехватывает клики и блокирует дозаполнение.
             // Закрываем его (OK) и продолжаем заполнять остальные поля.
             w.writeLine("if (dismissErrorPopup()) System.out.println(\"  [inline-fill] серверный попап закрыт, продолжаем заполнение\");");
+            // Диагностика: читаем обратно значение записи — видно, долетел ли ввод (если пусто,
+            // проблема не в маске, а в фокусе/редакторе, и без record.set этот грид не принимает).
+            w.writeLine("Object backVal = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+            w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return '<no-rec>'; var cm=g.getColumnModel(); var di=cm.getDataIndex?cm.getDataIndex(arguments[1]):null; return di?(''+rec.get(di)):'<no-di>'; }catch(e){ return '<err>'; }\", (long) (" + rowExpr + "), col);");
+            w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" после ввода record.get = '\" + backVal + \"'\");");
         }
         w.writeLine("filled++;");
         w.writeLine("if (isDateCol) dateFilled++;");
