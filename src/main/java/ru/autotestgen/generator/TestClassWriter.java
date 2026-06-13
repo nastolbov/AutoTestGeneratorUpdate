@@ -166,19 +166,7 @@ public class TestClassWriter {
             // Test 3: Create (Insert)
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT)) {
                 if (inlineTable) {
-                    w.writeLine("@Test");
-                    w.writeLine("@org.junit.jupiter.api.Disabled(\"Type 2 (inline-table) entity — create через 'Редактирование → Добавить' в таблице, не через wizard-модалку. Требуется отдельная реализация.\")");
-                    w.openBlock("void testCreate()");
-                    w.writeLine("// Заглушка: эта сущность редактируется прямо в строках таблицы,");
-                    w.writeLine("// а не через wizard-модалку. Реализация create-flow для inline-table:");
-                    w.writeLine("// 1) Открыть таблицу через меню сущности");
-                    w.writeLine("// 2) Клик 'Редактирование' (внизу таблицы) → дропдаун");
-                    w.writeLine("// 3) Клик 'Добавить' в дропдауне → новая пустая строка появится в гриде");
-                    w.writeLine("// 4) Кликнуть в ячейки новой строки и заполнить");
-                    w.writeLine("// 5) Снова 'Редактирование' → 'Сохранить Изменения'");
-                    w.writeLine("// 6) Поиск маркера для подтверждения");
-                    w.closeBlock();
-                    w.writeLine();
+                    writeInlineTableCreateTest(w);
                 } else {
                     writeCreateTest(w, displayProperties);
                 }
@@ -187,17 +175,7 @@ public class TestClassWriter {
             // Test 4: Update
             if (hasCrud && hasModifier(crudOperation, ModifyType.UPDATE)) {
                 if (inlineTable) {
-                    w.writeLine("@Test");
-                    w.writeLine("@org.junit.jupiter.api.Disabled(\"Type 2 (inline-table) entity — update через клик по ячейке строки + 'Редактирование → Сохранить Изменения'. Требуется отдельная реализация.\")");
-                    w.openBlock("void testUpdate()");
-                    w.writeLine("// Заглушка: update для inline-table:");
-                    w.writeLine("// 1) Открыть таблицу через меню сущности");
-                    w.writeLine("// 2) Клик по ячейке первой строки (выделяет запись)");
-                    w.writeLine("// 3) Ввести новое значение (с предварительной очисткой)");
-                    w.writeLine("// 4) Пока запись выбрана: 'Редактирование' → 'Сохранить Изменения'");
-                    w.writeLine("// 5) Поиск нового значения для подтверждения");
-                    w.closeBlock();
-                    w.writeLine();
+                    writeInlineTableUpdateTest(w);
                 } else {
                     writeUpdateTest(w, displayProperties);
                 }
@@ -907,6 +885,176 @@ public class TestClassWriter {
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
         }
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /** Type 2 (inline-table): create через 'Редактирование → Добавить' → fill cells → save. */
+    private void writeInlineTableCreateTest(JavaFileWriter w) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(3)");
+        w.writeLine("@DisplayName(\"Create row inline (Type 2 entity)\")");
+        w.openBlock("void testCreate()");
+        w.writeLine("shot(\"start\");");
+        // 1. 'Редактирование' → 'Добавить' — открывает новую пустую строку
+        w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+        w.writeLine("assertTrue(addClicked, \"testCreate (inline): не удалось через 'Редактирование' открыть дропдаун и кликнуть 'Добавить'\");");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(800);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.writeLine("shot(\"empty_row_added\");");
+        // 2. Найти grid и заполнить ячейки новой строки. Через ExtJS startEditing
+        w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+        w.writeLine("Long colCount = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined') return 0;\"");
+        w.writeLine("    + \"var grids = Ext.ComponentQuery ? Ext.ComponentQuery.query('gridpanel,editorgrid,grid') : [];\"");
+        w.writeLine("    + \"var best = null, bestRows = -1;\"");
+        w.writeLine("    + \"for (var i = 0; i < grids.length; i++) {\"");
+        w.writeLine("    + \"  var g = grids[i];\"");
+        w.writeLine("    + \"  if (!g.rendered || !g.startEditing || !g.getStore) continue;\"");
+        w.writeLine("    + \"  try { if (g.getEl().dom.offsetWidth <= 0 || g.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"  var cnt = g.getStore().getCount();\"");
+        w.writeLine("    + \"  if (cnt > bestRows) { bestRows = cnt; best = g; }\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"if (!best) return 0;\"");
+        w.writeLine("    + \"window.__t2grid = best;\"");
+        w.writeLine("    + \"var cm = best.getColumnModel ? best.getColumnModel() : null;\"");
+        w.writeLine("    + \"return cm ? cm.getColumnCount() : 0;\");");
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testCreate (inline): не нашли editable grid\");");
+        w.writeLine("System.out.println(\"testCreate (inline): grid found, columns=\" + colCount);");
+        // 3. Перебираем колонки 0..N. Для каждой пытаемся startEditing(0, col).
+        //    Если editor открылся (input/textarea, не readonly) — пишем маркер+номер колонки.
+        w.writeLine("int filledCount = 0;");
+        w.openBlock("for (long col = 0; col < colCount; col++)");
+        w.openBlock("try");
+        w.writeLine("Boolean ok = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { window.__t2grid.startEditing(0, arguments[0]); return true; } catch(e) { return false; }\", col);");
+        w.openBlock("if (ok == null || !ok)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return document.activeElement;\");");
+        w.openBlock("if (editor == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String tag = editor.getTagName();");
+        w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String ro = editor.getAttribute(\"readonly\");");
+        w.openBlock("if (ro != null && !ro.isEmpty() && !\"false\".equals(ro))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        // JS clear, sendKeys, ENTER
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.writeLine("editor.sendKeys(createdMarker + \"_\" + col);");
+        w.writeLine("Thread.sleep(100);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("filledCount++;");
+        w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" OK\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" FAIL: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): ни одна ячейка новой строки не заполнилась\");");
+        w.writeLine("shot(\"cells_filled\");");
+        // 4. Сохранить через Редактирование → Сохранить Изменения
+        w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        w.writeLine("assertTrue(saved, \"testCreate (inline): не удалось 'Сохранить Изменения'\");");
+        w.writeLine("confirmDialogYes();");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(3000);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.writeLine("shot(\"after_save\");");
+        // 5. Подтверждение: маркер в гриде
+        w.writeLine("assertTrue(gridContainsRow(createdMarker), \"testCreate (inline): маркер '\" + createdMarker + \"' не найден в таблице после save\");");
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /** Type 2 (inline-table): update — startEditing на первой строке + Редактирование → Сохранить. */
+    private void writeInlineTableUpdateTest(JavaFileWriter w) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(4)");
+        w.writeLine("@DisplayName(\"Update row inline (Type 2 entity)\")");
+        w.openBlock("void testUpdate()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
+        // 1. Найти grid
+        w.writeLine("Long colCount = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined') return 0;\"");
+        w.writeLine("    + \"var grids = Ext.ComponentQuery ? Ext.ComponentQuery.query('gridpanel,editorgrid,grid') : [];\"");
+        w.writeLine("    + \"var best = null, bestRows = -1;\"");
+        w.writeLine("    + \"for (var i = 0; i < grids.length; i++) {\"");
+        w.writeLine("    + \"  var g = grids[i];\"");
+        w.writeLine("    + \"  if (!g.rendered || !g.startEditing || !g.getStore) continue;\"");
+        w.writeLine("    + \"  try { if (g.getEl().dom.offsetWidth <= 0 || g.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"  var cnt = g.getStore().getCount();\"");
+        w.writeLine("    + \"  if (cnt > bestRows) { bestRows = cnt; best = g; }\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"if (!best || best.getStore().getCount() === 0) return 0;\"");
+        w.writeLine("    + \"window.__t2grid = best;\"");
+        w.writeLine("    + \"var cm = best.getColumnModel ? best.getColumnModel() : null;\"");
+        w.writeLine("    + \"return cm ? cm.getColumnCount() : 0;\");");
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): не нашли таблицу или она пуста\");");
+        // 2. Перебираем колонки, ищем первую editable + non-readonly
+        w.writeLine("boolean edited = false;");
+        w.writeLine("long editedCol = -1;");
+        w.openBlock("for (long col = 0; col < colCount && !edited; col++)");
+        w.openBlock("try");
+        w.writeLine("Boolean ok = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { window.__t2grid.startEditing(0, arguments[0]); return true; } catch(e) { return false; }\", col);");
+        w.openBlock("if (ok == null || !ok)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(200);");
+        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return document.activeElement;\");");
+        w.openBlock("if (editor == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String tag = editor.getTagName();");
+        w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String ro = editor.getAttribute(\"readonly\");");
+        w.openBlock("if (ro != null && !ro.isEmpty() && !\"false\".equals(ro))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.writeLine("editor.sendKeys(updatedValue);");
+        w.writeLine("Thread.sleep(100);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("edited = true;");
+        w.writeLine("editedCol = col;");
+        w.writeLine("System.out.println(\"testUpdate (inline): отредактировали col=\" + col + \" значением '\" + updatedValue + \"'\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"testUpdate (inline): col=\" + col + \" FAIL: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(edited, \"testUpdate (inline): ни одну ячейку первой строки не удалось отредактировать\");");
+        w.writeLine("shot(\"value_typed\");");
+        // 3. Сохранить
+        w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        w.writeLine("assertTrue(saved, \"testUpdate (inline): не удалось 'Сохранить Изменения'\");");
+        w.writeLine("confirmDialogYes();");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(3000);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        w.writeLine("shot(\"after_save\");");
+        // 4. Подтверждение
+        w.writeLine("assertTrue(gridContainsRow(updatedValue), \"testUpdate (inline): новое значение '\" + updatedValue + \"' не найдено в таблице после save\");");
         w.closeBlock();
         w.writeLine();
     }
