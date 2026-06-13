@@ -1233,14 +1233,15 @@ public class TestClassWriter {
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"testCreate (inline): не нашли editable grid (код=\" + colCount + \"). Возможно «Добавить» не создал строку или грид не редактируемый.\");");
         w.writeLine("System.out.println(\"testCreate (inline): grid found, columns=\" + colCount);");
         writeGridDiagLog(w, "testCreate (inline)");
-        // 3. Определить индекс НОВОЙ (phantom/new) строки и ВЫБРАТЬ её — раньше слепо
-        //    редактировали строку 0, из-за чего «строка появилась, но мы её не выбрали».
+        // 3. Новая пустая строка появляется ПОСЛЕДНЕЙ ((n+1)-я). Берём phantom-запись с
+        //    НАИБОЛЬШИМ индексом (самую новую), иначе попадём в старую мусорную phantom-строку
+        //    сверху. Фолбэк — последняя строка стора.
         w.writeLine("Long newRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[];\"");
-        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var idx=s.indexOf(r); if (idx>=0) return idx; } }\"");
-        w.writeLine("    + \" return 0; } catch(e){ return 0; }\");");
-        w.writeLine("int rowIdx = (newRowL == null) ? 0 : newRowL.intValue();");
-        w.writeLine("System.out.println(\"testCreate (inline): новая строка rowIdx=\" + rowIdx);");
+        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
+        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
+        w.writeLine("    + \" if (idx<0) idx=s.getCount()-1; return idx; } catch(e){ return 0; }\");");
+        w.writeLine("int rowIdx = (newRowL == null || newRowL < 0) ? 0 : newRowL.intValue();");
+        w.writeLine("System.out.println(\"testCreate (inline): новая (последняя) строка rowIdx=\" + rowIdx);");
         writeSelectGridRowScript(w, "rowIdx");
         w.writeLine("shot(\"row_selected\");");
         // 4. Перебираем колонки, startEditing(rowIdx, col), пишем маркер
@@ -1310,32 +1311,26 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         // Уникальное значение для update — чтобы потом отличить его в гриде.
         w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-        // 1. Список должен быть непустой (грид-данных, без property-grid).
-        writeLocateEditableGridScript(w, "listCols", true, true);
-        w.writeLine("assertTrue(listCols != null && listCols > 0, \"testUpdate (inline): список пуст или не найден (код=\" + listCols + \")\");");
-        writeGridDiagLog(w, "testUpdate (inline) \\u0441\\u043f\\u0438\\u0441\\u043e\\u043a");
-        // 2. ОТКРЫТЬ первую СУЩЕСТВУЮЩУЮ запись (двойной клик → карточка «Сведения …»). Раньше
-        //    правили инлайн по списку и попадали в новую пустую строку — теперь как у GSK: открыли
-        //    первую запись и меняем её поле.
-        w.writeLine("boolean opened = step(\"open first record\", () -> selectAndOpenRecord());");
-        w.writeLine("assertTrue(opened, \"testUpdate (inline): не удалось открыть первую запись справочника на редактирование\");");
-        w.writeLine("waitForCardLoaded(8);");
-        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"record_opened\");");
-        // 3. Форма карточки — это property-grid (excludeProperty=false), берём её в window.__t2grid.
-        writeLocateEditableGridScript(w, "colCount", false, false);
-        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): не нашли форму карточки записи (код=\" + colCount + \")\");");
-        writeGridDiagLog(w, "testUpdate (inline) \\u043a\\u0430\\u0440\\u0442\\u043e\\u0447\\u043a\\u0430");
-        // 4. Меняем первое редактируемое ТЕКСТОВОЕ поле карточки. В property-grid каждая строка —
-        //    поле; значение редактируется в колонке-значении (пробуем col 1, затем 0). Дату пропускаем.
-        w.writeLine("Long cardRowsL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try { return window.__t2grid.getStore().getCount(); } catch(e){ return 0; }\");");
-        w.writeLine("int cardRows = (cardRowsL == null) ? 0 : cardRowsL.intValue();");
-        w.writeLine("System.out.println(\"testUpdate (inline): полей в карточке = \" + cardRows);");
+        // 1. Грид-список справочника (без property-grid), непустой.
+        writeLocateEditableGridScript(w, "colCount", true, true);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): список пуст или не найден (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "testUpdate (inline)");
+        // 2. Выбираем СУЩЕСТВУЮЩУЮ запись — предпочтительно НЕ-modified (закоммиченную), чтобы не
+        //    попасть в накопленные мусорные строки от прошлых неудачных create. Update = то же,
+        //    что create, но без «Добавить»: выделили запись → поменяли поле → Сохранить Изменения.
+        w.writeLine("Long editRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var cnt=s.getCount(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var dirty={};\"");
+        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var x=s.indexOf(mod[i]); if(x>=0) dirty[x]=true; }\"");
+        w.writeLine("    + \" for (var r=0;r<cnt;r++){ if(!dirty[r]) return r; } return 0; } catch(e){ return 0; }\");");
+        w.writeLine("int editRow = (editRowL == null || editRowL < 0) ? 0 : editRowL.intValue();");
+        w.writeLine("System.out.println(\"testUpdate (inline): правим существующую (закоммиченную) строку editRow=\" + editRow);");
+        writeSelectGridRowScript(w, "editRow");
+        w.writeLine("shot(\"row_selected\");");
+        // 3. Меняем первое редактируемое ТЕКСТОВОЕ (не дата) поле выбранной строки.
         w.writeLine("boolean edited = false;");
-        w.openBlock("for (long r = 0; r < cardRows && !edited; r++)");
-        w.openBlock("for (long col = (colCount > 1 ? 1 : 0); col >= 0 && !edited; col--)");
+        w.openBlock("for (long col = 0; col < colCount && !edited; col++)");
         w.openBlock("try");
-        writeOpenCellEditorScript(w, "r");
+        writeOpenCellEditorScript(w, "editRow");
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
         w.closeBlock();
@@ -1344,7 +1339,8 @@ public class TestClassWriter {
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var inp=arguments[0]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", editor));");
+        w.writeLine("    \"try { var g=window.__t2grid; if (g && g.getColumnModel){ var cm=g.getColumnModel(); var ed=cm.getCellEditor?cm.getCellEditor(arguments[0],0):null; var f=ed&&ed.field?ed.field:ed; if (f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if (xt.toLowerCase().indexOf('date')>=0) return true; if (f.format && /[dmy]/i.test(''+f.format)) return true; } } } catch(e){}\"");
+        w.writeLine("    + \"try { var inp=arguments[1]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", (long) col, editor));");
         w.openBlock("if (isDateField)");
         w.writeLine("continue;");
         w.closeBlock();
@@ -1354,15 +1350,16 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(150);");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+        w.writeLine("Thread.sleep(150);");
         w.writeLine("edited = true;");
-        w.writeLine("System.out.println(\"testUpdate (inline): изменили поле r=\" + r + \" col=\" + col + \" на '\" + updatedValue + \"'\");");
+        w.writeLine("System.out.println(\"testUpdate (inline): изменили поле col=\" + col + \" строки \" + editRow + \" на '\" + updatedValue + \"'\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testUpdate (inline): r=\" + r + \" col=\" + col + \" FAIL: \" + e.getMessage());");
+        w.writeLine("System.out.println(\"testUpdate (inline): col=\" + col + \" FAIL: \" + e.getMessage());");
         w.closeBlock();
         w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(edited, \"testUpdate (inline): не удалось изменить ни одно текстовое поле карточки записи\");");
+        w.writeLine("assertTrue(edited, \"testUpdate (inline): не удалось изменить ни одно текстовое поле выбранной записи\");");
         w.writeLine("shot(\"value_typed\");");
         // 4. Закоммитить редактор в запись, затем сохранить.
         writeCommitGridEditorScript(w);
