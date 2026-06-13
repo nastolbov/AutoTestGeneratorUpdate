@@ -1292,21 +1292,31 @@ public class TestClassWriter {
         w.closeBlock();
         // Дату вписываем с учётом маски 99.99.9999 (редактор её принимает); текст — маркер_col.
         w.writeLine("String toType = isDateCol ? \"01.01.2020\" : (" + marker + " + \"_\" + col);");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
-        w.writeLine("Thread.sleep(60);");
-        w.writeLine("editor.sendKeys(toType);");
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
-        w.writeLine("Thread.sleep(120);");
-        // КРИТИЧНО: явно прописываем значение в саму запись через record.set(dataIndex, value).
-        // Иначе на стенде ввод в редактор остаётся «визуальным» (запись ЧЁРНАЯ — правка не
-        // закоммичена), грид не считает строку изменённой и пункт «Сохранить Изменения»
-        // неактивен. После record.set строка становится КРАСНОЙ (dirty) и готова к сохранению.
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return; var cm=g.getColumnModel(); var di=cm.getDataIndex?cm.getDataIndex(arguments[1]):null; if(di){ rec.set(di, arguments[2]); } }catch(e){}\", (long) (" + rowExpr + "), col, toType);");
-        w.writeLine("Thread.sleep(60);");
+        if (singleTextField) {
+            // UPDATE (не трогаем — пофикшено): JS-очистка + sendKeys + record.set.
+            w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+            w.writeLine("Thread.sleep(60);");
+            w.writeLine("editor.sendKeys(toType);");
+            w.writeLine("Thread.sleep(100);");
+            w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+            w.writeLine("Thread.sleep(150);");
+            w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+            w.writeLine("Thread.sleep(120);");
+            w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+            w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return; var cm=g.getColumnModel(); var di=cm.getDataIndex?cm.getDataIndex(arguments[1]):null; if(di){ rec.set(di, arguments[2]); } }catch(e){}\", (long) (" + rowExpr + "), col, toType);");
+            w.writeLine("Thread.sleep(60);");
+        } else {
+            // CREATE: ЧИСТАЯ КЛАВИАТУРА (как просил заказчик — «с клавы, а не вставкой»).
+            // Никакой JS-инъекции value='' и НИКАКОГО record.set в конце: они обходили штатный
+            // commit поля и оставляли строку «чёрной». Ctrl+A выделяет старое, sendKeys
+            // перетирает, ENTER коммитит правку штатно → строка краснеет (dirty).
+            w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
+            w.writeLine("Thread.sleep(60);");
+            w.writeLine("editor.sendKeys(toType);");
+            w.writeLine("Thread.sleep(120);");
+            w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+            w.writeLine("Thread.sleep(200);");
+        }
         w.writeLine("filled++;");
         w.writeLine("if (isDateCol) dateFilled++;");
         w.writeLine("System.out.println(\"  [inline-fill] \" + (isDateCol ? \"дата\" : \"текст\") + \" col=\" + col + \" = '\" + toType + \"' OK\");");

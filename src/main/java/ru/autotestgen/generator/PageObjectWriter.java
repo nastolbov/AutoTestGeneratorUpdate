@@ -155,12 +155,12 @@ public class PageObjectWriter {
         w.writeLine("    \"return document.activeElement;\");");
         w.openBlock("if (startedEditor != null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через startEditing: id=\" + startedEditor.getAttribute(\"id\") + \" class=\" + startedEditor.getAttribute(\"class\"));");
-        // ЯВНАЯ JS-очистка editor.value перед вводом нового значения. Раньше Ctrl+A
-        // иногда не выделял (ExtJS editor reuse), и sendKeys склеивал новое значение
-        // со старым (например при stamp marker: 'AT16198Test_GBS_NAME_...').
+        // ЧИСТАЯ КЛАВИАТУРА (заказчик: «заполнять с клавы, а не вставкой»). Раньше тут была
+        // JS-инъекция editor.value='' — из-за неё запись оставалась «чёрной» (значение
+        // обходило штатный commit поля). Ctrl+A выделяет старое, sendKeys перетирает →
+        // маркер-склейка ('AT...Test_...') не возникает, а поле коммитится по-человечески.
         w.openBlock("try");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"arguments[0].value = ''; arguments[0].dispatchEvent(new Event('input', {bubbles: true}));\", startedEditor);");
+        w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
         w.writeLine("Thread.sleep(80);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
@@ -169,7 +169,7 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(150);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+JS clear+sendKeys+ENTER)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+Ctrl+A+sendKeys+ENTER)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
