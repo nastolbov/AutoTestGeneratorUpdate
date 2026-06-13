@@ -899,6 +899,9 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        // Принудительно закоммитить редакторы PropertyGrid в записи перед «Готово» — иначе правки
+        // видны визуально, но record.set не вызван, и запись сохраняется пустой/«чёрной».
+        writeCommitAllEditorsScript(w);
         w.writeLine("shot(\"before_gotovo\");");
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
@@ -1098,6 +1101,65 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(300); } catch (InterruptedException ignored) {}");
     }
 
+    /**
+     * Emits JS that commits ALL active grid/propertygrid editors into their records
+     * (stopEditing(false) / completeEdit). Used by the modal-form create/update flows where the
+     * PropertyGrid editor must land in record.set before «Готово»/«Сохранить», otherwise the edit
+     * is only visual and the saved record stays «чёрной»/unchanged.
+     */
+    private void writeCommitAllEditorsScript(JavaFileWriter w) {
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined') return;\"");
+        w.writeLine("    + \"var cmps = [];\"");
+        w.writeLine("    + \"try { if (Ext.ComponentQuery && Ext.ComponentQuery.query) cmps = Ext.ComponentQuery.query('propertygrid,editorgrid,grid'); } catch(e) {}\"");
+        w.writeLine("    + \"if ((!cmps || !cmps.length) && Ext.ComponentMgr && Ext.ComponentMgr.all) {\"");
+        w.writeLine("    + \"  try { var all=Ext.ComponentMgr.all; var arr=all.items||(all.getRange?all.getRange():[]);\"");
+        w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && (c.stopEditing || c.activeEditor || c.editingPlugin)) cmps.push(c); } } catch(e) {}\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
+        w.writeLine("    + \"  try { if (c.stopEditing) c.stopEditing(false); } catch(e){}\"");
+        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.completeEdit) c.activeEditor.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \"  try { if (c.editingPlugin && c.editingPlugin.completeEdit) c.editingPlugin.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \"}\");");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+    }
+
+    /**
+     * Emits code (inside a column loop using the variable {@code col}) that opens the editor for the
+     * cell at (rowExpr, col): tries ExtJS startEditing AND physically double-clicks the cell DOM
+     * (Ext3 getView().getCell), then leaves a {@code WebElement editor} in scope (null if no usable
+     * editor input appeared). Physical double-click is needed because on some Ext3 builds a JS
+     * startEditing alone does not focus the cell <input>, so the row never gets filled.
+     */
+    private void writeOpenCellEditorScript(JavaFileWriter w, String rowExpr) {
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; if (g.startEditing){ g.startEditing(arguments[0], arguments[1]); }\"");
+        w.writeLine("    + \" else if (g.editingPlugin && g.editingPlugin.startEdit){ var rec=g.getStore().getAt(arguments[0]); var co=(g.columns&&g.columns[arguments[1]])?g.columns[arguments[1]]:arguments[1]; g.editingPlugin.startEdit(rec, co); } } catch(e){}\", (long) (" + rowExpr + "), col);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("WebElement cell = null;");
+        w.openBlock("try");
+        w.writeLine("cell = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; var v=g.getView?g.getView():null; if (v && v.getCell){ return v.getCell(arguments[0], arguments[1]); } return null; } catch(e){ return null; }\", (long) (" + rowExpr + "), col);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("if (cell != null)");
+        w.openBlock("try");
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(cell).doubleClick().perform();");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var a=document.activeElement; if (a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA') && !a.readOnly) return a;\"");
+        w.writeLine("    + \"var ins=document.querySelectorAll('.x-grid-editor input, .x-grid3-editor input, .x-editor input, input.x-form-field, .x-grid-editor textarea'); for (var i=0;i<ins.length;i++){ var el=ins[i]; if (el.offsetWidth>0 && !el.readOnly) return el; } return null;\");");
+    }
+
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
     private void writeInlineTableCreateTest(JavaFileWriter w) {
         w.writeLine("@Test");
@@ -1130,24 +1192,12 @@ public class TestClassWriter {
         w.writeLine("int filledCount = 0;");
         w.openBlock("for (long col = 0; col < colCount; col++)");
         w.openBlock("try");
-        w.writeLine("Boolean ok = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if (g.startEditing){ g.startEditing(arguments[0], arguments[1]); return true; }\"");
-        w.writeLine("    + \" if (g.editingPlugin && g.editingPlugin.startEdit){ var rec=g.getStore().getAt(arguments[0]); var co=(g.columns&&g.columns[arguments[1]])?g.columns[arguments[1]]:arguments[1]; g.editingPlugin.startEdit(rec, co); return true; }\"");
-        w.writeLine("    + \" return false; } catch(e){ return false; }\", (long) rowIdx, col);");
-        w.openBlock("if (ok == null || !ok)");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
-        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return document.activeElement;\");");
+        writeOpenCellEditorScript(w, "rowIdx");
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("String tag = editor.getTagName();");
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("String ro = editor.getAttribute(\"readonly\");");
-        w.openBlock("if (ro != null && !ro.isEmpty() && !\"false\".equals(ro))");
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
@@ -1203,24 +1253,12 @@ public class TestClassWriter {
         w.writeLine("boolean edited = false;");
         w.openBlock("for (long col = 0; col < colCount && !edited; col++)");
         w.openBlock("try");
-        w.writeLine("Boolean ok = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if (g.startEditing){ g.startEditing(0, arguments[0]); return true; }\"");
-        w.writeLine("    + \" if (g.editingPlugin && g.editingPlugin.startEdit){ var rec=g.getStore().getAt(0); var co=(g.columns&&g.columns[arguments[0]])?g.columns[arguments[0]]:arguments[0]; g.editingPlugin.startEdit(rec, co); return true; }\"");
-        w.writeLine("    + \" return false; } catch(e){ return false; }\", col);");
-        w.openBlock("if (ok == null || !ok)");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("Thread.sleep(200);");
-        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return document.activeElement;\");");
+        writeOpenCellEditorScript(w, "0");
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("String tag = editor.getTagName();");
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("String ro = editor.getAttribute(\"readonly\");");
-        w.openBlock("if (ro != null && !ro.isEmpty() && !\"false\".equals(ro))");
         w.writeLine("continue;");
         w.closeBlock();
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
