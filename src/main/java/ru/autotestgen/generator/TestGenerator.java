@@ -2438,13 +2438,18 @@ public class TestGenerator {
         w.writeLine("    + \" var gs=[]; if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('editorgrid,gridpanel,grid');\"");
         w.writeLine("    + \" else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore&&c.getColumnModel) gs.push(c);} }\"");
         w.writeLine("    + \" var best=null,br=-1; for(var i=0;i<gs.length;i++){ var g=gs[i]; if(!g.rendered) continue; var cnt=0; try{cnt=g.getStore().getCount();}catch(e){} if(cnt>br){br=cnt;best=g;} }\"");
-        w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; var done=false;\"");
-        // 1) Пытаемся нажать ИМЕННО кнопку обновления paging-тулбара (как пользователь).
-        w.writeLine("    + \" try{ var bb=best.getBottomToolbar?best.getBottomToolbar():null; if(bb && bb.doRefresh){ bb.doRefresh(); done=true; } }catch(e){}\"");
-        // 2) Фолбэк — программно перечитать стор с сервера (эквивалент клика по кнопке).
-        w.writeLine("    + \" if(!done){ try{ best.getStore().reload(); done=true; }catch(e){} }\"");
-        w.writeLine("    + \" return done?'ok':'noop'; } catch(e){ return 'err:'+e.message; }\");");
+        w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; var s=best.getStore(); var did=[];\"");
+        // 1) rejectChanges — ГАРАНТИРОВАННО выбрасывает несохранённые phantom/правки из стора.
+        //    После НЕудачного save (напр. серверный trunc(date)) они остаются и раздувают счётчик —
+        //    это и давало ложный +1. После успешного save модифицированных записей нет → no-op.
+        w.writeLine("    + \" try{ if(s.rejectChanges){ s.rejectChanges(); did.push('reject'); } }catch(e){}\"");
+        // 2) Кнопка обновления paging-тулбара (как пользователь жмёт «зелёную» иконку).
+        w.writeLine("    + \" try{ var bb=best.getBottomToolbar?best.getBottomToolbar():null; if(bb && bb.doRefresh){ bb.doRefresh(); did.push('doRefresh'); } }catch(e){}\"");
+        // 3) Реальный серверный round-trip — перечитать стор.
+        w.writeLine("    + \" try{ s.reload(); did.push('reload'); }catch(e){ did.push('reload-err'); }\"");
+        w.writeLine("    + \" return did.length?did.join(','):'noop'; } catch(e){ return 'err:'+e.message; }\");");
         w.writeLine("System.out.println(\"clickGridRefresh: \" + r);");
+        w.writeLine("boolean refreshOk = (r != null && !\"noop\".equals(r) && !String.valueOf(r).startsWith(\"err\") && !\"no-grid\".equals(r) && !\"no-ext\".equals(r));");
         // Дополнительно физически кликаем DOM-кнопку обновления (.x-tbar-loading), если она видна —
         // на некоторых сборках doRefresh недоступен, а кнопка есть.
         w.openBlock("try");
@@ -2458,11 +2463,34 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("Thread.sleep(2500);");
-        w.writeLine("return \"ok\".equals(r);");
+        w.writeLine("return refreshOk;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"clickGridRefresh failed: \" + e.getMessage());");
         w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // waitForLoadMask: ждёт пока исчезнут ExtJS load-mask (.ext-el-mask/.x-mask) и окна
+        // «Выполнение операции…»/«Загрузка данных…». Нужен перед кликом по тулбару «Редактирование»:
+        // спиннер перехватывал клик (ElementClickInterceptedException) и «Сохранить Изменения»
+        // не находилось в дропдауне.
+        w.openBlock("protected void waitForLoadMask(int seconds)");
+        w.openBlock("try");
+        w.writeLine("long deadline = System.currentTimeMillis() + seconds * 1000L;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("Boolean busy = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var m=document.querySelectorAll('.ext-el-mask, .x-mask, .x-mask-loading'); for(var i=0;i<m.length;i++){ if(m[i].offsetWidth>0||m[i].offsetHeight>0) return true; }\"");
+        w.writeLine("    + \" var ws=document.querySelectorAll('.x-window'); for(var j=0;j<ws.length;j++){ var wn=ws[j]; if(wn.offsetWidth<=0) continue; var t=(wn.innerText||''); if(t.indexOf('\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0435\\u043d\\u0438\\u0435 \\u043e\\u043f\\u0435\\u0440\\u0430\\u0446\\u0438\\u0438')>=0 || t.indexOf('\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u043a\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445')>=0) return true; }\"");
+        w.writeLine("    + \" return false; } catch(e){ return false; }\");");
+        w.openBlock("if (!Boolean.TRUE.equals(busy))");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(150);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
         w.writeLine();

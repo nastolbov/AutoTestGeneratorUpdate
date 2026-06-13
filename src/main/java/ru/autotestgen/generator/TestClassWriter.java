@@ -1257,7 +1257,13 @@ public class TestClassWriter {
         w.writeLine("    + \" var editable=false; try{ editable = cm.isCellEditable?cm.isCellEditable(c,r):!!(cm.getCellEditor&&cm.getCellEditor(c,r)); }catch(e){}\"");
         w.writeLine("    + \" if(!editable) return 'skip';\"");
         w.writeLine("    + \" var ed=null; try{ ed=cm.getCellEditor?cm.getCellEditor(c,r):null; }catch(e){} var f=ed&&ed.field?ed.field:ed;\"");
-        w.writeLine("    + \" if(f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) return 'date'; if(f.format && /[dmy]/i.test(''+f.format)) return 'date'; }\"");
+        w.writeLine("    + \" if(f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); xt=xt.toLowerCase();\"");
+        w.writeLine("    + \"   if(xt.indexOf('date')>=0) return 'date';\"");
+        // maskField (НДЗ/КДЗ на стенде) — даты с маской 99.99.9999. Распознаём по xtype 'mask'
+        // ИЛИ по наличию маски/маск-регэкспа/vtype у поля. Возвращаем 'date' (вписываем 01.01.2020).
+        w.writeLine("    + \"   if(xt.indexOf('mask')>=0) return 'date';\"");
+        w.writeLine("    + \"   if(f.mask || f.maskText || f.maskRe || (f.vtype && /date/i.test(''+f.vtype))) return 'date';\"");
+        w.writeLine("    + \"   if(f.format && /[dmy]/i.test(''+f.format)) return 'date'; }\"");
         w.writeLine("    + \" return 'text'; } catch(e){ return 'text'; }\", col, (long) (" + rowExpr + "));");
         w.openBlock("if (\"skip\".equals(cellKind))");
         w.writeLine("continue;");
@@ -1294,6 +1300,13 @@ public class TestClassWriter {
         w.writeLine("Thread.sleep(150);");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
         w.writeLine("Thread.sleep(120);");
+        // КРИТИЧНО: явно прописываем значение в саму запись через record.set(dataIndex, value).
+        // Иначе на стенде ввод в редактор остаётся «визуальным» (запись ЧЁРНАЯ — правка не
+        // закоммичена), грид не считает строку изменённой и пункт «Сохранить Изменения»
+        // неактивен. После record.set строка становится КРАСНОЙ (dirty) и готова к сохранению.
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return; var cm=g.getColumnModel(); var di=cm.getDataIndex?cm.getDataIndex(arguments[1]):null; if(di){ rec.set(di, arguments[2]); } }catch(e){}\", (long) (" + rowExpr + "), col, toType);");
+        w.writeLine("Thread.sleep(60);");
         w.writeLine("filled++;");
         w.writeLine("if (isDateCol) dateFilled++;");
         w.writeLine("System.out.println(\"  [inline-fill] \" + (isDateCol ? \"дата\" : \"текст\") + \" col=\" + col + \" = '\" + toType + \"' OK\");");
@@ -1329,6 +1342,9 @@ public class TestClassWriter {
         w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("assertTrue(addClicked, \"testCreate (inline): не удалось через 'Редактирование' открыть дропдаун и кликнуть 'Добавить'\");");
         w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
+        // Ждём пока отработает серверный спиннер «Выполнение операции Добавить…», иначе
+        // дальнейшие клики перехватываются масочным оверлеем.
+        w.writeLine("waitForLoadMask(8);");
         w.writeLine("shot(\"empty_row_added\");");
         // 2. Найти редактируемый грид (Ext3 ComponentMgr + Ext4 ComponentQuery)
         writeLocateEditableGridScript(w, "colCount", false);
@@ -1350,11 +1366,15 @@ public class TestClassWriter {
         writeFillEditableCells(w, "testCreate (inline)", "createdMarker", "rowIdx", false);
         // 5. Сохранить через Редактирование → Сохранить Изменения.
         writeCommitGridEditorScript(w);
+        // Дожидаемся исчезновения спиннера «Выполнение операции…»/load-mask, иначе он
+        // перехватывает клик по «Редактирование» и пункт «Сохранить Изменения» не находится.
+        w.writeLine("waitForLoadMask(8);");
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         // Ретрай: если пункт не появился в дропдауне (часто из-за зависшего редактора ячейки,
-        // блокирующего тулбар) — ещё раз жёстко закрываем все редакторы и повторяем клик.
+        // блокирующего тулбар) — ещё раз жёстко закрываем все редакторы, ждём спиннер и повторяем.
         w.openBlock("if (!saved)");
         writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
         w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
         w.closeBlock();
         // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
@@ -1414,10 +1434,12 @@ public class TestClassWriter {
         writeFillEditableCells(w, "testUpdate (inline)", "updatedValue", "editRow", true);
         // 4. Закоммитить редактор в запись, затем сохранить.
         writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         // Ретрай при зависшем редакторе ячейки, блокирующем тулбар «Редактирование».
         w.openBlock("if (!saved)");
         writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
         w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
         w.closeBlock();
         // Фолбэк: модальная карточка редактирования — save-кнопка «Готово»/«Сохранить»/«OK».
