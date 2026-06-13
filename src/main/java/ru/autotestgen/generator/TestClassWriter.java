@@ -1140,6 +1140,12 @@ public class TestClassWriter {
         w.writeLine("    \"try { var g=window.__t2grid; if (g.startEditing){ g.startEditing(arguments[0], arguments[1]); }\"");
         w.writeLine("    + \" else if (g.editingPlugin && g.editingPlugin.startEdit){ var rec=g.getStore().getAt(arguments[0]); var co=(g.columns&&g.columns[arguments[1]])?g.columns[arguments[1]]:arguments[1]; g.editingPlugin.startEdit(rec, co); } } catch(e){}\", (long) (" + rowExpr + "), col);");
         w.writeLine("Thread.sleep(150);");
+        w.writeLine("String editorFinder = \"var a=document.activeElement; if (a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA') && !a.readOnly) return a;\"");
+        w.writeLine("    + \"var ins=document.querySelectorAll('.x-grid-editor input, .x-grid3-editor input, .x-editor input, input.x-form-field, .x-grid-editor textarea'); for (var i=0;i<ins.length;i++){ var el=ins[i]; if (el.offsetWidth>0 && !el.readOnly) return el; } return null;\";");
+        // Сначала смотрим, открыл ли редактор сам startEditing. Двойной клик делаем ТОЛЬКО если нет —
+        // иначе дабл-клик по уже открытой ячейке закрывает редактор (регрессия: filledCount=0).
+        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(editorFinder);");
+        w.openBlock("if (editor == null)");
         w.writeLine("WebElement cell = null;");
         w.openBlock("try");
         w.writeLine("cell = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
@@ -1155,9 +1161,26 @@ public class TestClassWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("WebElement editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"var a=document.activeElement; if (a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA') && !a.readOnly) return a;\"");
-        w.writeLine("    + \"var ins=document.querySelectorAll('.x-grid-editor input, .x-grid3-editor input, .x-editor input, input.x-form-field, .x-grid-editor textarea'); for (var i=0;i<ins.length;i++){ var el=ins[i]; if (el.offsetWidth>0 && !el.readOnly) return el; } return null;\");");
+        w.writeLine("editor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(editorFinder);");
+        w.closeBlock();
+    }
+
+    /**
+     * Emits typing into the in-scope {@code editor}: a valid date (01.01.2020) when the cell is a
+     * date field (has an .x-form-date-trigger), otherwise {@code fallbackExpr}. Prevents marker text
+     * landing in a masked date column (which produced garbage dates like 16.01.7402 and made the
+     * server SP fail).
+     */
+    private void writeTypeIntoEditorScript(JavaFileWriter w, String fallbackExpr) {
+        w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var inp=arguments[0]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", editor));");
+        w.writeLine("String toType = isDateField ? \"01.01.2020\" : (" + fallbackExpr + ");");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.writeLine("editor.sendKeys(toType);");
+        w.writeLine("Thread.sleep(100);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
     }
 
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
@@ -1200,12 +1223,7 @@ public class TestClassWriter {
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
         w.writeLine("continue;");
         w.closeBlock();
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
-        w.writeLine("Thread.sleep(60);");
-        w.writeLine("editor.sendKeys(createdMarker + \"_\" + col);");
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
+        writeTypeIntoEditorScript(w, "createdMarker + \"_\" + col");
         w.writeLine("filledCount++;");
         w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" OK\");");
         w.closeBlock();
@@ -1227,7 +1245,14 @@ public class TestClassWriter {
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
-        // 6. Подтверждение: маркер в гриде
+        // 6a. Серверная ошибка (напр. SP вернул «ОШИБКА: …») — честно фейлим с текстом сервера,
+        //     а не делаем вид что сохранилось (маркер виден в гриде даже при отклонённом save).
+        w.writeLine("String savePopup = capturePopupText(\"after-save\");");
+        w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
+        w.writeLine("shot(\"server_error\");");
+        w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
+        w.closeBlock();
+        // 6b. Подтверждение: маркер в гриде
         w.writeLine("assertTrue(gridContainsRow(createdMarker), \"testCreate (inline): маркер '\" + createdMarker + \"' не найден в таблице после save\");");
         w.closeBlock();
         w.writeLine();
@@ -1261,12 +1286,7 @@ public class TestClassWriter {
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
         w.writeLine("continue;");
         w.closeBlock();
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
-        w.writeLine("Thread.sleep(60);");
-        w.writeLine("editor.sendKeys(updatedValue);");
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
+        writeTypeIntoEditorScript(w, "updatedValue");
         w.writeLine("edited = true;");
         w.writeLine("System.out.println(\"testUpdate (inline): отредактировали col=\" + col + \" значением '\" + updatedValue + \"'\");");
         w.closeBlock();
@@ -1287,6 +1307,12 @@ public class TestClassWriter {
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
+        // Серверная ошибка — честно фейлим с текстом сервера.
+        w.writeLine("String savePopup = capturePopupText(\"after-save\");");
+        w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
+        w.writeLine("shot(\"server_error\");");
+        w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
+        w.closeBlock();
         // 5. Подтверждение
         w.writeLine("assertTrue(gridContainsRow(updatedValue), \"testUpdate (inline): новое значение '\" + updatedValue + \"' не найдено в таблице после save\");");
         w.closeBlock();
