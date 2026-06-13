@@ -890,17 +890,21 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (InterruptedException ignored)");
         w.closeBlock();
-        // TAB чтобы закомитить активный редактор PropertyGrid'а (последнее
-        // вписанное значение). Без этого первый клик Готово часто работает как «blur» и
-        // нужный сейв не происходит.
+        // НЕ жмём TAB! Раньше тут был Keys.TAB «чтобы закоммитить активный редактор», но в
+        // PropertyGrid TAB переходил на СЛЕДУЮЩУЮ ячейку и СНОВА открывал редактор — запись
+        // возвращалась в режим правки (становилась «чёрной» = «ещё редактируем»), и сейв потом
+        // не фиксировал все поля. Заказчик: после заполнения запись красная (готова), а мы её
+        // зачем-то делали чёрной. Вместо TAB просто снимаем фокус (blur): активное значение
+        // коммитится, новый редактор НЕ открывается, запись остаётся КРАСНОЙ.
         w.openBlock("try");
-        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).sendKeys(org.openqa.selenium.Keys.TAB).perform();");
-        w.writeLine("Thread.sleep(400);");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}\");");
+        w.writeLine("Thread.sleep(300);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Принудительно закоммитить редакторы PropertyGrid в записи перед «Готово» — иначе правки
-        // видны визуально, но record.set не вызван, и запись сохраняется пустой/«чёрной».
+        // Принудительно закоммитить редакторы PropertyGrid в записи перед «Готово» (stopEditing
+        // (false)/completeEdit — БЕЗ открытия нового редактора), иначе правки видны визуально, но
+        // record.set не вызван, и запись сохраняется пустой/«чёрной».
         writeCommitAllEditorsScript(w);
         w.writeLine("shot(\"before_gotovo\");");
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
