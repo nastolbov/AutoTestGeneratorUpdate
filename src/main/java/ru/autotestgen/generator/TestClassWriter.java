@@ -1215,40 +1215,74 @@ public class TestClassWriter {
         w.writeLine("    \"" + label + ": наша запись осталась несохранённой (modified) после save — сохранение не прошло (сервер отклонил, напр. SP trunc(date), или клик save не сработал)\");");
     }
 
-    /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
+    // Type 2 (inline-table) create и update делят ОДИН поток (см. writeInlineCrudBody): выбрать
+    // строку → заполнить ячейки → Сохранить Изменения. Разница только в шаге выбора строки:
+    // create жмёт «Добавить» и берёт новую (последнюю) строку, update берёт существующую запись.
     private void writeInlineTableCreateTest(JavaFileWriter w) {
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
         w.writeLine("@DisplayName(\"Create row inline (Type 2 entity)\")");
         w.openBlock("void testCreate()");
+        writeInlineCrudBody(w, true);
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    private void writeInlineTableUpdateTest(JavaFileWriter w) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(4)");
+        w.writeLine("@DisplayName(\"Update row inline (Type 2 entity)\")");
+        w.openBlock("void testUpdate()");
+        writeInlineCrudBody(w, false);
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /**
+     * Shared inline-grid CRUD body. create=true: «Редактирование → Добавить», then target the new
+     * (last/newest phantom) row. create=false (update): target an existing committed (non-modified)
+     * row. Both then fill the row's editable cells (valid date into date columns, marker into text),
+     * commit, «Сохранить Изменения», then honestly verify the record committed and survives a fresh
+     * reload.
+     */
+    private void writeInlineCrudBody(JavaFileWriter w, boolean isCreate) {
+        String label = isCreate ? "testCreate (inline)" : "testUpdate (inline)";
+        String prefix = isCreate ? "AT" : "Upd";
         w.writeLine("shot(\"start\");");
-        w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-        // 1. 'Редактирование' → 'Добавить' — открывает новую пустую строку
-        w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
-        w.writeLine("assertTrue(addClicked, \"testCreate (inline): не удалось через 'Редактирование' открыть дропдаун и кликнуть 'Добавить'\");");
-        w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"empty_row_added\");");
-        // 2. Найти редактируемый грид (Ext3 ComponentMgr + Ext4 ComponentQuery)
-        writeLocateEditableGridScript(w, "colCount", false);
-        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testCreate (inline): не нашли editable grid (код=\" + colCount + \"). Возможно «Добавить» не создал строку или грид не редактируемый.\");");
-        w.writeLine("System.out.println(\"testCreate (inline): grid found, columns=\" + colCount);");
-        writeGridDiagLog(w, "testCreate (inline)");
-        // 3. Новая пустая строка появляется ПОСЛЕДНЕЙ ((n+1)-я). Берём phantom-запись с
-        //    НАИБОЛЬШИМ индексом (самую новую), иначе попадём в старую мусорную phantom-строку
-        //    сверху. Фолбэк — последняя строка стора.
-        w.writeLine("Long newRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
-        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
-        w.writeLine("    + \" if (idx<0) idx=s.getCount()-1; return idx; } catch(e){ return 0; }\");");
-        w.writeLine("int rowIdx = (newRowL == null || newRowL < 0) ? 0 : newRowL.intValue();");
-        w.writeLine("System.out.println(\"testCreate (inline): новая (последняя) строка rowIdx=\" + rowIdx);");
-        writeSelectGridRowScript(w, "rowIdx");
+        w.writeLine("String marker = \"" + prefix + "\" + System.nanoTime();");
+        // 1. Грид-данных справочника (без property-grid). Для update требуем непустой.
+        writeLocateEditableGridScript(w, "colCount", !isCreate, true);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"" + label + ": грид справочника не найден"
+                + (isCreate ? "" : " или пуст") + " (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, label);
+        if (isCreate) {
+            // 2a. «Добавить» → новая пустая строка (последняя). Берём самую новую phantom-строку.
+            w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+            w.writeLine("assertTrue(addClicked, \"" + label + ": не удалось 'Редактирование → Добавить'\");");
+            w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
+            w.writeLine("shot(\"row_added\");");
+            writeLocateEditableGridScript(w, "colCount", false, true);
+            w.writeLine("Long targetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+            w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
+            w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
+            w.writeLine("    + \" if (idx<0) idx=s.getCount()-1; return idx; } catch(e){ return 0; }\");");
+        } else {
+            // 2b. Существующая запись — предпочтительно закоммиченная (не-modified), чтобы не попасть
+            //     в накопленный мусор от прошлых неудачных create.
+            w.writeLine("Long targetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+            w.writeLine("    \"try { var s=window.__t2grid.getStore(); var cnt=s.getCount(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var dirty={};\"");
+            w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var x=s.indexOf(mod[i]); if(x>=0) dirty[x]=true; }\"");
+            w.writeLine("    + \" for (var r=0;r<cnt;r++){ if(!dirty[r]) return r; } return 0; } catch(e){ return 0; }\");");
+        }
+        w.writeLine("int targetRow = (targetL == null || targetL < 0) ? 0 : targetL.intValue();");
+        w.writeLine("System.out.println(\"" + label + ": " + (isCreate ? "новая (последняя)" : "существующая") + " строка targetRow=\" + targetRow);");
+        writeSelectGridRowScript(w, "targetRow");
         w.writeLine("shot(\"row_selected\");");
-        // 4. Перебираем колонки, startEditing(rowIdx, col), пишем маркер
-        w.writeLine("int filledCount = 0;");
+        // 3. Заполняем редактируемые ячейки строки (дата → валидная, текст → marker_col).
+        w.writeLine("int filled = 0;");
         w.openBlock("for (long col = 0; col < colCount; col++)");
         w.openBlock("try");
-        writeOpenCellEditorScript(w, "rowIdx");
+        writeOpenCellEditorScript(w, "targetRow");
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
         w.closeBlock();
@@ -1256,39 +1290,35 @@ public class TestClassWriter {
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
         w.writeLine("continue;");
         w.closeBlock();
-        writeTypeIntoEditorScript(w, "createdMarker + \"_\" + col");
-        w.writeLine("filledCount++;");
+        writeTypeIntoEditorScript(w, "marker + \"_\" + col");
+        w.writeLine("filled++;");
         w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" OK\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" FAIL: \" + e.getMessage());");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): ни одна ячейка новой строки не заполнилась (строка добавлена, но ввод данных не прошёл)\");");
+        w.writeLine("assertTrue(filled > 0, \"" + label + ": не удалось заполнить ни одной ячейки строки\");");
         w.writeLine("shot(\"cells_filled\");");
-        // 5. Закоммитить редактор ячейки в запись и сохранить через Редактирование → Сохранить Изменения.
-        //    Без коммита открытый редактор перехватывает клик по меню → «Сохранить Изменения» не жмётся.
+        // 4. Коммит редактора + сохранить.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
-        // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
         w.writeLine("if (!saved) saved = clickButtonByText(\"OK\");");
-        w.writeLine("assertTrue(saved, \"testCreate (inline): не удалось сохранить (ни 'Сохранить Изменения', ни 'Готово'/'Сохранить'/'OK')\");");
+        w.writeLine("assertTrue(saved, \"" + label + ": не удалось сохранить (ни 'Сохранить Изменения', ни 'Готово'/'Сохранить'/'OK')\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
-        // 6a. Серверная ошибка (напр. SP вернул «ОШИБКА: …») — честно фейлим с текстом сервера,
-        //     а не делаем вид что сохранилось (маркер виден в гриде даже при отклонённом save).
+        // 5. Серверная ошибка — честно фейлим с текстом сервера.
         w.writeLine("String savePopup = capturePopupText(\"after-save\");");
         w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
         w.writeLine("shot(\"server_error\");");
-        w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
+        w.writeLine("fail(\"" + label + ": сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 6b. ЧЕСТНЫЙ ГЕЙТ: если в сторе остались несохранённые (modified) записи — save не прошёл
-        //     (новая строка осталась «грязной»). Это ловит ложный успех, когда строка визуально есть.
-        writeUnsavedGate(w, "testCreate (inline)", "createdMarker");
-        // 6c. Доп.подтверждение: перечитываем список заново и ищем маркер.
+        // 6. Честный гейт: наша запись не должна остаться modified.
+        writeUnsavedGate(w, label, "marker");
+        // 7. Доп.подтверждение: перечитываем список заново и ищем наше значение.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1296,102 +1326,8 @@ public class TestClassWriter {
         w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_renavigate\");");
-        w.writeLine("boolean createdFound = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
-        w.writeLine("assertTrue(createdFound, \"testCreate (inline): маркер '\" + createdMarker + \"' НЕ найден в свежем списке после ре-навигации — запись не сохранилась на сервере\");");
-        w.closeBlock();
-        w.writeLine();
-    }
-
-    /** Type 2 (inline-table): update — select row 0 → startEditing → unique value → Сохранить. */
-    private void writeInlineTableUpdateTest(JavaFileWriter w) {
-        w.writeLine("@Test");
-        w.writeLine("@Order(4)");
-        w.writeLine("@DisplayName(\"Update row inline (Type 2 entity)\")");
-        w.openBlock("void testUpdate()");
-        w.writeLine("shot(\"start\");");
-        // Уникальное значение для update — чтобы потом отличить его в гриде.
-        w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-        // 1. Грид-список справочника (без property-grid), непустой.
-        writeLocateEditableGridScript(w, "colCount", true, true);
-        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): список пуст или не найден (код=\" + colCount + \")\");");
-        writeGridDiagLog(w, "testUpdate (inline)");
-        // 2. Выбираем СУЩЕСТВУЮЩУЮ запись — предпочтительно НЕ-modified (закоммиченную), чтобы не
-        //    попасть в накопленные мусорные строки от прошлых неудачных create. Update = то же,
-        //    что create, но без «Добавить»: выделили запись → поменяли поле → Сохранить Изменения.
-        w.writeLine("Long editRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var cnt=s.getCount(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var dirty={};\"");
-        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var x=s.indexOf(mod[i]); if(x>=0) dirty[x]=true; }\"");
-        w.writeLine("    + \" for (var r=0;r<cnt;r++){ if(!dirty[r]) return r; } return 0; } catch(e){ return 0; }\");");
-        w.writeLine("int editRow = (editRowL == null || editRowL < 0) ? 0 : editRowL.intValue();");
-        w.writeLine("System.out.println(\"testUpdate (inline): правим существующую (закоммиченную) строку editRow=\" + editRow);");
-        writeSelectGridRowScript(w, "editRow");
-        w.writeLine("shot(\"row_selected\");");
-        // 3. Меняем первое редактируемое ТЕКСТОВОЕ (не дата) поле выбранной строки.
-        w.writeLine("boolean edited = false;");
-        w.openBlock("for (long col = 0; col < colCount && !edited; col++)");
-        w.openBlock("try");
-        writeOpenCellEditorScript(w, "editRow");
-        w.openBlock("if (editor == null)");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("String tag = editor.getTagName();");
-        w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if (g && g.getColumnModel){ var cm=g.getColumnModel(); var ed=cm.getCellEditor?cm.getCellEditor(arguments[0],0):null; var f=ed&&ed.field?ed.field:ed; if (f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if (xt.toLowerCase().indexOf('date')>=0) return true; if (f.format && /[dmy]/i.test(''+f.format)) return true; } } } catch(e){}\"");
-        w.writeLine("    + \"try { var inp=arguments[1]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", (long) col, editor));");
-        w.openBlock("if (isDateField)");
-        w.writeLine("continue;");
-        w.closeBlock();
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
-        w.writeLine("Thread.sleep(60);");
-        w.writeLine("editor.sendKeys(updatedValue);");
-        w.writeLine("Thread.sleep(100);");
-        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
-        w.writeLine("Thread.sleep(150);");
-        w.writeLine("edited = true;");
-        w.writeLine("System.out.println(\"testUpdate (inline): изменили поле col=\" + col + \" строки \" + editRow + \" на '\" + updatedValue + \"'\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testUpdate (inline): col=\" + col + \" FAIL: \" + e.getMessage());");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("assertTrue(edited, \"testUpdate (inline): не удалось изменить ни одно текстовое поле выбранной записи\");");
-        w.writeLine("shot(\"value_typed\");");
-        // 4. Закоммитить редактор в запись, затем сохранить.
-        writeCommitGridEditorScript(w);
-        w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
-        // Фолбэк: модальная карточка редактирования — save-кнопка «Готово»/«Сохранить»/«OK».
-        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
-        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
-        w.writeLine("if (!saved) saved = clickButtonByText(\"OK\");");
-        w.writeLine("assertTrue(saved, \"testUpdate (inline): не удалось сохранить (ни 'Сохранить Изменения', ни 'Готово'/'Сохранить'/'OK')\");");
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"after_save\");");
-        // Серверная ошибка — честно фейлим с текстом сервера.
-        w.writeLine("String savePopup = capturePopupText(\"after-save\");");
-        w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
-        w.writeLine("shot(\"server_error\");");
-        w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
-        w.closeBlock();
-        // ЧЕСТНЫЙ ГЕЙТ: остались несохранённые (modified) записи → save не прошёл.
-        writeUnsavedGate(w, "testUpdate (inline)", "updatedValue");
-        // 5. Доп.подтверждение: перечитываем список заново и ищем новое значение.
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_renavigate\");");
-        w.writeLine("boolean inView = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
-        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после ре-навигации — изменение не сохранилось на сервере\");");
-        w.closeBlock();
-        w.writeLine();
+        w.writeLine("boolean found = gridContainsRow(marker) || gridStoreContainsText(marker);");
+        w.writeLine("assertTrue(found, \"" + label + ": значение '\" + marker + \"' НЕ найдено в свежем списке после ре-навигации — не сохранилось на сервере\");");
     }
 
     private void writeUpdateTest(JavaFileWriter w, List<Property> properties) {
