@@ -91,6 +91,7 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("import org.junit.jupiter.api.*;");
         w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.WebElement;");
         w.writeLine("import org.openqa.selenium.By;");
         w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
         w.writeLine("import " + basePackage + ".BaseTest;");
@@ -270,6 +271,7 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("import org.junit.jupiter.api.*;");
         w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.WebElement;");
         w.writeLine("import org.openqa.selenium.By;");
         w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
         w.writeLine("import " + basePackage + ".BaseTest;");
@@ -368,6 +370,7 @@ public class TestClassWriter {
         w.writeLine();
         w.writeLine("import org.junit.jupiter.api.*;");
         w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.WebElement;");
         w.writeLine("import org.openqa.selenium.By;");
         w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
         w.writeLine("import " + basePackage + ".BaseTest;");
