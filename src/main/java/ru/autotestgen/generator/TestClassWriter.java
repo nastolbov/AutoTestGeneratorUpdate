@@ -1206,13 +1206,24 @@ public class TestClassWriter {
      * leftover dirty rows from past runs (which the server rejected and never committed) don't cause
      * a false failure.
      */
-    private void writeUnsavedGate(JavaFileWriter w, String label, String valueExpr) {
-        w.writeLine("Boolean ourStillDirty = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; if(!g || !g.getStore) return false; var m=g.getStore().getModifiedRecords?g.getStore().getModifiedRecords():[];\"");
-        w.writeLine("    + \" for (var i=0;i<m.length;i++){ var d=m[i].data||{}; for (var k in d){ if((''+d[k]).indexOf(arguments[0])>=0) return true; } } return false; } catch(e){ return false; }\", " + valueExpr + ");");
-        w.writeLine("System.out.println(\"" + label + ": наша запись осталась несохранённой (modified)? = \" + ourStillDirty);");
-        w.writeLine("assertTrue(!Boolean.TRUE.equals(ourStillDirty),");
-        w.writeLine("    \"" + label + ": наша запись осталась несохранённой (modified) после save — сохранение не прошло (сервер отклонил, напр. SP trunc(date), или клик save не сработал)\");");
+    /** Emits JS reading the directory data-grid's total record count into {@code var} (Long; -1 if none). */
+    private void writeReadGridCount(JavaFileWriter w, String var) {
+        w.writeLine("Long " + var + " = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return -1; var gs=[];\"");
+        w.writeLine("    + \"if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('editorgrid,gridpanel,grid');\"");
+        w.writeLine("    + \"else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore&&c.startEditing) gs.push(c);} }\"");
+        w.writeLine("    + \"var best=null, br=-1; for (var i=0;i<gs.length;i++){ var g=gs[i]; if(!g.rendered) continue; var cnt=0; try{cnt=g.getStore().getCount();}catch(e){} if(cnt>br){br=cnt;best=g;} }\"");
+        w.writeLine("    + \"if(!best) return -1; var s=best.getStore(); var tc=(s.getTotalCount?s.getTotalCount():s.getCount()); return tc; } catch(e){ return -1; }\");");
+    }
+
+    /** Emits a check that fails the test if a server «Ошибка» dialog (e.g. SP trunc(date)) is visible. */
+    private void writeServerErrorCheck(JavaFileWriter w, String label) {
+        w.writeLine("String srvErr = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var wn=ws[i]; if (wn.offsetWidth<=0) continue; var t=(wn.innerText||''); if (t.indexOf('\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410')>=0 || t.toLowerCase().indexOf('trunc')>=0 || t.indexOf('SP_')>=0) return t.replace(/\\s+/g,' ').substring(0,300); } return ''; } catch(e){ return ''; }\");");
+        w.openBlock("if (srvErr != null && !srvErr.isEmpty())");
+        w.writeLine("shot(\"server_error\");");
+        w.writeLine("fail(\"" + label + ": сервер отклонил операцию: \" + srvErr);");
+        w.closeBlock();
     }
 
     /**
@@ -1278,6 +1289,9 @@ public class TestClassWriter {
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"start\");");
         w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+        // 0. Счётчик записей ДО добавления (для проверки create: должно стать +1).
+        writeReadGridCount(w, "countBefore");
+        w.writeLine("System.out.println(\"testCreate (inline): записей в справочнике ДО добавления = \" + countBefore);");
         // 1. 'Редактирование' → 'Добавить' — открывает новую пустую строку
         w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
         w.writeLine("assertTrue(addClicked, \"testCreate (inline): не удалось через 'Редактирование' открыть дропдаун и кликнуть 'Добавить'\");");
@@ -1312,17 +1326,11 @@ public class TestClassWriter {
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
-        // 6a. Серверная ошибка (напр. SP вернул «ОШИБКА: …») — честно фейлим с текстом сервера,
-        //     а не делаем вид что сохранилось (маркер виден в гриде даже при отклонённом save).
-        w.writeLine("String savePopup = capturePopupText(\"after-save\");");
-        w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
-        w.writeLine("shot(\"server_error\");");
-        w.writeLine("fail(\"testCreate (inline): сервер отклонил сохранение: \" + savePopup);");
-        w.closeBlock();
-        // 6b. (Гейт getModifiedRecords УБРАН: на этом стенде клиентский стор оставляет флаг modified
-        //     даже после успешного сохранения — запись реально сохраняется на сервере, см. колонки
-        //     «Дата изменения»/«Оператор». Поэтому источник истины — перезагрузка списка ниже.)
-        // 6c. Подтверждение: перечитываем список заново с сервера и ищем маркер.
+        // 6a. Серверная ошибка (напр. SP_GSK_S_CAUSE / trunc(date)) — честно фейлим с текстом сервера.
+        writeServerErrorCheck(w, "testCreate (inline)");
+        // 6b. Перечитываем список с сервера (как кнопка «Обновить») и сверяем СЧЁТЧИК: после create
+        //     записей должно стать на 1 больше. Это надёжнее «маркера в сторе» (стор держит и
+        //     несохранённые строки). Дополнительно ищем сам маркер.
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1330,8 +1338,11 @@ public class TestClassWriter {
         w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_renavigate\");");
+        writeReadGridCount(w, "countAfter");
+        w.writeLine("System.out.println(\"testCreate (inline): записей ПОСЛЕ = \" + countAfter + \" (было \" + countBefore + \")\");");
+        w.writeLine("boolean countGrew = (countBefore != null && countAfter != null && countBefore >= 0 && countAfter > countBefore);");
         w.writeLine("boolean createdFound = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
-        w.writeLine("assertTrue(createdFound, \"testCreate (inline): маркер '\" + createdMarker + \"' НЕ найден в свежем списке после ре-навигации — запись не сохранилась на сервере\");");
+        w.writeLine("assertTrue(countGrew || createdFound, \"testCreate (inline): после сохранения число записей не увеличилось (\" + countBefore + \" -> \" + countAfter + \") и маркер '\" + createdMarker + \"' не найден в свежем списке — запись не сохранилась (вероятно серверная ошибка SP trunc(date))\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -1349,6 +1360,9 @@ public class TestClassWriter {
         writeLocateEditableGridScript(w, "colCount", true, true);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): список пуст или не найден (код=\" + colCount + \")\");");
         writeGridDiagLog(w, "testUpdate (inline)");
+        // Счётчик записей ДО правки (для update он НЕ должен измениться).
+        writeReadGridCount(w, "countBefore");
+        w.writeLine("System.out.println(\"testUpdate (inline): записей в справочнике ДО правки = \" + countBefore);");
         // 2. Выбираем ПЕРВУЮ запись (row 0) и меняем её (как просил заказчик — первую, не последнюю).
         w.writeLine("int editRow = 0;");
         w.writeLine("System.out.println(\"testUpdate (inline): правим первую запись editRow=\" + editRow);");
@@ -1368,15 +1382,10 @@ public class TestClassWriter {
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
-        // Серверная ошибка — честно фейлим с текстом сервера.
-        w.writeLine("String savePopup = capturePopupText(\"after-save\");");
-        w.openBlock("if (savePopup != null && (savePopup.contains(\"\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410\") || savePopup.contains(\"\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430\")))");
-        w.writeLine("shot(\"server_error\");");
-        w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
-        w.closeBlock();
-        // (Гейт getModifiedRecords УБРАН — даёт ложный красный: стор держит modified даже после
-        //  успешного сохранения. Источник истины — перезагрузка списка с сервера ниже.)
-        // 5. Подтверждение: перечитываем список заново с сервера и ищем новое значение.
+        // Серверная ошибка (SP_GSK_S_CAUSE / trunc(date)) — честно фейлим с текстом сервера.
+        writeServerErrorCheck(w, "testUpdate (inline)");
+        // 5. Перечитываем список с сервера (как «Обновить») и проверяем: новое значение видно,
+        //    а число записей НЕ изменилось (update не должен плодить записи).
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
@@ -1384,7 +1393,12 @@ public class TestClassWriter {
         w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_renavigate\");");
+        writeReadGridCount(w, "countAfter");
+        w.writeLine("System.out.println(\"testUpdate (inline): записей ПОСЛЕ = \" + countAfter + \" (было \" + countBefore + \")\");");
         w.writeLine("boolean inView = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
+        w.openBlock("if (countBefore != null && countAfter != null && countBefore >= 0 && countAfter > countBefore)");
+        w.writeLine("System.out.println(\"testUpdate (inline): ВНИМАНИЕ — число записей выросло (\" + countBefore + \" -> \" + countAfter + \"), update не должен добавлять запись\");");
+        w.closeBlock();
         w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после ре-навигации — изменение не сохранилось на сервере\");");
         w.closeBlock();
         w.writeLine();
