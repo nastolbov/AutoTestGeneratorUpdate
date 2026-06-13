@@ -115,19 +115,41 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue;\"");
         w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
         w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
-        // СТРОГОЕ сравнение: ТОЧНОЕ совпадение по displayName ИЛИ name. Partial match
-        // (indexOf...===0) убран — он давал ложные срабатывания (Наименование ГСК/ОГСК
-        // матчился с другими «Наименование...» записями).
-        w.writeLine("    + \"      if (dn === name || nn === name) {\"");
+        // Очищаем хвостовую звёздочку '*' (индикатор required) и пробелы — на стенде
+        // displayName приходит как 'Наименование ГСК/ОГСК *' но в модели у нас просто
+        // 'Наименование ГСК/ОГСК'.
+        w.writeLine("    + \"      var dnClean = dn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
+        w.writeLine("    + \"      var nnClean = nn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
+        w.writeLine("    + \"      if (dnClean === name || nnClean === name) {\"");
         w.writeLine("    + \"        try { c.startEditing(j, 1); } catch(e) { return 'err-start:' + e.message; }\"");
         w.writeLine("    + \"        return 'OK:grid=' + (c.id || '?') + '/row=' + j + '/dn=' + dn + '/nn=' + nn;\"");
         w.writeLine("    + \"      }\"");
         w.writeLine("    + \"    }\"");
         w.writeLine("    + \"  }\"");
-        w.writeLine("    + \"  return 'no-match-in-active';\"");
+        // FALLBACK: если в активном окне не нашли — обходим ВСЕ visible PropertyGrid'ы.
+        // На стенде activeWin.getEl().dom может не покрывать всю карточку (например
+        // PropertyGrid рендерится в отдельном слое).
+        w.writeLine("    + \"  for (var i = 0; i < allItems.length; i++) {\"");
+        w.writeLine("    + \"    var c = allItems[i];\"");
+        w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors || !c.startEditing) continue;\"");
+        w.writeLine("    + \"    try { if (c.getEl().dom.offsetWidth <= 0 || c.getEl().dom.offsetHeight <= 0) continue; } catch(e) { continue; }\"");
+        w.writeLine("    + \"    var s = c.getStore(); if (!s) continue;\"");
+        w.writeLine("    + \"    for (var j = 0; j < s.getCount(); j++) {\"");
+        w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue;\"");
+        w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
+        w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
+        w.writeLine("    + \"      var dnClean = dn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
+        w.writeLine("    + \"      var nnClean = nn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
+        w.writeLine("    + \"      if (dnClean === name || nnClean === name) {\"");
+        w.writeLine("    + \"        try { c.startEditing(j, 1); } catch(e) { return 'err-start-fb:' + e.message; }\"");
+        w.writeLine("    + \"        return 'OK-fallback:grid=' + (c.id || '?') + '/row=' + j + '/dn=' + dn + '/nn=' + nn;\"");
+        w.writeLine("    + \"      }\"");
+        w.writeLine("    + \"    }\"");
+        w.writeLine("    + \"  }\"");
+        w.writeLine("    + \"  return 'no-match';\"");
         w.writeLine("    + \"} catch(e) { return 'err:' + e.message; }\", fieldName);");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing result: \" + startResult);");
-        w.openBlock("if (startResult != null && String.valueOf(startResult).startsWith(\"OK:\"))");
+        w.openBlock("if (startResult != null && (String.valueOf(startResult).startsWith(\"OK:\") || String.valueOf(startResult).startsWith(\"OK-fallback:\")))");
         w.writeLine("Thread.sleep(250);");
         w.writeLine("WebElement startedEditor = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"return document.activeElement;\");");
