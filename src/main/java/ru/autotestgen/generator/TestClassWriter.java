@@ -1223,7 +1223,7 @@ public class TestClassWriter {
         w.writeLine("@Order(3)");
         w.writeLine("@DisplayName(\"Create row inline (Type 2 entity)\")");
         w.openBlock("void testCreate()");
-        writeInlineCrudBody(w, true);
+        writeInlineCrudBody(w, "testCreate (inline)", "AT", false);
         w.closeBlock();
         w.writeLine();
     }
@@ -1233,36 +1233,34 @@ public class TestClassWriter {
         w.writeLine("@Order(4)");
         w.writeLine("@DisplayName(\"Update row inline (Type 2 entity)\")");
         w.openBlock("void testUpdate()");
-        writeInlineCrudBody(w, false);
+        writeInlineCrudBody(w, "testUpdate (inline)", "Upd", false);
         w.closeBlock();
         w.writeLine();
     }
 
     /**
-     * Shared inline-grid CRUD body. create=true: «Редактирование → Добавить», then target the new
-     * (last/newest phantom) row. create=false (update): target an existing committed (non-modified)
-     * row. Both then fill the row's editable cells (valid date into date columns, marker into text),
+     * Shared inline-grid CRUD body. addNewRow=true: «Редактирование → Добавить», then target the new
+     * (last/newest phantom) row. addNewRow=false: target an existing committed (non-modified) row.
+     * Both then fill the row's editable cells (valid date into date columns, marker into text),
      * commit, «Сохранить Изменения», then honestly verify the record committed and survives a fresh
-     * reload.
+     * reload. {@code label}/{@code prefix} control diagnostics and the marker prefix.
      */
-    private void writeInlineCrudBody(JavaFileWriter w, boolean isCreate) {
-        String label = isCreate ? "testCreate (inline)" : "testUpdate (inline)";
-        String prefix = isCreate ? "AT" : "Upd";
+    private void writeInlineCrudBody(JavaFileWriter w, String label, String prefix, boolean addNewRow) {
         w.writeLine("shot(\"start\");");
         w.writeLine("String marker = \"" + prefix + "\" + System.nanoTime();");
-        if (isCreate) {
+        if (addNewRow) {
             // 1a. «Добавить» → новая пустая строка (последняя). Делаем ДО локатора грида.
             w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
             w.writeLine("assertTrue(addClicked, \"" + label + ": не удалось 'Редактирование → Добавить'\");");
             w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
             w.writeLine("shot(\"row_added\");");
         }
-        // 1b. Грид-данных справочника (без property-grid) — локатим ОДИН раз. Для update требуем непустой.
-        writeLocateEditableGridScript(w, "colCount", !isCreate, true);
+        // 1b. Грид-данных справочника (без property-grid) — локатим ОДИН раз. Без «Добавить» требуем непустой.
+        writeLocateEditableGridScript(w, "colCount", !addNewRow, true);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"" + label + ": грид справочника не найден"
-                + (isCreate ? "" : " или пуст") + " (код=\" + colCount + \")\");");
+                + (addNewRow ? "" : " или пуст") + " (код=\" + colCount + \")\");");
         writeGridDiagLog(w, label);
-        if (isCreate) {
+        if (addNewRow) {
             // 2a. Берём самую новую phantom-строку (последнюю). Фолбэк — последняя строка стора.
             w.writeLine("Long targetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
             w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
@@ -1277,7 +1275,7 @@ public class TestClassWriter {
             w.writeLine("    + \" for (var r=0;r<cnt;r++){ if(!dirty[r]) return r; } return 0; } catch(e){ return 0; }\");");
         }
         w.writeLine("int targetRow = (targetL == null || targetL < 0) ? 0 : targetL.intValue();");
-        w.writeLine("System.out.println(\"" + label + ": " + (isCreate ? "новая (последняя)" : "существующая") + " строка targetRow=\" + targetRow);");
+        w.writeLine("System.out.println(\"" + label + ": " + (addNewRow ? "новая (последняя)" : "существующая") + " строка targetRow=\" + targetRow);");
         writeSelectGridRowScript(w, "targetRow");
         w.writeLine("shot(\"row_selected\");");
         // 3. Заполняем редактируемые ячейки строки (дата → валидная, текст → marker_col).
