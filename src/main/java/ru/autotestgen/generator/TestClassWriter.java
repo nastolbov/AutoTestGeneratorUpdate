@@ -1048,6 +1048,10 @@ public class TestClassWriter {
      * -1 no grid, -2 grid empty (only when requireNonEmpty).
      */
     private void writeLocateEditableGridScript(JavaFileWriter w, String resultVar, boolean requireNonEmpty) {
+        writeLocateEditableGridScript(w, resultVar, requireNonEmpty, true);
+    }
+
+    private void writeLocateEditableGridScript(JavaFileWriter w, String resultVar, boolean requireNonEmpty, boolean excludeProperty) {
         w.writeLine("Long " + resultVar + " = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"if (typeof Ext === 'undefined') return -1;\"");
         w.writeLine("    + \"var grids = [];\"");
@@ -1062,8 +1066,10 @@ public class TestClassWriter {
         w.writeLine("    + \"for (var i=0;i<grids.length;i++){ var g=grids[i];\"");
         w.writeLine("    + \"  if (!g.rendered || !g.getStore) continue;\"");
         w.writeLine("    + \"  try { var el=g.getEl?g.getEl():null; var dom=el?(el.dom||el):null; if (dom && (dom.offsetWidth<=0||dom.offsetHeight<=0)) continue; } catch(e){ continue; }\"");
-        w.writeLine("    + \"  var isProp=false; try { isProp = (g.getXType && g.getXType()==='propertygrid') || !!g.propertyNames || (g.source!==undefined && g.nameColumnWidth!==undefined); } catch(e){}\"");
-        w.writeLine("    + \"  if (isProp) continue;\"");
+        if (excludeProperty) {
+            w.writeLine("    + \"  var isProp=false; try { isProp = (g.getXType && g.getXType()==='propertygrid') || !!g.propertyNames || (g.source!==undefined && g.nameColumnWidth!==undefined); } catch(e){}\"");
+            w.writeLine("    + \"  if (isProp) continue;\"");
+        }
         w.writeLine("    + \"  var cnt=0; try { cnt=g.getStore().getCount(); } catch(e){}\"");
         w.writeLine("    + \"  var editable=!!(g.startEditing || g.editingPlugin);\"");
         w.writeLine("    + \"  if (cnt>bestArows){ bestArows=cnt; bestA=g; }\"");
@@ -1267,18 +1273,32 @@ public class TestClassWriter {
         w.writeLine("shot(\"start\");");
         // Уникальное значение для update — чтобы потом отличить его в гриде.
         w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-        // 1. Найти редактируемый грид (Ext3 + Ext4), требуем непустой
-        writeLocateEditableGridScript(w, "colCount", true);
-        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): не нашли таблицу или она пуста (код=\" + colCount + \")\");");
-        writeGridDiagLog(w, "testUpdate (inline)");
-        // 2. ВЫБРАТЬ запись для редактирования (строка 0) — раньше запись не выбиралась.
-        writeSelectGridRowScript(w, "0");
-        w.writeLine("shot(\"row_selected\");");
-        // 3. Перебираем колонки строки 0, ищем первую editable + non-readonly
+        // 1. Список должен быть непустой (грид-данных, без property-grid).
+        writeLocateEditableGridScript(w, "listCols", true, true);
+        w.writeLine("assertTrue(listCols != null && listCols > 0, \"testUpdate (inline): список пуст или не найден (код=\" + listCols + \")\");");
+        writeGridDiagLog(w, "testUpdate (inline) \\u0441\\u043f\\u0438\\u0441\\u043e\\u043a");
+        // 2. ОТКРЫТЬ первую СУЩЕСТВУЮЩУЮ запись (двойной клик → карточка «Сведения …»). Раньше
+        //    правили инлайн по списку и попадали в новую пустую строку — теперь как у GSK: открыли
+        //    первую запись и меняем её поле.
+        w.writeLine("boolean opened = step(\"open first record\", () -> selectAndOpenRecord());");
+        w.writeLine("assertTrue(opened, \"testUpdate (inline): не удалось открыть первую запись справочника на редактирование\");");
+        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"record_opened\");");
+        // 3. Форма карточки — это property-grid (excludeProperty=false), берём её в window.__t2grid.
+        writeLocateEditableGridScript(w, "colCount", false, false);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): не нашли форму карточки записи (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "testUpdate (inline) \\u043a\\u0430\\u0440\\u0442\\u043e\\u0447\\u043a\\u0430");
+        // 4. Меняем первое редактируемое ТЕКСТОВОЕ поле карточки. В property-grid каждая строка —
+        //    поле; значение редактируется в колонке-значении (пробуем col 1, затем 0). Дату пропускаем.
+        w.writeLine("Long cardRowsL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try { return window.__t2grid.getStore().getCount(); } catch(e){ return 0; }\");");
+        w.writeLine("int cardRows = (cardRowsL == null) ? 0 : cardRowsL.intValue();");
+        w.writeLine("System.out.println(\"testUpdate (inline): полей в карточке = \" + cardRows);");
         w.writeLine("boolean edited = false;");
-        w.openBlock("for (long col = 0; col < colCount && !edited; col++)");
+        w.openBlock("for (long r = 0; r < cardRows && !edited; r++)");
+        w.openBlock("for (long col = (colCount > 1 ? 1 : 0); col >= 0 && !edited; col--)");
         w.openBlock("try");
-        writeOpenCellEditorScript(w, "0");
+        writeOpenCellEditorScript(w, "r");
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
         w.closeBlock();
@@ -1286,15 +1306,26 @@ public class TestClassWriter {
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
         w.writeLine("continue;");
         w.closeBlock();
-        writeTypeIntoEditorScript(w, "updatedValue");
+        w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var inp=arguments[0]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", editor));");
+        w.openBlock("if (isDateField)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.writeLine("editor.sendKeys(updatedValue);");
+        w.writeLine("Thread.sleep(100);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
         w.writeLine("edited = true;");
-        w.writeLine("System.out.println(\"testUpdate (inline): отредактировали col=\" + col + \" значением '\" + updatedValue + \"'\");");
+        w.writeLine("System.out.println(\"testUpdate (inline): изменили поле r=\" + r + \" col=\" + col + \" на '\" + updatedValue + \"'\");");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
-        w.writeLine("System.out.println(\"testUpdate (inline): col=\" + col + \" FAIL: \" + e.getMessage());");
+        w.writeLine("System.out.println(\"testUpdate (inline): r=\" + r + \" col=\" + col + \" FAIL: \" + e.getMessage());");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("assertTrue(edited, \"testUpdate (inline): ни одну ячейку выбранной строки не удалось отредактировать\");");
+        w.closeBlock();
+        w.writeLine("assertTrue(edited, \"testUpdate (inline): не удалось изменить ни одно текстовое поле карточки записи\");");
         w.writeLine("shot(\"value_typed\");");
         // 4. Закоммитить редактор в запись, затем сохранить.
         writeCommitGridEditorScript(w);
@@ -1313,8 +1344,11 @@ public class TestClassWriter {
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"testUpdate (inline): сервер отклонил сохранение: \" + savePopup);");
         w.closeBlock();
-        // 5. Подтверждение
-        w.writeLine("assertTrue(gridContainsRow(updatedValue), \"testUpdate (inline): новое значение '\" + updatedValue + \"' не найдено в таблице после save\");");
+        // 5. Подтверждение: новое значение видно в карточке (серверное, red) ИЛИ в таблице списка.
+        w.writeLine("Boolean inViewL = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var w=ws[i]; if (w.offsetWidth>0 && (w.innerText||'').indexOf(arguments[0])>=0) return true; } return false; } catch(e){ return false; }\", updatedValue);");
+        w.writeLine("boolean inView = (inViewL != null && inViewL) || gridContainsRow(updatedValue);");
+        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' не видно после save (ни в карточке, ни в таблице) — изменение не сохранилось\");");
         w.closeBlock();
         w.writeLine();
     }
