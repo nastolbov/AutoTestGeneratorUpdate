@@ -1324,6 +1324,28 @@ public class TestClassWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        // 4b) ПРИНУДИТЕЛЬНО закоммитить активный редактор в запись (Ext3 stopEditing(false) /
+        //     Ext4 completeEdit). Без этого правка ячейки PropertyGrid остаётся «визуальной»
+        //     (значение не попадает в record.set), «Сохранить Изменения» шлёт на сервер СТАРОЕ
+        //     значение, и после перечтения карточки правка «слетает» (поле остаётся чёрным).
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"if (typeof Ext === 'undefined') return;\"");
+        w.writeLine("    + \"var cmps = [];\"");
+        w.writeLine("    + \"try { if (Ext.ComponentQuery && Ext.ComponentQuery.query) cmps = Ext.ComponentQuery.query('propertygrid,editorgrid,grid'); } catch(e) {}\"");
+        w.writeLine("    + \"if ((!cmps || !cmps.length) && Ext.ComponentMgr && Ext.ComponentMgr.all) {\"");
+        w.writeLine("    + \"  try { var all=Ext.ComponentMgr.all; var arr=all.items||(all.getRange?all.getRange():[]);\"");
+        w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && (c.stopEditing || c.activeEditor || c.editingPlugin)) cmps.push(c); } } catch(e) {}\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
+        w.writeLine("    + \"  try { if (c.stopEditing) c.stopEditing(false); } catch(e){}\"");
+        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.completeEdit) c.activeEditor.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \"  try { if (c.editingPlugin && c.editingPlugin.completeEdit) c.editingPlugin.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \"}\");");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         // 5) Save ТОЛЬКО через дропдаун «Редактирование → Сохранить Изменения».
         //    В карточке записи нет кнопок «Готово»/«Сохранить»/Enter — попытка их кликнуть
         //    лишь промахивалась по чужим элементам и тест думал что save прошёл, хотя
@@ -1373,9 +1395,11 @@ public class TestClassWriter {
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"after_renavigate\");");
         w.writeLine();
-        // PRIMARY: фильтрованный поиск
+        // 8) Проверка СОХРАНЕНИЯ через ПЕРЕОТКРЫТИЕ записи (надёжнее фильтр-поиска, который
+        //    давал ложный PASS): ищем по новому значению, открываем найденную запись и убеждаемся,
+        //    что КАРТОЧКА реально показывает новое значение (серверное). Текст из <input> формы
+        //    поиска в innerText не попадает, поэтому ложного срабатывания на введённом фильтре нет.
         w.writeLine("boolean updateApplied = false;");
-        w.writeLine("String hitVia = \"\";");
         w.writeLine("System.out.println(\"testUpdate: ищем '\" + updatedValue + \"' через форму поиска\");");
         w.openBlock("try");
         w.writeLine("page." + methodName + "(updatedValue);");
@@ -1385,27 +1409,31 @@ public class TestClassWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("shot(\"after_filtered_search\");");
-        w.openBlock("if (gridContainsRow(updatedValue))");
-        w.writeLine("updateApplied = true;");
-        w.writeLine("hitVia = \"filtered search\";");
+        w.writeLine("int foundRows = page.getTableRowCount();");
+        w.writeLine("System.out.println(\"testUpdate: результатов поиска по новому значению = \" + foundRows);");
+        w.openBlock("if (foundRows >= 1)");
+        w.writeLine("boolean reopened = step(\"reopen edited record\", () -> selectAndOpenRecord());");
+        w.openBlock("if (reopened)");
+        w.writeLine("waitForCardLoaded(8);");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"reopened_record\");");
+        w.writeLine("Boolean inCard = (Boolean) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var w=ws[i]; if (w.offsetWidth>0 && (w.innerText||'').indexOf(arguments[0])>=0) return true; } return false; } catch(e){ return false; }\", updatedValue);");
+        w.writeLine("updateApplied = (inCard != null && inCard);");
+        w.writeLine("System.out.println(\"testUpdate: новое значение видно в ПЕРЕОТКРЫТОЙ карточке = \" + updateApplied);");
         w.closeBlock();
-        // Fallback DOM/store
+        w.closeBlock();
+        // Fallback: карточку открыть не удалось, но значение реально присутствует в гриде результатов.
         w.openBlock("if (!updateApplied && gridContainsRow(updatedValue))");
         w.writeLine("updateApplied = true;");
-        w.writeLine("hitVia = \"DOM\";");
+        w.writeLine("System.out.println(\"testUpdate: значение найдено в гриде результатов (карточку открыть не удалось)\");");
         w.closeBlock();
-        w.openBlock("if (!updateApplied && gridStoreContainsText(updatedValue))");
-        w.writeLine("updateApplied = true;");
-        w.writeLine("hitVia = \"ExtJS store\";");
-        w.closeBlock();
-        w.writeLine();
-        w.writeLine("System.out.println(\"testUpdate: updateApplied=\" + updateApplied + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia));");
-        w.writeLine("shot(updateApplied ? \"value_in_grid\" : \"final_grid\");");
-        // 9) assertTrue вместо assumeTrue — реальный fail, не SKIP.
+        w.writeLine("shot(updateApplied ? \"value_persisted\" : \"value_lost\");");
+        // 9) assertTrue — реальный fail, не SKIP.
         w.writeLine("assertTrue(updateApplied,");
-        w.writeLine("    \"testUpdate: новое значение '\" + updatedValue + \"' в поле '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' не найдено в гриде \"");
-        w.writeLine("    + \"(ни DOM, ни ExtJS store, ни фильтрованный поиск). Подпись редактируемой записи='\" + editedRowSignature + \"'. \"");
-        w.writeLine("    + \"Popup сервера после save='\" + updatePopupText + \"'. Save click прошёл, но изменения не доехали до базы.\");");
+        w.writeLine("    \"testUpdate: после save новое значение '\" + updatedValue + \"' в поле '" + stringField.getName().replace("\\", "\\\\").replace("\"", "\\\"") + "' НЕ сохранилось \"");
+        w.writeLine("    + \"(переоткрытая запись его не показывает — изменение «слетело»). Подпись записи='\" + editedRowSignature + \"'. \"");
+        w.writeLine("    + \"Popup сервера после save='\" + updatePopupText + \"'.\");");
         w.closeBlock();
         w.writeLine();
     }
