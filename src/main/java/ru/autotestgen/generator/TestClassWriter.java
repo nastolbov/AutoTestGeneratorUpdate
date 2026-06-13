@@ -1051,14 +1051,21 @@ public class TestClassWriter {
         w.writeLine("    + \"try { if (Ext.ComponentQuery && Ext.ComponentQuery.query) grids = Ext.ComponentQuery.query('gridpanel,editorgrid,grid'); } catch(e) {}\"");
         w.writeLine("    + \"if ((!grids || !grids.length) && Ext.ComponentMgr && Ext.ComponentMgr.all) {\"");
         w.writeLine("    + \"  try { var all = Ext.ComponentMgr.all; var arr = all.items || (all.getRange ? all.getRange() : []);\"");
-        w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && c.getStore && (c.startEditing || c.getColumnModel)) grids.push(c); } } catch(e) {}\"");
+        w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && c.getStore && (c.startEditing || c.getColumnModel || c.editingPlugin)) grids.push(c); } } catch(e) {}\"");
         w.writeLine("    + \"}\"");
-        w.writeLine("    + \"var best=null, bestRows=-1;\"");
+        // Предпочитаем РЕДАКТИРУЕМЫЙ грид-данных и ИСКЛЮЧАЕМ property-grid (форма свойств / параметры
+        // поиска тоже грид, но не туда нужно писать). bestE — лучший редактируемый, bestA — запасной.
+        w.writeLine("    + \"var bestE=null, bestErows=-1, bestA=null, bestArows=-1;\"");
         w.writeLine("    + \"for (var i=0;i<grids.length;i++){ var g=grids[i];\"");
         w.writeLine("    + \"  if (!g.rendered || !g.getStore) continue;\"");
         w.writeLine("    + \"  try { var el=g.getEl?g.getEl():null; var dom=el?(el.dom||el):null; if (dom && (dom.offsetWidth<=0||dom.offsetHeight<=0)) continue; } catch(e){ continue; }\"");
+        w.writeLine("    + \"  var isProp=false; try { isProp = (g.getXType && g.getXType()==='propertygrid') || !!g.propertyNames || (g.source!==undefined && g.nameColumnWidth!==undefined); } catch(e){}\"");
+        w.writeLine("    + \"  if (isProp) continue;\"");
         w.writeLine("    + \"  var cnt=0; try { cnt=g.getStore().getCount(); } catch(e){}\"");
-        w.writeLine("    + \"  if (cnt>bestRows){ bestRows=cnt; best=g; } }\"");
+        w.writeLine("    + \"  var editable=!!(g.startEditing || g.editingPlugin);\"");
+        w.writeLine("    + \"  if (cnt>bestArows){ bestArows=cnt; bestA=g; }\"");
+        w.writeLine("    + \"  if (editable && cnt>bestErows){ bestErows=cnt; bestE=g; } }\"");
+        w.writeLine("    + \"var best = bestE || bestA;\"");
         w.writeLine("    + \"if (!best) return -1;\"");
         if (requireNonEmpty) {
             w.writeLine("    + \"if (best.getStore().getCount() === 0) return -2;\"");
@@ -1072,6 +1079,23 @@ public class TestClassWriter {
     private void writeSelectGridRowScript(JavaFileWriter w, String rowExpr) {
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var g=window.__t2grid; var sm=g.getSelectionModel(); if (sm){ if (sm.selectRow) sm.selectRow(arguments[0]); else if (sm.select) sm.select(arguments[0]); } } catch(e){}\", (long) (" + rowExpr + "));");
+    }
+
+    /** Emits a diagnostic log of the chosen window.__t2grid (xtype, rows, editable). */
+    private void writeGridDiagLog(JavaFileWriter w, String label) {
+        w.writeLine("System.out.println(\"" + label + ": выбран грид -> \" + ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; if(!g) return 'none'; var xt=(g.getXType?g.getXType():''); var rows=0; try{rows=g.getStore().getCount();}catch(e){} var ed=!!(g.startEditing||g.editingPlugin); return xt+' rows='+rows+' editable='+ed; } catch(e){ return 'err:'+e.message; }\"));");
+    }
+
+    /** Emits JS that commits the active editor of window.__t2grid into its record (Ext3/Ext4). */
+    private void writeCommitGridEditorScript(JavaFileWriter w) {
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; if (!g) return;\"");
+        w.writeLine("    + \" try { if (g.stopEditing) g.stopEditing(false); } catch(e){}\"");
+        w.writeLine("    + \" try { if (g.activeEditor && g.activeEditor.completeEdit) g.activeEditor.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \" try { if (g.editingPlugin && g.editingPlugin.completeEdit) g.editingPlugin.completeEdit(); } catch(e){}\"");
+        w.writeLine("    + \"} catch(e){}\");");
+        w.writeLine("try { Thread.sleep(300); } catch (InterruptedException ignored) {}");
     }
 
     /** Type 2 (inline-table): create через 'Редактирование → Добавить' → select new row → fill cells → save. */
@@ -1091,6 +1115,7 @@ public class TestClassWriter {
         writeLocateEditableGridScript(w, "colCount", false);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"testCreate (inline): не нашли editable grid (код=\" + colCount + \"). Возможно «Добавить» не создал строку или грид не редактируемый.\");");
         w.writeLine("System.out.println(\"testCreate (inline): grid found, columns=\" + colCount);");
+        writeGridDiagLog(w, "testCreate (inline)");
         // 3. Определить индекс НОВОЙ (phantom/new) строки и ВЫБРАТЬ её — раньше слепо
         //    редактировали строку 0, из-за чего «строка появилась, но мы её не выбрали».
         w.writeLine("Long newRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
@@ -1140,7 +1165,9 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): ни одна ячейка новой строки не заполнилась (строка добавлена, но ввод данных не прошёл)\");");
         w.writeLine("shot(\"cells_filled\");");
-        // 5. Сохранить через Редактирование → Сохранить Изменения
+        // 5. Закоммитить редактор ячейки в запись и сохранить через Редактирование → Сохранить Изменения.
+        //    Без коммита открытый редактор перехватывает клик по меню → «Сохранить Изменения» не жмётся.
+        writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         w.writeLine("assertTrue(saved, \"testCreate (inline): не удалось 'Сохранить Изменения'\");");
         w.writeLine("confirmDialogYes();");
@@ -1164,6 +1191,7 @@ public class TestClassWriter {
         // 1. Найти редактируемый грид (Ext3 + Ext4), требуем непустой
         writeLocateEditableGridScript(w, "colCount", true);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"testUpdate (inline): не нашли таблицу или она пуста (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "testUpdate (inline)");
         // 2. ВЫБРАТЬ запись для редактирования (строка 0) — раньше запись не выбиралась.
         writeSelectGridRowScript(w, "0");
         w.writeLine("shot(\"row_selected\");");
@@ -1206,7 +1234,8 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("assertTrue(edited, \"testUpdate (inline): ни одну ячейку выбранной строки не удалось отредактировать\");");
         w.writeLine("shot(\"value_typed\");");
-        // 4. Сохранить
+        // 4. Закоммитить редактор в запись, затем сохранить.
+        writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         w.writeLine("assertTrue(saved, \"testUpdate (inline): не удалось 'Сохранить Изменения'\");");
         w.writeLine("confirmDialogYes();");
