@@ -2426,6 +2426,47 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // clickGridRefresh: жмёт «зелёную» кнопку обновления грида (PagingToolbar.doRefresh) —
+        // ровно то, что делает пользователь внизу таблицы. Это РЕАЛЬНЫЙ серверный round-trip:
+        // store.reload() перечитывает данные с сервера и ВЫБРАСЫВАЕТ несохранённые phantom-строки,
+        // поэтому после refresh счётчик/стор отражают истину сервера (а не локальный мусор).
+        // Возвращает true если обновление было запущено.
+        w.openBlock("protected boolean clickGridRefresh()");
+        w.openBlock("try");
+        w.writeLine("Object r = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return 'no-ext';\"");
+        w.writeLine("    + \" var gs=[]; if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('editorgrid,gridpanel,grid');\"");
+        w.writeLine("    + \" else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore&&c.getColumnModel) gs.push(c);} }\"");
+        w.writeLine("    + \" var best=null,br=-1; for(var i=0;i<gs.length;i++){ var g=gs[i]; if(!g.rendered) continue; var cnt=0; try{cnt=g.getStore().getCount();}catch(e){} if(cnt>br){br=cnt;best=g;} }\"");
+        w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; var done=false;\"");
+        // 1) Пытаемся нажать ИМЕННО кнопку обновления paging-тулбара (как пользователь).
+        w.writeLine("    + \" try{ var bb=best.getBottomToolbar?best.getBottomToolbar():null; if(bb && bb.doRefresh){ bb.doRefresh(); done=true; } }catch(e){}\"");
+        // 2) Фолбэк — программно перечитать стор с сервера (эквивалент клика по кнопке).
+        w.writeLine("    + \" if(!done){ try{ best.getStore().reload(); done=true; }catch(e){} }\"");
+        w.writeLine("    + \" return done?'ok':'noop'; } catch(e){ return 'err:'+e.message; }\");");
+        w.writeLine("System.out.println(\"clickGridRefresh: \" + r);");
+        // Дополнительно физически кликаем DOM-кнопку обновления (.x-tbar-loading), если она видна —
+        // на некоторых сборках doRefresh недоступен, а кнопка есть.
+        w.openBlock("try");
+        w.writeLine("java.util.List<WebElement> rb = driver.findElements(By.cssSelector(\".x-tbar-loading, .x-tbar-page-refresh\"));");
+        w.openBlock("for (WebElement b : rb)");
+        w.openBlock("if (b.isDisplayed())");
+        w.writeLine("tryClickAllWays(b); break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(2500);");
+        w.writeLine("return \"ok\".equals(r);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"clickGridRefresh failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // setFieldViaExtApi: устанавливает значение ExtJS form-field'а по его fieldLabel
         // или name через ExtJS API. Это работает даже там, где DOM-инпут не существует
         // (например в свёрнутом PropertyGrid). Возвращает true если поле найдено и значение

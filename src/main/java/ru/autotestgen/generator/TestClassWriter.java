@@ -1233,27 +1233,43 @@ public class TestClassWriter {
      * КОЛОНКИ и пропускаются ещё ДО открытия редактора (иначе редактор даты залипает). Так
      * гарантированно заполняются обязательные поля (Нименование + НДЗ).
      */
-    private void writeFillEditableCells(JavaFileWriter w, String label, String marker, String rowExpr) {
-        w.writeLine("Long dateSetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return -1;\"");
-        w.writeLine("    + \" var rt=s.recordType||(s.reader&&s.reader.recordType); var flds=(rt&&rt.prototype)?rt.prototype.fields:null;\"");
-        w.writeLine("    + \" var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return -1; var n=cm.getColumnCount?cm.getColumnCount():0; var d=0;\"");
-        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue;\"");
-        w.writeLine("    + \"   var fld=(flds&&flds.get)?flds.get(di):null; var t=fld?((fld.type&&fld.type.type)?fld.type.type:fld.type):null; var isDate=t&&((''+t).toLowerCase()==='date');\"");
-        w.writeLine("    + \"   if(isDate){ try{ rec.set(di, '01.01.2020'); d++; }catch(e){} } }\"");
-        w.writeLine("    + \" return d; } catch(e){ return -1; }\", (long) (" + rowExpr + "));");
-        w.writeLine("System.out.println(\"" + label + ": дата-колонок проставлено record.set = \" + dateSetL);");
+    private void writeFillEditableCells(JavaFileWriter w, String label, String marker, String rowExpr, boolean singleTextField) {
+        // 0. Разовый дамп column model выбранной строки — видно в логе, какие колонки реально
+        //    редактируемы, где дата (по xtype/format редактора) и какая маска. Это и есть «живая»
+        //    диагностика без отдельного прогона.
+        w.writeLine("System.out.println(\"" + label + ": column dump = \" + ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; var cm=g.getColumnModel(); var n=cm.getColumnCount?cm.getColumnCount():0; var out=[]; var r=arguments[0];\"");
+        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=''; try{di=cm.getDataIndex?cm.getDataIndex(c):'';}catch(e){} var hd=''; try{hd=cm.getColumnHeader?(''+cm.getColumnHeader(c)).replace(/<[^>]*>/g,''):'';}catch(e){}\"");
+        w.writeLine("    + \"   var editable=false; try{ editable = cm.isCellEditable?cm.isCellEditable(c,r):!!(cm.getCellEditor&&cm.getCellEditor(c,r)); }catch(e){}\"");
+        w.writeLine("    + \"   var xt='',fmt=''; try{ var ed=cm.getCellEditor?cm.getCellEditor(c,r):null; var f=ed&&ed.field?ed.field:ed; if(f){ xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); fmt=''+(f.format||f.maskRe||''); } }catch(e){}\"");
+        w.writeLine("    + \"   out.push(c+\\\":\\\"+hd+\\\"[\\\"+di+\\\"] editable=\\\"+editable+\\\" xtype=\\\"+xt+(fmt?\\\" fmt=\\\"+fmt:\\\"\\\")); }\"");
+        w.writeLine("    + \" return out.join(\\\" | \\\"); } catch(e){ return 'err:'+e.message; }\", (long) (" + rowExpr + ")));");
         w.writeLine("int filled = 0;");
+        w.writeLine("int dateFilled = 0;");
         w.openBlock("for (long col = 0; col < colCount; col++)");
         w.openBlock("try");
-        // Определяем тип колонки ДО открытия редактора — дату пропускаем (уже проставлена record.set),
-        // чтобы не открывать залипающий редактор даты.
-        w.writeLine("boolean isDateCol = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return false; var di=cm.getDataIndex?cm.getDataIndex(arguments[0]):null; if(!di) return false;\"");
-        w.writeLine("    + \"var rt=s.recordType||(s.reader&&s.reader.recordType); var flds=(rt&&rt.prototype)?rt.prototype.fields:null; var fld=(flds&&flds.get)?flds.get(di):null; var t=fld?((fld.type&&fld.type.type)?fld.type.type:fld.type):null; return !!(t&&((''+t).toLowerCase()==='date')); } catch(e){} return false;\", col));");
-        w.openBlock("if (isDateCol)");
+        // Тип ячейки по РЕДАКТОРУ колонки: 'skip' (нет редактора) / 'date' / 'text'.
+        // Дату определяем по xtype/format редактора (надёжно), а НЕ по типу поля стора
+        // (он на этом стенде возвращал 0). Нередактируемые системные колонки (Дата изменения,
+        // Оператор) → 'skip', чтобы не ловить «element not interactable».
+        w.writeLine("String cellKind = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; var cm=g.getColumnModel(); var c=arguments[0]; var r=arguments[1];\"");
+        w.writeLine("    + \" var editable=false; try{ editable = cm.isCellEditable?cm.isCellEditable(c,r):!!(cm.getCellEditor&&cm.getCellEditor(c,r)); }catch(e){}\"");
+        w.writeLine("    + \" if(!editable) return 'skip';\"");
+        w.writeLine("    + \" var ed=null; try{ ed=cm.getCellEditor?cm.getCellEditor(c,r):null; }catch(e){} var f=ed&&ed.field?ed.field:ed;\"");
+        w.writeLine("    + \" if(f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) return 'date'; if(f.format && /[dmy]/i.test(''+f.format)) return 'date'; }\"");
+        w.writeLine("    + \" return 'text'; } catch(e){ return 'text'; }\", col, (long) (" + rowExpr + "));");
+        w.openBlock("if (\"skip\".equals(cellKind))");
         w.writeLine("continue;");
         w.closeBlock();
+        w.writeLine("boolean isDateCol = \"date\".equals(cellKind);");
+        if (singleTextField) {
+            // Update: меняем РОВНО одно текстовое поле первой строки. Дату не трогаем
+            // (в существующей записи она уже валидна), и после первого текстового поля выходим.
+            w.openBlock("if (isDateCol)");
+            w.writeLine("continue;");
+            w.closeBlock();
+        }
         writeOpenCellEditorScript(w, rowExpr);
         w.openBlock("if (editor == null)");
         w.writeLine("continue;");
@@ -1262,22 +1278,39 @@ public class TestClassWriter {
         w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
         w.writeLine("continue;");
         w.closeBlock();
+        // Страхуемся: если редактор не интерактивен (скрытый/чужой leftover) — закрываем и
+        // пропускаем молча, без шумного стектрейса.
+        w.openBlock("if (!editor.isDisplayed() || !editor.isEnabled())");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+        w.writeLine("continue;");
+        w.closeBlock();
+        // Дату вписываем с учётом маски 99.99.9999 (редактор её принимает); текст — маркер_col.
+        w.writeLine("String toType = isDateCol ? \"01.01.2020\" : (" + marker + " + \"_\" + col);");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
         w.writeLine("Thread.sleep(60);");
-        w.writeLine("editor.sendKeys(" + marker + " + \"_\" + col);");
+        w.writeLine("editor.sendKeys(toType);");
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(150);");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
         w.writeLine("Thread.sleep(120);");
         w.writeLine("filled++;");
-        w.writeLine("System.out.println(\"  [inline-fill] текст col=\" + col + \" OK\");");
+        w.writeLine("if (isDateCol) dateFilled++;");
+        w.writeLine("System.out.println(\"  [inline-fill] \" + (isDateCol ? \"дата\" : \"текст\") + \" col=\" + col + \" = '\" + toType + \"' OK\");");
+        if (singleTextField) {
+            // Update: одно поле изменено — выходим.
+            w.openBlock("if (!isDateCol)");
+            w.writeLine("System.out.println(\"  [inline-fill] update: изменено одно поле, выходим\");");
+            w.writeLine("break;");
+            w.closeBlock();
+        }
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  [inline-fill] col=\" + col + \" FAIL: \" + e.getMessage());");
         w.closeBlock();
         w.closeBlock();
-        w.writeLine("assertTrue(filled > 0 || (dateSetL != null && dateSetL > 0), \"" + label + ": не удалось заполнить ни текстовое поле, ни дату\");");
+        w.writeLine("System.out.println(\"" + label + ": заполнено полей=\" + filled + \" (из них дат=\" + dateFilled + \")\");");
+        w.writeLine("assertTrue(filled > 0, \"" + label + ": не удалось заполнить ни одного редактируемого поля строки\");");
         w.writeLine("shot(\"cells_filled\");");
     }
 
@@ -1313,11 +1346,17 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testCreate (inline): новая (последняя) строка rowIdx=\" + rowIdx);");
         writeSelectGridRowScript(w, "rowIdx");
         w.writeLine("shot(\"row_selected\");");
-        // 4. Заполнить ВСЕ редактируемые поля новой строки (текст → маркер, даты → record.set).
-        writeFillEditableCells(w, "testCreate (inline)", "createdMarker", "rowIdx");
+        // 4. Заполнить ВСЕ редактируемые поля новой строки (текст → маркер, даты → 01.01.2020 по маске).
+        writeFillEditableCells(w, "testCreate (inline)", "createdMarker", "rowIdx", false);
         // 5. Сохранить через Редактирование → Сохранить Изменения.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        // Ретрай: если пункт не появился в дропдауне (часто из-за зависшего редактора ячейки,
+        // блокирующего тулбар) — ещё раз жёстко закрываем все редакторы и повторяем клик.
+        w.openBlock("if (!saved)");
+        writeCommitGridEditorScript(w);
+        w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.closeBlock();
         // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
@@ -1328,21 +1367,23 @@ public class TestClassWriter {
         w.writeLine("shot(\"after_save\");");
         // 6a. Серверная ошибка (напр. SP_GSK_S_CAUSE / trunc(date)) — честно фейлим с текстом сервера.
         writeServerErrorCheck(w, "testCreate (inline)");
-        // 6b. Перечитываем список с сервера (как кнопка «Обновить») и сверяем СЧЁТЧИК: после create
-        //     записей должно стать на 1 больше. Это надёжнее «маркера в сторе» (стор держит и
-        //     несохранённые строки). Дополнительно ищем сам маркер.
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_renavigate\");");
+        // 6b. Жмём «зелёную» кнопку обновления (как пользователь). Это серверный round-trip:
+        //     store.reload() перечитывает данные с сервера и ВЫБРАСЫВАЕТ несохранённую phantom-строку.
+        //     Поэтому если save не прошёл (напр. trunc(date)) — счётчик вернётся к старому и маркер
+        //     исчезнет → честный красный. Никакого ложного зелёного по «зависшему» счётчику.
+        w.writeLine("boolean refreshed = clickGridRefresh();");
+        w.writeLine("System.out.println(\"testCreate (inline): refresh запущен=\" + refreshed);");
+        // Перечитываем грид после reload и считаем заново.
+        writeLocateEditableGridScript(w, "freshCols", false);
+        w.writeLine("assertTrue(freshCols != null && freshCols > 0, \"testCreate (inline): после обновления не удалось перечитать список — нельзя честно проверить результат\");");
+        w.writeLine("shot(\"after_refresh\");");
         writeReadGridCount(w, "countAfter");
-        w.writeLine("System.out.println(\"testCreate (inline): записей ПОСЛЕ = \" + countAfter + \" (было \" + countBefore + \")\");");
-        w.writeLine("boolean countGrew = (countBefore != null && countAfter != null && countBefore >= 0 && countAfter > countBefore);");
+        w.writeLine("System.out.println(\"testCreate (inline): записей ПОСЛЕ обновления = \" + countAfter + \" (было \" + countBefore + \")\");");
+        w.writeLine("boolean countGrew = (countBefore != null && countAfter != null && countBefore >= 0 && countAfter == countBefore + 1);");
         w.writeLine("boolean createdFound = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
-        w.writeLine("assertTrue(countGrew || createdFound, \"testCreate (inline): после сохранения число записей не увеличилось (\" + countBefore + \" -> \" + countAfter + \") и маркер '\" + createdMarker + \"' не найден в свежем списке — запись не сохранилась (вероятно серверная ошибка SP trunc(date))\");");
+        w.writeLine("System.out.println(\"testCreate (inline): countGrew=\" + countGrew + \" createdFound=\" + createdFound);");
+        // Честная проверка: запись реально появилась (И счётчик +1, И маркер виден в свежем сторе).
+        w.writeLine("assertTrue(countGrew && createdFound, \"testCreate (inline): запись НЕ сохранилась — после обновления счётчик \" + countBefore + \" -> \" + countAfter + \" (ожидалось +1) и/или маркер '\" + createdMarker + \"' не найден. Вероятна серверная ошибка SP (trunc(date)).\");");
         w.closeBlock();
         w.writeLine();
     }
@@ -1368,12 +1409,17 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testUpdate (inline): правим первую запись editRow=\" + editRow);");
         writeSelectGridRowScript(w, "editRow");
         w.writeLine("shot(\"row_selected\");");
-        // 3. Заполняем ВСЕ редактируемые поля строки (текст → значение, даты → record.set валидной),
-        //    чтобы обязательные поля точно были заполнены и сервер принял запись.
-        writeFillEditableCells(w, "testUpdate (inline)", "updatedValue", "editRow");
+        // 3. Меняем РОВНО ОДНО редактируемое текстовое поле первой строки (как просил заказчик).
+        //    Дату не трогаем — в существующей записи она уже валидна.
+        writeFillEditableCells(w, "testUpdate (inline)", "updatedValue", "editRow", true);
         // 4. Закоммитить редактор в запись, затем сохранить.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        // Ретрай при зависшем редакторе ячейки, блокирующем тулбар «Редактирование».
+        w.openBlock("if (!saved)");
+        writeCommitGridEditorScript(w);
+        w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.closeBlock();
         // Фолбэк: модальная карточка редактирования — save-кнопка «Готово»/«Сохранить»/«OK».
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
@@ -1384,22 +1430,23 @@ public class TestClassWriter {
         w.writeLine("shot(\"after_save\");");
         // Серверная ошибка (SP_GSK_S_CAUSE / trunc(date)) — честно фейлим с текстом сервера.
         writeServerErrorCheck(w, "testUpdate (inline)");
-        // 5. Перечитываем список с сервера (как «Обновить») и проверяем: новое значение видно,
-        //    а число записей НЕ изменилось (update не должен плодить записи).
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, false);");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_renavigate\");");
+        // 5. Жмём «зелёную» кнопку обновления (серверный round-trip). После reload проверяем:
+        //    новое значение видно В СВЕЖЕМ СТОРЕ (с сервера), а число записей НЕ изменилось
+        //    (update не должен плодить записи). Если изменение не сохранилось — маркер исчезнет → красный.
+        w.writeLine("boolean refreshed = clickGridRefresh();");
+        w.writeLine("System.out.println(\"testUpdate (inline): refresh запущен=\" + refreshed);");
+        writeLocateEditableGridScript(w, "freshCols", true, true);
+        w.writeLine("assertTrue(freshCols != null && freshCols > 0, \"testUpdate (inline): после обновления не удалось перечитать список — нельзя честно проверить результат\");");
+        w.writeLine("shot(\"after_refresh\");");
         writeReadGridCount(w, "countAfter");
-        w.writeLine("System.out.println(\"testUpdate (inline): записей ПОСЛЕ = \" + countAfter + \" (было \" + countBefore + \")\");");
+        w.writeLine("System.out.println(\"testUpdate (inline): записей ПОСЛЕ обновления = \" + countAfter + \" (было \" + countBefore + \")\");");
         w.writeLine("boolean inView = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
-        w.openBlock("if (countBefore != null && countAfter != null && countBefore >= 0 && countAfter > countBefore)");
-        w.writeLine("System.out.println(\"testUpdate (inline): ВНИМАНИЕ — число записей выросло (\" + countBefore + \" -> \" + countAfter + \"), update не должен добавлять запись\");");
+        w.writeLine("boolean countUnchanged = (countBefore != null && countAfter != null && countBefore >= 0 && countAfter.equals(countBefore));");
+        w.writeLine("System.out.println(\"testUpdate (inline): inView=\" + inView + \" countUnchanged=\" + countUnchanged);");
+        w.openBlock("if (!countUnchanged)");
+        w.writeLine("fail(\"testUpdate (inline): число записей изменилось (\" + countBefore + \" -> \" + countAfter + \") — update не должен добавлять/удалять записи\");");
         w.closeBlock();
-        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после ре-навигации — изменение не сохранилось на сервере\");");
+        w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после обновления — изменение не сохранилось на сервере (вероятна серверная ошибка SP trunc(date))\");");
         w.closeBlock();
         w.writeLine();
     }
