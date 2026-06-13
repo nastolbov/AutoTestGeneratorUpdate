@@ -162,6 +162,10 @@ public class TestGenerator {
         // (каждый форк = свой JVM + своя ChromeDriver-сессия с уникальным user-data-dir).
         w.writeLine("                    <forkCount>${forkCount}</forkCount>");
         w.writeLine("                    <reuseForks>true</reuseForks>");
+        // Перенаправляем stdout/stderr каждого тест-класса в target/surefire-reports/<class>-output.txt.
+        // Без этого System.out (диагностика шагов) уходит только в общую консоль и теряется при
+        // нескольких классах — а так у каждого класса свой полный лог.
+        w.writeLine("                    <redirectTestOutputToFile>true</redirectTestOutputToFile>");
         w.writeLine("                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>");
         w.writeLine("                </configuration>");
         w.writeLine("            </plugin>");
