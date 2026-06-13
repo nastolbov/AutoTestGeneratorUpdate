@@ -1169,7 +1169,11 @@ public class TestClassWriter {
         //    Без коммита открытый редактор перехватывает клик по меню → «Сохранить Изменения» не жмётся.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
-        w.writeLine("assertTrue(saved, \"testCreate (inline): не удалось 'Сохранить Изменения'\");");
+        // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"OK\");");
+        w.writeLine("assertTrue(saved, \"testCreate (inline): не удалось сохранить (ни 'Сохранить Изменения', ни 'Готово'/'Сохранить'/'OK')\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
@@ -1237,7 +1241,11 @@ public class TestClassWriter {
         // 4. Закоммитить редактор в запись, затем сохранить.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
-        w.writeLine("assertTrue(saved, \"testUpdate (inline): не удалось 'Сохранить Изменения'\");");
+        // Фолбэк: модальная карточка редактирования — save-кнопка «Готово»/«Сохранить»/«OK».
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"OK\");");
+        w.writeLine("assertTrue(saved, \"testUpdate (inline): не удалось сохранить (ни 'Сохранить Изменения', ни 'Готово'/'Сохранить'/'OK')\");");
         w.writeLine("confirmDialogYes();");
         w.writeLine("try { Thread.sleep(3000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
