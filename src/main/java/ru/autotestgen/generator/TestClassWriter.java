@@ -1244,22 +1244,53 @@ public class TestClassWriter {
         w.writeLine("System.out.println(\"testCreate (inline): новая (последняя) строка rowIdx=\" + rowIdx);");
         writeSelectGridRowScript(w, "rowIdx");
         w.writeLine("shot(\"row_selected\");");
-        // 4. Заполняем поля новой записи ПРОГРАММНО через record.set (текст → marker_col, дата →
-        //    валидная), НЕ открывая cell-редакторы. Иначе редактор ячейки-даты залипает, блокирует
-        //    остальные колонки и тулбар «Сохранить Изменения». Так — чисто и без датапикера.
-        w.writeLine("Long filledL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        // 4a. Дату-колонки (маска 99.99.9999) заполняем ПРОГРАММНО record.set('01.01.2020') — без
+        //     датапикера, чтобы редактор ячейки-даты не залипал и не блокировал тулбар.
+        w.writeLine("Long dateSetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var g=window.__t2grid; var rec=g.getStore().getAt(arguments[0]); if(!rec) return -1;\"");
-        w.writeLine("    + \" var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return -1; var n=cm.getColumnCount?cm.getColumnCount():0; var f=0;\"");
-        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue;\"");
-        w.writeLine("    + \"   var ed=cm.getCellEditor?cm.getCellEditor(c,0):null; if(!ed) continue;\"");
-        w.writeLine("    + \"   var fld=ed.field?ed.field:ed; var isDate=false; try{ var xt=fld.getXType?(''+fld.getXType()):(''+(fld.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) isDate=true; if(fld.format && /[dmy]/i.test(''+fld.format)) isDate=true; }catch(e){}\"");
-        w.writeLine("    + \"   try{ rec.set(di, isDate ? '01.01.2020' : (arguments[1] + '_' + c)); f++; }catch(e){}\"");
-        w.writeLine("    + \" } return f; } catch(e){ return -1; }\", (long) rowIdx, createdMarker);");
-        w.writeLine("int filledCount = (filledL == null) ? 0 : filledL.intValue();");
-        w.writeLine("System.out.println(\"testCreate (inline): заполнено полей новой записи (record.set) = \" + filledCount);");
-        w.writeLine("assertTrue(filledCount > 0, \"testCreate (inline): не удалось заполнить поля новой записи через record.set (грид не редактируемый?)\");");
+        w.writeLine("    + \" var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return -1; var n=cm.getColumnCount?cm.getColumnCount():0; var d=0;\"");
+        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue; var ed=cm.getCellEditor?cm.getCellEditor(c,0):null; if(!ed) continue; var fld=ed.field?ed.field:ed;\"");
+        w.writeLine("    + \"   var isDate=false; try{ var xt=fld.getXType?(''+fld.getXType()):(''+(fld.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) isDate=true; if(fld.format && /[dmy]/i.test(''+fld.format)) isDate=true; }catch(e){}\"");
+        w.writeLine("    + \"   if(isDate){ try{ rec.set(di, '01.01.2020'); d++; }catch(e){} } }\"");
+        w.writeLine("    + \" return d; } catch(e){ return -1; }\", (long) rowIdx);");
+        w.writeLine("System.out.println(\"testCreate (inline): дата-колонок проставлено record.set = \" + dateSetL);");
+        // 4b. Текстовое поле редактируем ЧЕРЕЗ ЯЧЕЙКУ (как рабочий update): UI edit-событие включает
+        //     «Сохранить Изменения». Дату-колонки пропускаем (уже проставлены). Вписываем маркер.
+        w.writeLine("boolean filled = false;");
+        w.openBlock("for (long col = 0; col < colCount && !filled; col++)");
+        w.openBlock("try");
+        writeOpenCellEditorScript(w, "rowIdx");
+        w.openBlock("if (editor == null)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("String tag = editor.getTagName();");
+        w.openBlock("if (!\"input\".equalsIgnoreCase(tag) && !\"textarea\".equalsIgnoreCase(tag))");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("boolean isDateField = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var g=window.__t2grid; if (g && g.getColumnModel){ var cm=g.getColumnModel(); var ed=cm.getCellEditor?cm.getCellEditor(arguments[0],0):null; var f=ed&&ed.field?ed.field:ed; if (f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if (xt.toLowerCase().indexOf('date')>=0) return true; if (f.format && /[dmy]/i.test(''+f.format)) return true; } } } catch(e){}\"");
+        w.writeLine("    + \"try { var inp=arguments[1]; var p=inp.parentNode; for (var k=0;k<4 && p;k++){ if (p.querySelector && p.querySelector('.x-form-date-trigger')) return true; p=p.parentNode; } } catch(e){} return false;\", (long) col, editor));");
+        w.openBlock("if (isDateField)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.writeLine("editor.sendKeys(createdMarker);");
+        w.writeLine("Thread.sleep(100);");
+        w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(window.__t2grid && window.__t2grid.stopEditing) window.__t2grid.stopEditing(false); }catch(e){}\");");
+        w.writeLine("Thread.sleep(150);");
+        w.writeLine("filled = true;");
+        w.writeLine("System.out.println(\"testCreate (inline): текстовое поле col=\" + col + \" = маркер '\" + createdMarker + \"'\");");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"testCreate (inline): col=\" + col + \" FAIL: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("assertTrue(filled, \"testCreate (inline): не удалось вписать маркер ни в одно текстовое поле новой строки\");");
         w.writeLine("shot(\"cells_filled\");");
-        // 5. Сохранить через Редактирование → Сохранить Изменения (редакторы не открывали — закрывать нечего).
+        // 5. Сохранить через Редактирование → Сохранить Изменения.
         writeCommitGridEditorScript(w);
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         // Фолбэк: если «Добавить» открыл модальную карточку, save-кнопка — «Готово»/«Сохранить»/«OK».
