@@ -56,10 +56,12 @@
     <!-- Center: Split - Entity List + Results -->
     <center>
         <SplitPane dividerPositions="0.25" orientation="HORIZONTAL">
-            <!-- Left: Entity list -->
+            <!-- Left: Entity tree (что будет протестировано / что нет) -->
             <VBox spacing="5" style="-fx-padding: 10;">
-                <Label text="Сущности модели:" style="-fx-font-weight: bold;"/>
-                <ListView fx:id="entityListView" VBox.vgrow="ALWAYS"/>
+                <Label text="Сущности модели (что будет протестировано):" style="-fx-font-weight: bold;"/>
+                <TreeView fx:id="entityTreeView" VBox.vgrow="ALWAYS"/>
+                <Label text="● зелёный — отдельный тест   ● янтарный — тест в составе родителя   ● серый — без тестов"
+                       style="-fx-font-size: 10; -fx-text-fill: #555;" wrapText="true"/>
             </VBox>
 
             <!-- Right: Results + Log -->

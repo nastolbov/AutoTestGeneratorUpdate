@@ -13,6 +13,8 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import ru.autotestgen.generator.*;
 import ru.autotestgen.model.AppModel;
+import ru.autotestgen.model.EntityClassifier;
+import ru.autotestgen.model.EntityKind;
 import ru.autotestgen.model.EntityObject;
 import ru.autotestgen.model.TestCaseResult;
 import ru.autotestgen.model.TestRunResult;
@@ -66,8 +68,8 @@ public class MainController {
         {"Гриды (все варианты)",             "testGrid*"},
     };
 
-    // Entity list
-    @FXML private ListView<String> entityListView;
+    // Entity tree (что будет протестировано / что нет)
+    @FXML private TreeView<EntityNode> entityTreeView;
 
     // Results table
     @FXML private TableView<TestCaseRow> resultsTable;
@@ -161,19 +163,10 @@ public class MainController {
             XmlModelParser parser = new XmlModelParser();
             currentModel = parser.parse(xmlFile);
 
-            // Fill entity list
-            ObservableList<String> entityNames = FXCollections.observableArrayList();
-            for (EntityObject entity : currentModel.getEntities()) {
-                String info = entity.getName();
-                if (entity.hasCrudOperations()) info += " [CRUD]";
-                int propCount = (int) entity.getPropertyGroups().stream()
-                    .flatMap(pg -> pg.getProperties().stream())
-                    .filter(p -> p.isFlagDisplay())
-                    .count();
-                info += " (" + propCount + " полей)";
-                entityNames.add(info);
-            }
-            entityListView.setItems(entityNames);
+            // Построить дерево сущностей: видно, по каким будут тесты, по каким нет.
+            // Группировка зеркалит TestGenerator: PRIMARY → отдельный тест-класс (с вложенными
+            // CHILD-детьми), REFERENCE_DICTIONARY/FK → пропуск (тесты не генерируются).
+            buildEntityTree();
 
             // Take subsystem name from XML CategoryName ("Logical View::<name>") when present.
             String xmlSubsystem = currentModel.getSubsystemNameFromCategory();
@@ -191,6 +184,112 @@ public class MainController {
             showAlert("Ошибка парсинга", e.getMessage());
             log("Ошибка парсинга: " + e.getMessage());
         }
+    }
+
+    /** Узел дерева сущностей: подпись + стиль (цвет) + tooltip (причина классификации). */
+    private static final class EntityNode {
+        final String text;
+        final String style;     // inline-стиль ячейки (цвет/жирность); пусто = по умолчанию
+        final String tooltip;   // подсказка (причина классификации); null = без подсказки
+        EntityNode(String text, String style, String tooltip) {
+            this.text = text;
+            this.style = style;
+            this.tooltip = tooltip;
+        }
+        @Override public String toString() { return text; }
+    }
+
+    // Цвета групп: зелёный = отдельный тест-класс, янтарный = тест в составе родителя,
+    // серый = тесты не генерируются. Заголовки групп — жирные.
+    private static final String STYLE_GROUP   = "-fx-font-weight: bold;";
+    private static final String STYLE_PRIMARY = "-fx-text-fill: #2e7d32; -fx-font-weight: bold;";
+    private static final String STYLE_CHILD   = "-fx-text-fill: #f57f17;";
+    private static final String STYLE_SKIP    = "-fx-text-fill: #9e9e9e;";
+
+    /** Строит дерево из currentModel: группа «будут протестированы» (PRIMARY с вложенными CHILD)
+     *  и группа «тесты не генерируются» (справочники / FK-пикеры). Источник — EntityClassifier,
+     *  та же логика, по которой TestGenerator реально создаёт/пропускает тесты. */
+    private void buildEntityTree() {
+        TreeItem<EntityNode> root = new TreeItem<>(new EntityNode("root", "", null));
+
+        TreeItem<EntityNode> tested = new TreeItem<>(
+                new EntityNode("✓ Будут протестированы", STYLE_GROUP, null));
+        TreeItem<EntityNode> skipped = new TreeItem<>(
+                new EntityNode("✗ Тесты не генерируются", STYLE_GROUP, null));
+
+        // 1) Классифицируем все сущности, заводим узлы для PRIMARY (по GUID, чтобы подвешивать детей).
+        java.util.Map<String, TreeItem<EntityNode>> primaryByGuid = new java.util.LinkedHashMap<>();
+        java.util.List<EntityObject> children = new java.util.ArrayList<>();
+        int primaryCount = 0, childCount = 0, skipCount = 0;
+
+        for (EntityObject entity : currentModel.getEntities()) {
+            EntityClassifier.Classification cls = EntityClassifier.classify(entity, currentModel);
+            if (cls.kind == EntityKind.PRIMARY) {
+                TreeItem<EntityNode> item = new TreeItem<>(
+                        new EntityNode(label(entity), STYLE_PRIMARY, "PRIMARY — отдельный тест-класс. " + cls.reason));
+                if (entity.getGuid() != null) primaryByGuid.put(entity.getGuid(), item);
+                tested.getChildren().add(item);
+                primaryCount++;
+            } else if (cls.kind == EntityKind.CHILD) {
+                children.add(entity);
+            } else {
+                skipped.getChildren().add(new TreeItem<>(
+                        new EntityNode(label(entity), STYLE_SKIP, "Тесты не генерируются. " + cls.reason)));
+                skipCount++;
+            }
+        }
+
+        // 2) Подвешиваем CHILD под их родителя (grid-вкладка / узел дерева). Если родитель не
+        //    PRIMARY/не найден — показываем ребёнка отдельным узлом в группе «будут протестированы».
+        for (EntityObject child : children) {
+            EntityClassifier.Classification cls = EntityClassifier.classify(child, currentModel);
+            String kindNote = cls.parentGrid != null ? " (вкладка)" : " (узел дерева)";
+            TreeItem<EntityNode> childItem = new TreeItem<>(
+                    new EntityNode(label(child) + kindNote, STYLE_CHILD,
+                            "CHILD — тест в составе родителя. " + cls.reason));
+            TreeItem<EntityNode> parent = (cls.parentEntity != null && cls.parentEntity.getGuid() != null)
+                    ? primaryByGuid.get(cls.parentEntity.getGuid()) : null;
+            (parent != null ? parent : tested).getChildren().add(childItem);
+            childCount++;
+        }
+
+        if (!tested.getChildren().isEmpty()) root.getChildren().add(tested);
+        if (!skipped.getChildren().isEmpty()) root.getChildren().add(skipped);
+        tested.setExpanded(true);
+        skipped.setExpanded(true);
+        for (TreeItem<EntityNode> p : primaryByGuid.values()) p.setExpanded(true);
+
+        entityTreeView.setRoot(root);
+        entityTreeView.setShowRoot(false);
+        entityTreeView.setCellFactory(tv -> new TreeCell<EntityNode>() {
+            @Override protected void updateItem(EntityNode node, boolean empty) {
+                super.updateItem(node, empty);
+                if (empty || node == null) {
+                    setText(null);
+                    setStyle("");
+                    setTooltip(null);
+                } else {
+                    setText(node.text);
+                    setStyle(node.style);
+                    setTooltip(node.tooltip == null ? null : new Tooltip(node.tooltip));
+                }
+            }
+        });
+
+        log("Дерево сущностей: PRIMARY=" + primaryCount + ", CHILD=" + childCount
+                + ", без тестов=" + skipCount);
+    }
+
+    /** Подпись сущности в дереве: имя + [CRUD] + (N полей) — как было в плоском списке. */
+    private static String label(EntityObject entity) {
+        String info = entity.getName();
+        if (entity.hasCrudOperations()) info += " [CRUD]";
+        int propCount = (int) entity.getPropertyGroups().stream()
+                .flatMap(pg -> pg.getProperties().stream())
+                .filter(p -> p.isFlagDisplay())
+                .count();
+        info += " (" + propCount + " полей)";
+        return info;
     }
 
     @FXML
