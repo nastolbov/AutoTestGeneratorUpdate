@@ -1250,18 +1250,20 @@ public class TestClassWriter {
         String prefix = isCreate ? "AT" : "Upd";
         w.writeLine("shot(\"start\");");
         w.writeLine("String marker = \"" + prefix + "\" + System.nanoTime();");
-        // 1. Грид-данных справочника (без property-grid). Для update требуем непустой.
+        if (isCreate) {
+            // 1a. «Добавить» → новая пустая строка (последняя). Делаем ДО локатора грида.
+            w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+            w.writeLine("assertTrue(addClicked, \"" + label + ": не удалось 'Редактирование → Добавить'\");");
+            w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
+            w.writeLine("shot(\"row_added\");");
+        }
+        // 1b. Грид-данных справочника (без property-grid) — локатим ОДИН раз. Для update требуем непустой.
         writeLocateEditableGridScript(w, "colCount", !isCreate, true);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"" + label + ": грид справочника не найден"
                 + (isCreate ? "" : " или пуст") + " (код=\" + colCount + \")\");");
         writeGridDiagLog(w, label);
         if (isCreate) {
-            // 2a. «Добавить» → новая пустая строка (последняя). Берём самую новую phantom-строку.
-            w.writeLine("boolean addClicked = step(\"Редактирование → Добавить\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
-            w.writeLine("assertTrue(addClicked, \"" + label + ": не удалось 'Редактирование → Добавить'\");");
-            w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
-            w.writeLine("shot(\"row_added\");");
-            writeLocateEditableGridScript(w, "colCount", false, true);
+            // 2a. Берём самую новую phantom-строку (последнюю). Фолбэк — последняя строка стора.
             w.writeLine("Long targetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
             w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
             w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
