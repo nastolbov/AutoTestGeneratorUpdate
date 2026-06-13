@@ -1224,10 +1224,11 @@ public class TestClassWriter {
      */
     private void writeFillEditableCells(JavaFileWriter w, String label, String marker, String rowExpr) {
         w.writeLine("Long dateSetL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; var rec=g.getStore().getAt(arguments[0]); if(!rec) return -1;\"");
+        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var rec=s.getAt(arguments[0]); if(!rec) return -1;\"");
+        w.writeLine("    + \" var rt=s.recordType||(s.reader&&s.reader.recordType); var flds=(rt&&rt.prototype)?rt.prototype.fields:null;\"");
         w.writeLine("    + \" var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return -1; var n=cm.getColumnCount?cm.getColumnCount():0; var d=0;\"");
-        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue; var ed=cm.getCellEditor?cm.getCellEditor(c,0):null; if(!ed) continue; var fld=ed.field?ed.field:ed;\"");
-        w.writeLine("    + \"   var isDate=false; try{ var xt=fld.getXType?(''+fld.getXType()):(''+(fld.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) isDate=true; if(fld.format && /[dmy]/i.test(''+fld.format)) isDate=true; }catch(e){}\"");
+        w.writeLine("    + \" for (var c=0;c<n;c++){ var di=cm.getDataIndex?cm.getDataIndex(c):null; if(!di) continue;\"");
+        w.writeLine("    + \"   var fld=(flds&&flds.get)?flds.get(di):null; var t=fld?((fld.type&&fld.type.type)?fld.type.type:fld.type):null; var isDate=t&&((''+t).toLowerCase()==='date');\"");
         w.writeLine("    + \"   if(isDate){ try{ rec.set(di, '01.01.2020'); d++; }catch(e){} } }\"");
         w.writeLine("    + \" return d; } catch(e){ return -1; }\", (long) (" + rowExpr + "));");
         w.writeLine("System.out.println(\"" + label + ": дата-колонок проставлено record.set = \" + dateSetL);");
@@ -1237,7 +1238,8 @@ public class TestClassWriter {
         // Определяем тип колонки ДО открытия редактора — дату пропускаем (уже проставлена record.set),
         // чтобы не открывать залипающий редактор даты.
         w.writeLine("boolean isDateCol = Boolean.TRUE.equals(((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var g=window.__t2grid; var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return false; var ed=cm.getCellEditor?cm.getCellEditor(arguments[0],0):null; var f=ed&&ed.field?ed.field:ed; if(f){ var xt=f.getXType?(''+f.getXType()):(''+(f.xtype||'')); if(xt.toLowerCase().indexOf('date')>=0) return true; if(f.format && /[dmy]/i.test(''+f.format)) return true; } } catch(e){} return false;\", col));");
+        w.writeLine("    \"try { var g=window.__t2grid; var s=g.getStore(); var cm=g.getColumnModel?g.getColumnModel():null; if(!cm) return false; var di=cm.getDataIndex?cm.getDataIndex(arguments[0]):null; if(!di) return false;\"");
+        w.writeLine("    + \"var rt=s.recordType||(s.reader&&s.reader.recordType); var flds=(rt&&rt.prototype)?rt.prototype.fields:null; var fld=(flds&&flds.get)?flds.get(di):null; var t=fld?((fld.type&&fld.type.type)?fld.type.type:fld.type):null; return !!(t&&((''+t).toLowerCase()==='date')); } catch(e){} return false;\", col));");
         w.openBlock("if (isDateCol)");
         w.writeLine("continue;");
         w.closeBlock();
