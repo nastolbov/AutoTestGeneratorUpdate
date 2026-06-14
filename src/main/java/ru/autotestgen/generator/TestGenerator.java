@@ -2487,13 +2487,12 @@ public class TestGenerator {
         w.writeLine("    + \"  var paging=false; try{paging=!!dom.querySelector('.x-tbar-page-number,.x-tbar-page-next,.x-tbar-loading')||!!(g.getBottomToolbar&&g.getBottomToolbar());}catch(e){}\"");
         w.writeLine("    + \"  var inActive=awDom?(awDom===dom||awDom.contains(dom)):true; var score=(inActive?1000:0)+(paging?400:0); if(score>bestScore){bestScore=score;best=g;bestDom=dom;} }\"");
         w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; window.__t2dom=bestDom; var s=best.getStore(); var did=[];\"");
-        // 1) rejectChanges — ГАРАНТИРОВАННО выбрасывает несохранённые phantom/правки из стора.
-        //    После НЕудачного save (напр. серверный trunc(date)) они остаются и раздувают счётчик —
-        //    это и давало ложный +1. После успешного save модифицированных записей нет → no-op.
-        w.writeLine("    + \" try{ if(s.rejectChanges){ s.rejectChanges(); did.push('reject'); } }catch(e){}\"");
-        // 2) Кнопка обновления paging-тулбара (как пользователь жмёт «зелёную» иконку).
+        // ВАЖНО: НЕ вызываем s.rejectChanges() здесь — он откатывает строки, помеченные на удаление
+        //    (modified), и несохранённые правки, чем ломал delete (строка восстанавливалась → gone=false).
+        //    Обновление делаем через зелёную кнопку тулбара + серверный reload.
+        // 1) Кнопка обновления paging-тулбара (как пользователь жмёт «зелёную» иконку).
         w.writeLine("    + \" try{ var bb=best.getBottomToolbar?best.getBottomToolbar():null; if(bb && bb.doRefresh){ bb.doRefresh(); did.push('doRefresh'); } }catch(e){}\"");
-        // 3) Реальный серверный round-trip — перечитать стор.
+        // 2) Реальный серверный round-trip — перечитать стор.
         w.writeLine("    + \" try{ s.reload(); did.push('reload'); }catch(e){ did.push('reload-err'); }\"");
         w.writeLine("    + \" return did.length?did.join(','):'noop'; } catch(e){ return 'err:'+e.message; }\");");
         w.writeLine("System.out.println(\"clickGridRefresh: \" + r);");
