@@ -1,0 +1,59 @@
+name: Build Windows app
+
+# Собирает портативное Windows-приложение (.exe) через jpackage и выкладывает
+# готовый ZIP в артефакты сборки. Запускать вручную: вкладка Actions → этот workflow → Run.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Полный Temurin JDK 17: в нём есть и jpackage, и javac. Он же станет средой
+      # выполнения приложения (--runtime-image) и будет использоваться mvn для тестов.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Собираем jar приложения и складываем все зависимости (JavaFX с нативными
+      # win-библиотеками, sqlite) в один каталог для входа jpackage.
+      - name: Build jar and collect dependencies
+        shell: pwsh
+        run: |
+          mvn -B clean package -DskipTests
+          mvn -B dependency:copy-dependencies "-DoutputDirectory=target/jpkg-input" "-DincludeScope=runtime"
+          Copy-Item target/autotestgenerator-1.0.0.jar target/jpkg-input/
+
+      # app-image (портативная папка, без установщика). Главный класс — Launcher
+      # (не наследует Application), JavaFX берётся из classpath, среда — полный JDK 17.
+      - name: Build app-image with jpackage
+        shell: pwsh
+        run: |
+          jpackage --type app-image --name AutoTestGenerator --input target/jpkg-input --main-jar autotestgenerator-1.0.0.jar --main-class ru.autotestgen.ui.Launcher --runtime-image "$env:JAVA_HOME" --dest target/dist
+
+      # Кладём Apache Maven рядом с приложением (его подхватит TestRunner по пути maven/bin/mvn.cmd).
+      - name: Bundle Maven
+        shell: pwsh
+        run: |
+          $mavenVersion = "3.9.9"
+          Invoke-WebRequest -Uri "https://dlcdn.apache.org/maven/maven-3/$mavenVersion/binaries/apache-maven-$mavenVersion-bin.zip" -OutFile maven.zip
+          Expand-Archive maven.zip -DestinationPath maven-extract
+          Move-Item "maven-extract/apache-maven-$mavenVersion" target/dist/AutoTestGenerator/maven
+
+      # Кладём руководство рядом с приложением и упаковываем всё в один ZIP.
+      - name: Assemble release zip
+        shell: pwsh
+        run: |
+          Copy-Item "РУКОВОДСТВО.html" target/dist/
+          Copy-Item "ЧИТАЙ_МЕНЯ.txt" target/dist/
+          Compress-Archive -Path target/dist/* -DestinationPath AutoTestGenerator-windows.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoTestGenerator-windows
+          path: AutoTestGenerator-windows.zip

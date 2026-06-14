@@ -65,8 +65,17 @@ public class TestRunner {
         // На Windows исполняемый файл Maven — mvn.cmd; ProcessBuilder для команды без расширения
         // ищет только mvn.exe и падает с "Cannot run program mvn". Поэтому выбираем имя по ОС.
         boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+
+        // В упакованном виде (jpackage) JDK и Maven лежат внутри папки приложения, а не в PATH.
+        // appDir — корень приложения: java.home указывает на …/AutoTestGenerator/runtime,
+        // его родитель и есть корень. Рядом ожидаем maven/ и (опц.) maven-repo/.
+        Path appDir = Path.of(System.getProperty("java.home")).getParent();
+        Path bundledMaven = appDir == null ? null
+                : appDir.resolve("maven").resolve("bin").resolve(isWindows ? "mvn.cmd" : "mvn");
+        boolean useBundled = bundledMaven != null && Files.exists(bundledMaven);
+
         List<String> cmd = new ArrayList<>();
-        cmd.add(isWindows ? "mvn.cmd" : "mvn");
+        cmd.add(useBundled ? bundledMaven.toString() : (isWindows ? "mvn.cmd" : "mvn"));
         cmd.add("test");
         if (testFilter != null && !testFilter.isBlank()) {
             cmd.add("-Dtest=" + testFilter);
@@ -79,9 +88,31 @@ public class TestRunner {
             cmd.add("-DforkCount=1");
             cmd.add("-Dheadless=true");
         }
+        if (useBundled) {
+            // Прогретый локальный репозиторий рядом с приложением — первый прогон без долгой докачки.
+            Path bundledRepo = appDir.resolve("maven-repo");
+            if (Files.exists(bundledRepo)) {
+                cmd.add("-Dmaven.repo.local=" + bundledRepo);
+            }
+        }
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         pb.directory(projectDir.toFile());
+
+        if (useBundled) {
+            // mvn ищет JDK через JAVA_HOME. Среда выполнения приложения (java.home) — полный JDK,
+            // его и используем; пути к java/mvn кладём в начало PATH дочернего процесса.
+            String javaHome = System.getProperty("java.home");
+            var env = pb.environment();
+            env.put("JAVA_HOME", javaHome);
+            String sep = isWindows ? ";" : ":";
+            String extraPath = appDir.resolve("runtime").resolve("bin")
+                    + sep + appDir.resolve("maven").resolve("bin");
+            // На Windows переменная PATH может называться Path — ищем без учёта регистра.
+            String pathKey = env.keySet().stream()
+                    .filter(k -> k.equalsIgnoreCase("PATH")).findFirst().orElse("PATH");
+            env.put(pathKey, extraPath + sep + env.getOrDefault(pathKey, ""));
+        }
 
         Process process = pb.start();
         StringBuilder outputBuilder = new StringBuilder();
