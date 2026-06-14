@@ -1594,6 +1594,11 @@ public class TestGenerator {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
         w.closeBlock();
+        // Для отчёта скриним всплывающее окно, если оно было обнаружено (валидация, инфо,
+        // подтверждение и т.п.) — чтобы каждое попап-окно попадало в галерею скриншотов.
+        w.openBlock("if (collected.length() > 0)");
+        w.writeLine("try { shot(\"popup-\" + tag, \"POPUP\"); } catch (Exception ignored) {}");
+        w.closeBlock();
         w.writeLine("return collected.toString();");
         w.closeBlock();
         w.writeLine();
@@ -1626,6 +1631,8 @@ public class TestGenerator {
         w.openBlock("try");
         w.openBlock("if (b.isDisplayed() && b.isEnabled())");
         w.writeLine("System.out.println(\"confirmDialogYes: clicking '\" + b.getText().trim() + \"'\");");
+        // Для отчёта скриним окно подтверждения (Да/Нет/OK) до того, как закроем его кликом.
+        w.writeLine("try { shot(\"confirm-dialog\", \"POPUP\"); } catch (Exception ignored) {}");
         w.writeLine("tryClickAllWays(b);");
         w.writeLine("Thread.sleep(400);");
         w.writeLine("return true;");
