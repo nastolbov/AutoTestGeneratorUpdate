@@ -1,0 +1,16 @@
+-------------------------------------------------------------------------------
+Test set: generated.test.PriglashNnyyGSKTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 81.36 s <<< FAILURE! -- in generated.test.PriglashNnyyGSKTest
+generated.test.PriglashNnyyGSKTest.testDelete -- Time elapsed: 20.12 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: child delete: запись 'Да' всё ещё в гриде И счётчик не уменьшился (1 -> 1). popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?' ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at generated.test.PriglashNnyyGSKTest.testDelete(PriglashNnyyGSKTest.java:595)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+

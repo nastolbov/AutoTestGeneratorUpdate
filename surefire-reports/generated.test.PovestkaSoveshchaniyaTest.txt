@@ -1,0 +1,13 @@
+-------------------------------------------------------------------------------
+Test set: generated.test.PovestkaSoveshchaniyaTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 27.49 s <<< FAILURE! -- in generated.test.PovestkaSoveshchaniyaTest
+generated.test.PovestkaSoveshchaniyaTest.testTreeNodeFields -- Time elapsed: 27.49 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Child 'Повестка совещания': не удалось подготовить контекст за 3 попытки — узел дерева 'Повестка совещания' не найден(а) в карточке родителя. (Сценарий: родитель → карточка → Повестка совещания). Это реальная проблема навигации, не заглушка.
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at generated.test.PovestkaSoveshchaniyaTest.setUp(PovestkaSoveshchaniyaTest.java:72)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+

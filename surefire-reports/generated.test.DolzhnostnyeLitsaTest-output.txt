@@ -1,0 +1,17 @@
+descendMenu: trying to click 'Найти' for entity 'Должностные лица'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Должностные_лица-after-action.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам"
+Fields visible on grid: 0 of 0
+selectAndOpenRecord: visible grid groups:
+openViaExtApi: no-grid
+selectAndOpenRecord: NO row found and ExtJS API failed
+[step] select + open record: 5ms
+Card did not open — field comparison limited to result grid columns.
+descendMenu: trying to click 'Найти' for entity 'Должностные лица'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Должностные_лица-after-action.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам"
+Grid 'Должностные лица' visible: true
+Grid columns found: 1 of 10
+Grid buttons found: 0 of 3

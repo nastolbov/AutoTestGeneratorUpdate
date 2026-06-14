@@ -1,0 +1,132 @@
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+child setUp: attempt=1 parent='ГСК/ОГСК' gridRows=243
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen21136] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen21235] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+openTab: trying <div> 'Сведения ГСК/ОГСК
+История ГСК/ОГСК
+Документы ГСК/ОГСК'
+  click strategy 1 (plain): OK
+Grid 'Документы ГСК/ОГСК' rows: 261
+Grid 'Документы ГСК/ОГСК' columns: 3 of 3
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+child setUp: attempt=1 parent='ГСК/ОГСК' gridRows=243
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen21753] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen21852] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+openTab: trying <div> 'Сведения ГСК/ОГСК
+История ГСК/ОГСК
+Документы ГСК/ОГСК'
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Добавить'
+  click strategy 1 (plain): OK
+[step] Редактирование → Добавить: 1305ms
+child testCreate: выбран грид -> editorgrid rows=1 editable=true
+child testCreate: строк в редактируемом гриде после 'Добавить' = 1
+child testCreate: column dump = 0:Название *[5EC78E2801BC] editable=true xtype=undefined | 1:Файл[5EC78E28020E] editable=true xtype=fileField | 2:Дата создания[5EC78E280243] editable=true xtype=maskField | 3:Примечание[5EC78E28027C] editable=true xtype=undefined | 4:Дата изменения[5EC78E2802B4] editable=true xtype=undefined | 5:Оператор[5EC78E2802EB] editable=true xtype=undefined | 6:KEY_GB_SOCIETY[5EC78DE003A3] editable=true xtype=undefined | 7:KEY_DOC_GB_SOCIETY[5EC78E0E0063] editable=true xtype=undefined
+  [inline-fill] col=0 после ввода record.get = ''
+  [inline-fill] col=0 фолбэк rec.set → record.get = 'AT1689143443745000_0'
+  [inline-fill] текст col=0 = 'AT1689143443745000_0' OK
+  [inline-fill] col=1 после ввода record.get = ''
+  [inline-fill] col=1 фолбэк rec.set → record.get = 'AT1689143443745000_1'
+  [inline-fill] текст col=1 = 'AT1689143443745000_1' OK
+  [inline-fill] col=2 после ввода record.get = '14.06.2026'
+  [inline-fill] дата col=2 = '14.06.2026' OK
+  [inline-fill] col=3 после ввода record.get = ''
+  [inline-fill] col=3 фолбэк rec.set → record.get = 'AT1689143443745000_3'
+  [inline-fill] текст col=3 = 'AT1689143443745000_3' OK
+  [inline-fill] col=4 после ввода record.get = '14.06.2026 16:28:48'
+  [inline-fill] текст col=4 = 'AT1689143443745000_4' OK
+  [inline-fill] col=5 после ввода record.get = ''
+  [inline-fill] col=5 фолбэк rec.set → record.get = 'AT1689143443745000_5'
+  [inline-fill] текст col=5 = 'AT1689143443745000_5' OK
+  [inline-fill] col=6 после ввода record.get = '26'
+  [inline-fill] текст col=6 = 'AT1689143443745000_6' OK
+  [inline-fill] col=7 после ввода record.get = '75'
+  [inline-fill] текст col=7 = 'AT1689143443745000_7' OK
+child testCreate: заполнено полей=8 (из них дат=1)
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Сохранить Изменения'
+  click strategy 1 (plain): OK
+[step] Сохранить Изменения: 1297ms
+confirmDialogYes: no confirm dialog appeared in 3s
+clickGridRefresh: reload-err
+child testCreate: marker='AT1689143443745000' found=true
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+child setUp: attempt=1 parent='ГСК/ОГСК' gridRows=243
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen22489] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen22588] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+openTab: trying <div> 'Сведения ГСК/ОГСК
+История ГСК/ОГСК
+Документы ГСК/ОГСК'
+  click strategy 1 (plain): OK
+child testUpdate: выбран грид -> editorgrid rows=1 editable=true
+child testUpdate: column dump = 0:Название *[5EC78E2801BC] editable=true xtype=undefined | 1:Файл[5EC78E28020E] editable=true xtype=fileField | 2:Дата создания[5EC78E280243] editable=true xtype=maskField | 3:Примечание[5EC78E28027C] editable=true xtype=undefined | 4:Дата изменения[5EC78E2802B4] editable=true xtype=undefined | 5:Оператор[5EC78E2802EB] editable=true xtype=undefined | 6:KEY_GB_SOCIETY[5EC78DE003A3] editable=true xtype=undefined | 7:KEY_DOC_GB_SOCIETY[5EC78E0E0063] editable=true xtype=undefined
+  [inline-fill] текст col=0 = 'Upd1689174681143125_0' OK
+  [inline-fill] update: изменено одно поле, выходим
+child testUpdate: заполнено полей=1 (из них дат=0)
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Сохранить Изменения'
+  click strategy 1 (plain): OK
+[step] Сохранить Изменения: 1323ms
+confirmDialogYes: no confirm dialog appeared in 3s
+clickGridRefresh: reload-err
+child testUpdate: value='Upd1689174681143125' found=true
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+child setUp: attempt=1 parent='ГСК/ОГСК' gridRows=243
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen23141] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen23240] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+openTab: trying <div> 'Сведения ГСК/ОГСК
+История ГСК/ОГСК
+Документы ГСК/ОГСК'
+  click strategy 1 (plain): OK
+child testDelete: marker='Upd1689174681143125_0' countBefore=1
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Удалить'
+  click strategy 1 (plain): OK
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+confirmDialogYes: clicking 'Да'
+  click strategy 1 (plain): OK
+confirmDialogYes: no confirm dialog appeared in 3s
+clickGridRefresh: reload-err
+child testDelete: gone=true count 1 -> 1 popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?'

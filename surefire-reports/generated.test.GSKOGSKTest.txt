@@ -1,0 +1,16 @@
+-------------------------------------------------------------------------------
+Test set: generated.test.GSKOGSKTest
+-------------------------------------------------------------------------------
+Tests run: 11, Failures: 1, Errors: 0, Skipped: 2, Time elapsed: 443.6 s <<< FAILURE! -- in generated.test.GSKOGSKTest
+generated.test.GSKOGSKTest.testArchive -- Time elapsed: 37.31 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: testArchive: запись не ушла в архив — «Всего записей» не уменьшилось (1081 -> 1081) и 'ГСК' всё ещё в активном гриде. popup='' ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at generated.test.GSKOGSKTest.testArchive(GSKOGSKTest.java:1108)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+

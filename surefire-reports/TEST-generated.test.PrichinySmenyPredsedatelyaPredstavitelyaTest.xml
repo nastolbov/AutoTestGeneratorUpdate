@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="121.857" tests="5" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="25"/>
+    <property name="webdriver.chrome.driver" value="/Users/nikita/.cache/selenium/chromedriver/mac-arm64/149.0.7827.115/chromedriver"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/test-classes:/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/classes:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-java/4.15.0/selenium-java-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-api/4.15.0/selenium-api-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-chrome-driver/4.15.0/selenium-chrome-driver-4.15.0.jar:/Users/nikita/.m2/repository/com/google/auto/service/auto-service-annotations/1.1.1/auto-service-annotations-1.1.1.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-chromium-driver/4.15.0/selenium-chromium-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-json/4.15.0/selenium-json-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-manager/4.15.0/selenium-manager-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v117/4.15.0/selenium-devtools-v117-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v118/4.15.0/selenium-devtools-v118-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v119/4.15.0/selenium-devtools-v119-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v85/4.15.0/selenium-devtools-v85-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-edge-driver/4.15.0/selenium-edge-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-firefox-driver/4.15.0/selenium-firefox-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-http/4.15.0/selenium-http-4.15.0.jar:/Users/nikita/.m2/repository/dev/failsafe/failsafe/3.3.2/failsafe-3.3.2.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-ie-driver/4.15.0/selenium-ie-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-remote-driver/4.15.0/selenium-remote-driver-4.15.0.jar:/Users/nikita/.m2/repository/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar:/Users/nikita/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/Users/nikita/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/Users/nikita/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/Users/nikita/.m2/repository/org/checkerframework/checker-qual/3.33.0/checker-qual-3.33.0.jar:/Users/nikita/.m2/repository/com/google/errorprone/error_prone_annotations/2.18.0/error_prone_annotations-2.18.0.jar:/Users/nikita/.m2/repository/com/google/j2objc/j2objc-annotations/2.8/j2objc-annotations-2.8.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-api/1.28.0/opentelemetry-api-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-context/1.28.0/opentelemetry-context-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-exporter-logging/1.28.0/opentelemetry-exporter-logging-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-metrics/1.28.0/opentelemetry-sdk-metrics-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-extension-incubator/1.28.0-alpha/opentelemetry-extension-incubator-1.28.0-alpha.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-logs/1.28.0/opentelemetry-sdk-logs-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-common/1.28.0/opentelemetry-sdk-common-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-extension-autoconfigure-spi/1.28.0/opentelemetry-sdk-extension-autoconfigure-spi-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-extension-autoconfigure/1.28.0/opentelemetry-sdk-extension-autoconfigure-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-api-events/1.28.0-alpha/opentelemetry-api-events-1.28.0-alpha.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-trace/1.28.0/opentelemetry-sdk-trace-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk/1.28.0/opentelemetry-sdk-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-semconv/1.28.0-alpha/opentelemetry-semconv-1.28.0-alpha.jar:/Users/nikita/.m2/repository/net/bytebuddy/byte-buddy/1.14.5/byte-buddy-1.14.5.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-os/4.15.0/selenium-os-4.15.0.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-exec/1.3/commons-exec-1.3.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-safari-driver/4.15.0/selenium-safari-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-support/4.15.0/selenium-support-4.15.0.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.1/junit-jupiter-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.1/junit-jupiter-api-5.10.1.jar:/Users/nikita/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/Users/nikita/.m2/repository/org/junit/platform/junit-platform-commons/1.10.1/junit-platform-commons-1.10.1.jar:/Users/nikita/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.1/junit-jupiter-params-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.1/junit-jupiter-engine-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/platform/junit-platform-engine/1.10.1/junit-platform-engine-1.10.1.jar:/Users/nikita/.m2/repository/io/github/bonigarcia/webdrivermanager/5.6.2/webdrivermanager-5.6.2.jar:/Users/nikita/.m2/repository/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar:/Users/nikita/.m2/repository/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java/3.3.4/docker-java-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-core/3.3.4/docker-java-core-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-api/3.3.4/docker-java-api-3.3.4.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.10.3/jackson-annotations-2.10.3.jar:/Users/nikita/.m2/repository/commons-io/commons-io/2.13.0/commons-io-2.13.0.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.10.3/jackson-databind-2.10.3.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.10.3/jackson-core-2.10.3.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcpkix-jdk18on/1.76/bcpkix-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcprov-jdk18on/1.76/bcprov-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcutil-jdk18on/1.76/bcutil-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.30/jcl-over-slf4j-1.7.30.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-transport-httpclient5/3.3.4/docker-java-transport-httpclient5-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-transport/3.3.4/docker-java-transport-3.3.4.jar:/Users/nikita/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar:/Users/nikita/.m2/repository/org/brotli/dec/0.1.2/dec-0.1.2.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/client5/httpclient5/5.2.1/httpclient5-5.2.1.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/core5/httpcore5/5.2/httpcore5-5.2.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/core5/httpcore5-h2/5.2/httpcore5-h2-5.2.jar:"/>
+    <property name="forkCount" value="1"/>
+    <property name="java.vm.vendor" value="Homebrew"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="user.timezone" value="Europe/Moscow"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="java.vm.specification.version" value="25"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="RU"/>
+    <property name="sun.boot.library.path" value="/opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/surefire/surefirebooter-20260614161421361_3.jar /Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/surefire 2026-06-14T16-14-21_330-jvmRun1 surefire-20260614161421361_1tmp surefire_0-20260614161421361_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/test-classes:/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/classes:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-java/4.15.0/selenium-java-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-api/4.15.0/selenium-api-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-chrome-driver/4.15.0/selenium-chrome-driver-4.15.0.jar:/Users/nikita/.m2/repository/com/google/auto/service/auto-service-annotations/1.1.1/auto-service-annotations-1.1.1.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-chromium-driver/4.15.0/selenium-chromium-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-json/4.15.0/selenium-json-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-manager/4.15.0/selenium-manager-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v117/4.15.0/selenium-devtools-v117-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v118/4.15.0/selenium-devtools-v118-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v119/4.15.0/selenium-devtools-v119-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-devtools-v85/4.15.0/selenium-devtools-v85-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-edge-driver/4.15.0/selenium-edge-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-firefox-driver/4.15.0/selenium-firefox-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-http/4.15.0/selenium-http-4.15.0.jar:/Users/nikita/.m2/repository/dev/failsafe/failsafe/3.3.2/failsafe-3.3.2.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-ie-driver/4.15.0/selenium-ie-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-remote-driver/4.15.0/selenium-remote-driver-4.15.0.jar:/Users/nikita/.m2/repository/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar:/Users/nikita/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/Users/nikita/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/Users/nikita/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/Users/nikita/.m2/repository/org/checkerframework/checker-qual/3.33.0/checker-qual-3.33.0.jar:/Users/nikita/.m2/repository/com/google/errorprone/error_prone_annotations/2.18.0/error_prone_annotations-2.18.0.jar:/Users/nikita/.m2/repository/com/google/j2objc/j2objc-annotations/2.8/j2objc-annotations-2.8.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-api/1.28.0/opentelemetry-api-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-context/1.28.0/opentelemetry-context-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-exporter-logging/1.28.0/opentelemetry-exporter-logging-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-metrics/1.28.0/opentelemetry-sdk-metrics-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-extension-incubator/1.28.0-alpha/opentelemetry-extension-incubator-1.28.0-alpha.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-logs/1.28.0/opentelemetry-sdk-logs-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-common/1.28.0/opentelemetry-sdk-common-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-extension-autoconfigure-spi/1.28.0/opentelemetry-sdk-extension-autoconfigure-spi-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-extension-autoconfigure/1.28.0/opentelemetry-sdk-extension-autoconfigure-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-api-events/1.28.0-alpha/opentelemetry-api-events-1.28.0-alpha.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk-trace/1.28.0/opentelemetry-sdk-trace-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-sdk/1.28.0/opentelemetry-sdk-1.28.0.jar:/Users/nikita/.m2/repository/io/opentelemetry/opentelemetry-semconv/1.28.0-alpha/opentelemetry-semconv-1.28.0-alpha.jar:/Users/nikita/.m2/repository/net/bytebuddy/byte-buddy/1.14.5/byte-buddy-1.14.5.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-os/4.15.0/selenium-os-4.15.0.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-exec/1.3/commons-exec-1.3.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-safari-driver/4.15.0/selenium-safari-driver-4.15.0.jar:/Users/nikita/.m2/repository/org/seleniumhq/selenium/selenium-support/4.15.0/selenium-support-4.15.0.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.1/junit-jupiter-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.1/junit-jupiter-api-5.10.1.jar:/Users/nikita/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/Users/nikita/.m2/repository/org/junit/platform/junit-platform-commons/1.10.1/junit-platform-commons-1.10.1.jar:/Users/nikita/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.1/junit-jupiter-params-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.1/junit-jupiter-engine-5.10.1.jar:/Users/nikita/.m2/repository/org/junit/platform/junit-platform-engine/1.10.1/junit-platform-engine-1.10.1.jar:/Users/nikita/.m2/repository/io/github/bonigarcia/webdrivermanager/5.6.2/webdrivermanager-5.6.2.jar:/Users/nikita/.m2/repository/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar:/Users/nikita/.m2/repository/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java/3.3.4/docker-java-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-core/3.3.4/docker-java-core-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-api/3.3.4/docker-java-api-3.3.4.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.10.3/jackson-annotations-2.10.3.jar:/Users/nikita/.m2/repository/commons-io/commons-io/2.13.0/commons-io-2.13.0.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.10.3/jackson-databind-2.10.3.jar:/Users/nikita/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.10.3/jackson-core-2.10.3.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcpkix-jdk18on/1.76/bcpkix-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcprov-jdk18on/1.76/bcprov-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/bouncycastle/bcutil-jdk18on/1.76/bcutil-jdk18on-1.76.jar:/Users/nikita/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.30/jcl-over-slf4j-1.7.30.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-transport-httpclient5/3.3.4/docker-java-transport-httpclient5-3.3.4.jar:/Users/nikita/.m2/repository/com/github/docker-java/docker-java-transport/3.3.4/docker-java-transport-3.3.4.jar:/Users/nikita/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar:/Users/nikita/.m2/repository/org/brotli/dec/0.1.2/dec-0.1.2.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar:/Users/nikita/.m2/repository/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/client5/httpclient5/5.2.1/httpclient5-5.2.1.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/core5/httpcore5/5.2/httpcore5-5.2.jar:/Users/nikita/.m2/repository/org/apache/httpcomponents/core5/httpcore5-h2/5.2/httpcore5-h2-5.2.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/Users/nikita"/>
+    <property name="user.language" value="ru"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2025-10-21"/>
+    <property name="java.home" value="/opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="apple.awt.application.name" value="ForkedBooter"/>
+    <property name="surefire.real.class.path" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests/target/surefire/surefirebooter-20260614161421361_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="25.0.1"/>
+    <property name="user.name" value="nikita"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="15.6.1"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Homebrew"/>
+    <property name="localRepository" value="/Users/nikita/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="java.io.tmpdir" value="/var/folders/2m/n3hhgkpj00l3j_cy8pyks0vw0000gn/T/"/>
+    <property name="java.version" value="25.0.1"/>
+    <property name="user.dir" value="/Users/nikita/AutoTestGeneratorUpdate/generated-tests"/>
+    <property name="os.arch" value="aarch64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="headless" value="true"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/nikita/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Homebrew"/>
+    <property name="java.vm.version" value="25.0.1"/>
+    <property name="stdin.encoding" value="UTF-8"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="java.class.version" value="69.0"/>
+  </properties>
+  <testcase name="testFieldsPresent" classname="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="8.184">
+    <system-out><![CDATA[descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам" | Причины смены председателя/представителя | Причины смены председателя/представителя
+Fields visible on grid: 0 of 0
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen18842] count=1 firstRowText=[Причины смены председателя/представителя]
+  group=[ext-gen18978] count=6 firstRowText=[Upd1686706430752250_0|	|AT1679398351176541_1|	|01.01.2020|	| |	| |	|14.06.2026 1]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'Upd1686706430752250_0' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+[step] select + open record: 633ms
+Fields visible INSIDE card: 0 of 0
+]]></system-out>
+  </testcase>
+  <testcase name="testCreate" classname="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="30.632">
+    <system-out><![CDATA[descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам" | Причины смены председателя/представителя | Причины смены председателя/представителя
+testCreate (inline): записей в справочнике ДО добавления = 6
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Добавить'
+  click strategy 1 (plain): OK
+[step] Редактирование → Добавить: 1274ms
+testCreate (inline): grid found, columns=9
+testCreate (inline): выбран грид -> editorgrid rows=7 editable=true
+testCreate (inline): строк в редактируемом гриде после 'Добавить' = 7
+testCreate (inline): новая (последняя) строка rowIdx=6
+testCreate (inline): column dump = 0:Нименование[5EB3AC360108] editable=true xtype=undefined | 1:Краткое наименование[5EB3AC360171] editable=true xtype=undefined | 2:НДЗ *[5EB3AC3601AD] editable=true xtype=maskField | 3:КДЗ[5EB3AC3601E4] editable=true xtype=maskField | 4:Примечание[5EB3AC36021B] editable=true xtype=undefined | 5:Дата изменения[5EB3AC360251] editable=true xtype=undefined | 6:Оператор[5EB3AC360288] editable=true xtype=undefined | 7:ANCESTOR_KEY[5EB3AB910107] editable=true xtype=undefined | 8:KEY_CAUSE[5EB3ABD60223] editable=true xtype=undefined
+  [dismissErrorPopup] серверный попап обнаружен — закрываем OK и продолжаем
+  [inline-fill] серверный попап закрыт, продолжаем заполнение
+  [inline-fill] col=0 после ввода record.get = 'AT1688999574758291_0'
+  [inline-fill] текст col=0 = 'AT1688999574758291_0' OK
+  [inline-fill] col=1 после ввода record.get = 'AT1688999574758291_1'
+  [inline-fill] текст col=1 = 'AT1688999574758291_1' OK
+  [inline-fill] col=2 после ввода record.get = '14.06.2026'
+  [inline-fill] дата col=2 = '14.06.2026' OK
+  [inline-fill] col=3 после ввода record.get = '__.__.____'
+  [inline-fill] дата col=3 = '14.06.2026' OK
+  [inline-fill] col=4 после ввода record.get = ''
+  [inline-fill] col=4 фолбэк rec.set → record.get = 'AT1688999574758291_4'
+  [inline-fill] текст col=4 = 'AT1688999574758291_4' OK
+  [inline-fill] col=5 после ввода record.get = ''
+  [inline-fill] col=5 фолбэк rec.set → record.get = 'AT1688999574758291_5'
+  [inline-fill] текст col=5 = 'AT1688999574758291_5' OK
+  [inline-fill] col=6 после ввода record.get = ''
+  [inline-fill] col=6 фолбэк rec.set → record.get = 'AT1688999574758291_6'
+  [inline-fill] текст col=6 = 'AT1688999574758291_6' OK
+  [inline-fill] col=7 после ввода record.get = ''
+  [inline-fill] col=7 фолбэк rec.set → record.get = 'AT1688999574758291_7'
+  [inline-fill] текст col=7 = 'AT1688999574758291_7' OK
+  [inline-fill] col=8 после ввода record.get = ''
+  [inline-fill] col=8 фолбэк rec.set → record.get = 'AT1688999574758291_8'
+  [inline-fill] текст col=8 = 'AT1688999574758291_8' OK
+testCreate (inline): заполнено полей=9 (из них дат=2)
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Сохранить Изменения'
+  click strategy 1 (plain): OK
+[step] Редактирование → Сохранить Изменения: 1315ms
+confirmDialogYes: no confirm dialog appeared in 3s
+clickGridRefresh: reload-err
+testCreate (inline): refresh запущен=true
+testCreate (inline): записей ПОСЛЕ обновления = 6 (было 6)
+testCreate (inline): countGrew=false createdFound=true
+]]></system-out>
+  </testcase>
+  <testcase name="testUpdate" classname="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="49.35">
+    <system-out><![CDATA[descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам" | Причины смены председателя/представителя | Причины смены председателя/представителя
+testUpdate (inline): выбран грид -> editorgrid rows=7 editable=true
+testUpdate (inline): записей в справочнике ДО правки = 6
+testUpdate (inline): правим первую запись editRow=0
+testUpdate (inline): column dump = 0:Нименование[5EB3AC360108] editable=true xtype=undefined | 1:Краткое наименование[5EB3AC360171] editable=true xtype=undefined | 2:НДЗ *[5EB3AC3601AD] editable=true xtype=maskField | 3:КДЗ[5EB3AC3601E4] editable=true xtype=maskField | 4:Примечание[5EB3AC36021B] editable=true xtype=undefined | 5:Дата изменения[5EB3AC360251] editable=true xtype=undefined | 6:Оператор[5EB3AC360288] editable=true xtype=undefined | 7:ANCESTOR_KEY[5EB3AB910107] editable=true xtype=undefined | 8:KEY_CAUSE[5EB3ABD60223] editable=true xtype=undefined
+  [inline-fill] текст col=0 = 'Upd1689030294054333_0' OK
+  [inline-fill] update: изменено одно поле, выходим
+testUpdate (inline): заполнено полей=1 (из них дат=0)
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain) failed: ElementClickInterceptedException
+  click strategy 2 (Actions): OK
+clickEditDropdownAction: action 'Сохранить Изменения' not found in dropdown
+[step] Редактирование → Сохранить Изменения: 3811ms
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain) failed: ElementClickInterceptedException
+  click strategy 2 (Actions): OK
+clickEditDropdownAction: action 'Сохранить Изменения' not found in dropdown
+clickButtonByText: 'Готово' not found (matched 0 total, none displayed/enabled)
+clickButtonByText: 'Сохранить' not found (matched 0 total, none displayed/enabled)
+confirmDialogYes: no confirm dialog appeared in 3s
+clickGridRefresh: reload-err
+testUpdate (inline): refresh запущен=true
+testUpdate (inline): записей ПОСЛЕ обновления = 6 (было 6)
+testUpdate (inline): inView=true countUnchanged=true
+]]></system-out>
+  </testcase>
+  <testcase name="testDelete" classname="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="26.763">
+    <system-out><![CDATA[descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам" | Причины смены председателя/представителя | Причины смены председателя/представителя
+testDelete: записей ДО = 6
+  идентификатор первой строки рабочего грида = 'Upd1689030294054333_0'
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Удалить'
+  click strategy 1 (plain): OK
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+confirmDialogYes: clicking 'Да'
+  click strategy 1 (plain): OK
+confirmDialogYes: no confirm dialog appeared in 3s
+descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Результат поиска "по параметрам" | Результат поиска "по параметрам" | Причины смены председателя/представителя | Причины смены председателя/представителя
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 31 visible row(s)
+testDelete: записей ПОСЛЕ = 19 (было 6), gone=true, popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?'
+]]></system-out>
+  </testcase>
+  <testcase name="testGridPrichinySmenyPredsedatelyaPredstavitelya" classname="generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest" time="6.925">
+    <system-out><![CDATA[descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for 'Причины смены председателя/представителя'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-Причины_смены_председателя_представителя-after-direct.png
+  visible tabs: Причины смены председателя/представителя | Причины смены председателя/представителя
+Grid 'Причины смены председателя/представителя' visible: true
+Grid columns found: 4 of 5
+Grid buttons found: 0 of 3
+]]></system-out>
+  </testcase>
+</testsuite>

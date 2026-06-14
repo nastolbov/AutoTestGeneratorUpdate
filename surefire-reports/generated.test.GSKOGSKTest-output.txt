@@ -1,0 +1,359 @@
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+Fields visible on grid: 12 of 14
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen23798] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen23897] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+[step] select + open record: 647ms
+Fields visible INSIDE card: 14 of 14
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 13 visible row(s)
+descendMenu: trying to click 'Добавить' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+[step] open Добавить via main menu: 2248ms
+  addClicked=true for entity ГСК/ОГСК
+  addFormOpen=true
+[step] clear form: 4111ms
+[step] click Готово: 2108ms
+Validation summary: dialogOpen=true, hasErrors=false, highlightedFields=0/3
+waitUntil(dialog close): timeout after 2s
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+descendMenu: trying to click 'Добавить' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+[step] open Добавить via main menu: 3331ms
+  addClicked=true for entity ГСК/ОГСК
+  addFormOpen=true
+  [fill] 'Включён в ОГСК' — FK field, opening dropdown
+  [fill-FK] 'Включён в ОГСК' — открываем пикер реальным кликом
+  [fill-FK] 'Включён в ОГСК' = FAIL (no dropdown, no NEW picker window; activeBefore=ext-comp-6963)
+  [fill-FK] dropdown diagnostic:
+    class=' x-btn-with-menu' text='Файл'
+    class=' x-btn-with-menu' text='Гаражно-строительные кооперативы'
+    class=' x-btn-with-menu' text='Отчёты'
+    class=' x-btn-with-menu' text='НСИ'
+    class=' x-btn-with-menu' text='DDL Generator'
+    class=' x-btn-with-menu' text='Сервис'
+    class=' x-btn-with-menu' text='Справка'
+  [fill] 'Тип ГСК/ОГСК' — FK field, opening dropdown
+  [fill-FK] 'Тип ГСК/ОГСК' — открываем пикер реальным кликом
+  [fill-FK] 'Тип ГСК/ОГСК' ждём 1с и кликаем элемент 'ОГСК'
+  [fill-FK] 'Тип ГСК/ОГСК' = OK ('ОГСК' из 4 вариантов)
+  [fill] 'Адрес ГСК' startEditing result: OK:grid=ext-comp-6967/row=4/dn=/nn=Адрес ГСК
+  [fill] 'Адрес ГСК' editor через startEditing: id=ext-comp-6995 class= x-form-text x-form-field x-form-focus
+  [fill] 'Адрес ГСК' = OK ('Test_GBS_ADDRESS_1689249646968041' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Район' — FK field, opening dropdown
+  [fill-FK] 'Район' — открываем пикер реальным кликом
+  [fill-FK] 'Район' = FAIL (no dropdown, no NEW picker window; activeBefore=ext-comp-6963)
+  [fill-FK] dropdown diagnostic:
+    class=' x-btn-with-menu' text='Файл'
+    class=' x-btn-with-menu' text='Гаражно-строительные кооперативы'
+    class=' x-btn-with-menu' text='Отчёты'
+    class=' x-btn-with-menu' text='НСИ'
+    class=' x-btn-with-menu' text='DDL Generator'
+    class=' x-btn-with-menu' text='Сервис'
+    class=' x-btn-with-menu' text='Справка'
+  [fill] 'Председатель ГСК/Представитель ОГСК' — FK field, opening dropdown
+  [fill-FK] 'Председатель ГСК/Представитель ОГСК' — открываем пикер реальным кликом
+  [fill-FK] 'Председатель ГСК/Представитель ОГСК' ждём 1с и кликаем элемент 'Быков Иван Иванович, Председатель ГСК'
+  [fill-FK] 'Председатель ГСК/Представитель ОГСК' = OK ('Быков Иван Иванович, Председатель ГСК' из 905 вариантов)
+  [fill] 'ИНН' startEditing result: OK:grid=ext-comp-6967/row=7/dn=/nn=ИНН
+  [fill] 'ИНН' editor через startEditing: id=ext-comp-7001 class= x-form-text x-form-field x-form-focus
+  [fill] 'ИНН' = OK ('Test_INN_1689249646968041' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Кадастровый номер' startEditing result: OK:grid=ext-comp-6967/row=8/dn=/nn=Кадастровый номер
+  [fill] 'Кадастровый номер' editor через startEditing: id=ext-comp-7003 class= x-form-text x-form-field x-form-focus
+  [fill] 'Кадастровый номер' = OK ('Test_CADASTRAL_NUMBER_1689249646968041' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Наличие договора с РО' — FK field, opening dropdown
+  [fill-FK] 'Наличие договора с РО' — открываем пикер реальным кликом
+  [fill-FK] 'Наличие договора с РО' ждём 1с и кликаем элемент 'Да'
+  [fill-FK] 'Наличие договора с РО' = OK ('Да' из 2 вариантов)
+  [fill] 'Причина смены председателя/представителя' — FK field, opening dropdown
+  [fill-FK] 'Причина смены председателя/представителя' — открываем пикер реальным кликом
+  [fill-FK] 'Причина смены председателя/представителя' ждём 1с и кликаем элемент 'Upd1681236347739000_0'
+  [fill-FK] 'Причина смены председателя/представителя' = OK ('Upd1681236347739000_0' из 5 вариантов)
+  [fill] 'НДЗ' startEditing result: OK:grid=ext-comp-6967/row=11/dn=/nn=НДЗ *
+  [fill] 'НДЗ' editor через startEditing: id=ext-comp-7009 class= x-form-text x-form-field x-form-focus
+  [fill] 'НДЗ' = OK ('14.06.2026' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'КДЗ' startEditing result: OK:grid=ext-comp-6967/row=12/dn=/nn=КДЗ
+  [fill] 'КДЗ' editor через startEditing: id=ext-comp-7011 class= x-form-text x-form-field x-form-focus
+  [fill] 'КДЗ' = OK ('14.06.2026' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Примечание' startEditing result: OK:grid=ext-comp-6967/row=13/dn=/nn=Примечание
+  [fill] 'Примечание' editor через startEditing: id=ext-comp-7013 class= x-form-text x-form-field x-form-focus
+  [fill] 'Примечание' = OK ('Test_DESCRIPTION_1689249646968041' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Краткое наименование' startEditing result: OK:grid=ext-comp-6967/row=3/dn=/nn=Краткое наименование
+  [fill] 'Краткое наименование' editor через startEditing: id=ext-comp-6993 class= x-form-text x-form-field x-form-focus
+  [fill] 'Краткое наименование' = OK ('Test_GBS_LABEL_1689249646968041' via startEditing+clear+sendKeys+ENTER+stopEditing)
+  [fill] 'Название' startEditing result: no-match
+  [fill] 'Название' startEditing не сработал — пробуем DOM click fallback
+  [fill] 'Название' = SKIP (label cell not in DOM)
+  [fill] 'Файл' startEditing result: no-match
+  [fill] 'Файл' startEditing не сработал — пробуем DOM click fallback
+  [fill] 'Файл' = SKIP (label cell not in DOM)
+  [fillAllFields] заполнено 9 полей (skip=Наименование ГСК/ОГСК)
+[step] fill all fields (except marker): 147301ms
+testCreate: после fillAllFields lastFilledValues={Адрес ГСК=Test_GBS_ADDRESS_1689249646968041, ИНН=Test_INN_1689249646968041, Кадастровый номер=Test_CADASTRAL_NUMBER_1689249646968041, НДЗ=14.06.2026, КДЗ=14.06.2026, Примечание=Test_DESCRIPTION_1689249646968041, Краткое наименование=Test_GBS_LABEL_1689249646968041, Название=Test_DOC_NAME_1689249646968041, Файл=Test_FILE_NAME_1689249646968041}
+  [fill] 'Наименование ГСК/ОГСК' startEditing result: OK:grid=ext-comp-6967/row=2/dn=/nn=Наименование ГСК/ОГСК *
+  [fill] 'Наименование ГСК/ОГСК' editor через startEditing: id=ext-comp-6991 class= x-form-text x-form-field x-form-focus
+  [fill] 'Наименование ГСК/ОГСК' = OK ('AT1689396977371291' via startEditing+clear+sendKeys+ENTER+stopEditing)
+[step] stamp marker: 1127ms
+testCreate: запомнили заполненные поля: {Адрес ГСК=Test_GBS_ADDRESS_1689249646968041, ИНН=Test_INN_1689249646968041, Кадастровый номер=Test_CADASTRAL_NUMBER_1689249646968041, НДЗ=14.06.2026, КДЗ=14.06.2026, Примечание=Test_DESCRIPTION_1689249646968041, Краткое наименование=Test_GBS_LABEL_1689249646968041, Название=Test_DOC_NAME_1689249646968041, Файл=Test_FILE_NAME_1689249646968041, Наименование ГСК/ОГСК=AT1689396977371291}
+[step] click Готово: 2066ms
+testCreate: gotovoClicked=true
+testCreate: popup после Готово = ''
+confirmDialogYes: no confirm dialog appeared in 3s
+waitUntil(dialog close): timeout after 2s
+testCreate: карточка осталась открытой после save — закрываем Esc, переходим к проверке грида
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testCreate: ищем маркер 'AT1689396977371291' через форму поиска
+  [fill] 'Наименование ГСК/ОГСК' startEditing result: OK:grid=ext-comp-7129/row=1/dn=/nn=Наименование ГСК/ОГСК
+  [fill] 'Наименование ГСК/ОГСК' editor через startEditing: id=ext-comp-7145 class= x-form-text x-form-field x-form-focus
+  [fill] 'Наименование ГСК/ОГСК' = OK ('AT1689396977371291' via startEditing+clear+sendKeys+ENTER+stopEditing)
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 114 visible row(s)
+testCreate: markerInGrid=true via marker(ExtJS store) rowsAfter=251
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testUpdate: подпись редактируемой записи = 'ГСК
+
+Протон
+
+ 
+
+ул. Устюженская
+
+ИНДУСТРИАЛЬНЫЙ
+
+Шишебаров Иван Иванович
+
+ 
+
+3528092206
+
+ 
+
+Нет
+
+ 
+
+23.05.2020
+
+ 
+
+ '
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen26160] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen26259] count=100 firstRowText=[1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванови]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+[step] select + open record: 680ms
+testUpdate: ждём 2.5с пока карточка догрузит значения полей
+testUpdate: активное окно ДО fillX = ext-comp-7267 / title=Единый объект - Протон : Сведения ГСК/ОГСК
+testUpdate: меняем ОДНО поле 'Наименование ГСК/ОГСК' на 'Upd1689445846576250' (остальные поля карточки не трогаем)
+  [fill] 'Наименование ГСК/ОГСК' startEditing result: OK:grid=ext-comp-7291/row=2/dn=/nn=Наименование ГСК/ОГСК *
+  [fill] 'Наименование ГСК/ОГСК' editor через startEditing: id=ext-comp-7310 class= x-form-text x-form-field x-form-focus
+  [fill] 'Наименование ГСК/ОГСК' = OK ('Upd1689445846576250' via startEditing+clear+sendKeys+ENTER+stopEditing)
+[step] type new value: 1134ms
+testUpdate: новое значение 'Upd1689445846576250' в поле [Наименование ГСК/ОГСК]
+testUpdate: активное окно ПОСЛЕ fillX = ext-comp-7267 / title=Единый объект - Протон : Сведения ГСК/ОГСК
+testUpdate: подсвеченная (selected) строка после fillX = [1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванович|	| |	|3528092206|	| |	|Нет|	| |	|23.05.2020][1|	|ГСК|	|Протон|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров Иван Иванович|	| |	|3528092206|	| |	|Нет|	| |	|23.05.2020][Сведения ГСК/ОГСК]
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Сохранить Изменения'
+  click strategy 1 (plain): OK
+testUpdate: 'Редактирование → Сохранить Изменения' clicked=true
+testUpdate: popup после save = ''
+confirmDialogYes: no confirm dialog appeared in 3s
+waitUntil(dialog close): timeout after 2s
+testUpdate: карточка осталась открытой после save — закрываем Esc и идём проверять грид
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testUpdate: ищем 'Upd1689445846576250' через форму поиска
+  [fill] 'Наименование ГСК/ОГСК' startEditing result: OK:grid=ext-comp-7351/row=1/dn=/nn=Наименование ГСК/ОГСК
+  [fill] 'Наименование ГСК/ОГСК' editor через startEditing: id=ext-comp-7367 class= x-form-text x-form-field x-form-focus
+  [fill] 'Наименование ГСК/ОГСК' = OK ('Upd1689445846576250' via startEditing+clear+sendKeys+ENTER+stopEditing)
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 114 visible row(s)
+testUpdate: результатов поиска по новому значению = 251
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen26654] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen26753] count=1 firstRowText=[1|	|ГСК|	|Upd1689445846576250|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Шишебаров]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'Тип ГСК/ОГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+[step] reopen edited record: 867ms
+testUpdate: новое значение видно в ПЕРЕОТКРЫТОЙ карточке = true
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testDelete: записей ДО = 1082
+  идентификатор первой строки рабочего грида = 'ГСК'
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'Удалить'
+  click strategy 1 (plain): OK
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+  [popup after-Удалить]: 'Вы действительно хотите удалить объект?'
+confirmDialogYes: clicking 'Да'
+  click strategy 1 (plain): OK
+confirmDialogYes: no confirm dialog appeared in 3s
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testDelete: записей ПОСЛЕ = 1081 (было 1082), gone=false, popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?'
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+selectAndOpenRecord: visible grid groups:
+  group=[ext-gen27829] count=13 firstRowText=[Тип ГСК/ОГСК|	| ]
+  group=[ext-gen27928] count=100 firstRowText=[1|	|ГСК|	|Энергетик|	| |	|ул. Устюженская|	|ИНДУСТРИАЛЬНЫЙ|	|Жаржецкас Иван Иван]
+selectAndOpenRecord: будем дбл-кликать на ячейку с текстом 'ГСК' (row idx=0)
+selectAndOpenRecord: physical click+dblclick on row idx=0 of largest visible grid group
+[step] select + open record: 659ms
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain) failed: ElementClickInterceptedException
+  click strategy 2 (Actions): OK
+clickEditDropdownAction: clicking 'Лог.изменить'
+  click strategy 1 (plain): OK
+[step] click Лог.изменить in card toolbar: 2453ms
+confirmDialogYes: no confirm dialog appeared in 3s
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testArchive: записей ДО = 1081
+  идентификатор первой строки рабочего грида = 'ГСК'
+clickEditDropdownAction: clicking 'Редактирование' to open dropdown
+  click strategy 1 (plain): OK
+clickEditDropdownAction: clicking 'в Архив'
+  click strategy 1 (plain): OK
+confirmDialogYes: no confirm dialog appeared in 3s
+confirmDialogYes: no confirm dialog appeared in 3s
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+testArchive: записей ПОСЛЕ = 1081 (было 1081), gone=false, popup=''
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+[step] open search: 345ms
+=== Search params for 'по  параметрам' ===
+  KEY_TYPE_SOCIETY = '<FK-lookup 'Тип ГСК/ОГСК' — skipped>'
+  GBS_NAME = 'Test_GBS_NAME'
+  GBS_ADDRESS = 'Test_GBS_ADDRESS'
+  KEY_DISTRICT = '<FK-lookup 'Район' — skipped>'
+  KEY_OFFICIAL = '<FK-lookup 'Председатель ГСК/Представитель ОГСК' — skipped>'
+  INN = 'Test_INN'
+  CADASTRAL_NUMBER = 'Test_CADASTRAL_NUMBER'
+  KEY_EXIST_CONTRACT = '<FK-lookup 'Наличие договора с РО' — skipped>'
+  KEY_CAUSE = '<FK-lookup 'Причина смены председателя/представителя' — skipped>'
+  DATE_BEGIN_OT = '14.06.2026'
+  DATE_BEGIN_DO = '14.06.2026'
+  DATE_END_OT = '14.06.2026'
+  DATE_END_DO = '14.06.2026'
+==========================================
+fillSearchParam 'GBS_NAME' = 'Test_GBS_NAME' (via: PropertyGrid cell)
+fillSearchParam 'GBS_ADDRESS' = 'Test_GBS_ADDRESS' (via: PropertyGrid cell)
+fillSearchParam 'INN' = 'Test_INN' (via: PropertyGrid cell)
+fillSearchParam 'CADASTRAL_NUMBER' = 'Test_CADASTRAL_NUMBER' (via: PropertyGrid cell)
+fillSearchParam 'DATE_BEGIN_OT' = '14.06.2026' (via: PropertyGrid cell)
+fillSearchParam 'DATE_BEGIN_DO' = '14.06.2026' (via: PropertyGrid cell)
+fillSearchParam 'DATE_END_OT' = '14.06.2026' (via: PropertyGrid cell)
+fillSearchParam 'DATE_END_DO' = '14.06.2026' (via: PropertyGrid cell)
+executeSearch: clicking 'Выполнить поиск'
+[step] execute search: 1173ms
+Search result columns found: 1 of 14; missing: [Тип  ГСК/ОГСК, Наименование  ГСК/ОГСК, Адрес  ГСК, Район_, Председатель  ГСК/Представитель  ОГСК, ИНН_, Кадастровый  номер, Наличие  догоаора с РО, Причина  смены председателя/представителя, НДЗ, КДЗ, Примечание, Телефон]
+Search returned 449 visible row(s)
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+descendMenu: trying to click 'Добавить' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+[step] open Добавить via main menu: 3346ms
+  addClicked=true for entity ГСК/ОГСК
+  addFormOpen=true
+[step] clear form: 4063ms
+[step] click Готово: 2072ms
+waitUntil(dialog close): timeout after 2s
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+Could not open tab: История ГСК/ОГСК
+[step] open tab 'История ГСК/ОГСК': 620ms
+descendMenu: trying to click 'Найти' for entity 'ГСК/ОГСК'
+  click strategy 1 (plain): OK
+  screenshot: target/screenshots/post-nav-ГСК_ОГСК-after-action.png
+  visible tabs: <none>
+openParamSearchInTree: double-clicking 'по параметрам'
+executeSearchIfPresent: clicking <td> with text 'Выполнить поиск'
+executeSearchIfPresent: result grid now has 213 visible row(s)
+Could not open tab: Документы ГСК/ОГСК
+[step] open tab 'Документы ГСК/ОГСК': 689ms

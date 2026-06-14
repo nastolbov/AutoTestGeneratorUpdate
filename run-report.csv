@@ -1,0 +1,57 @@
+class,test,status,duration_ms,search_params,step_count,screenshot_count,failure_msg
+generated.test.GSKOGSKTest,testFieldsPresent,PASS,7271,,1,5,
+generated.test.GSKOGSKTest,testRequiredFieldValidation,PASS,21444,,3,5,
+generated.test.GSKOGSKTest,testCreate,PASS,196401,,4,10,
+generated.test.GSKOGSKTest,testUpdate,PASS,49853,,3,10,
+generated.test.GSKOGSKTest,testDelete,PASS,31329,,0,5,
+generated.test.GSKOGSKTest,testLogicalEdit,PASS,17036,,2,4,
+generated.test.GSKOGSKTest,testArchive,FAIL,37315,,0,3,testArchive: запись не ушла в архив — «Всего записей» не уменьшилось (1081 -> 1081) и 'ГСК' всё ещё в активном гриде. popup='' ==> expected: <true> but was: <false>
+generated.test.GSKOGSKTest,testSearch,PASS,37697,KEY_TYPE_SOCIETY=<FK-lookup 'Тип ГСК/ОГСК' — skipped>; GBS_NAME=Test_GBS_NAME; GBS_ADDRESS=Test_GBS_ADDRESS; KEY_DISTRICT=<FK-lookup 'Район' — skipped>; KEY_OFFICIAL=<FK-lookup 'Председатель ГСК/Представитель ОГСК' — skipped>; INN=Test_INN; CADASTRAL_NUMBER=Test_CADASTRAL_NUMBER; KEY_EXIST_CONTRACT=<FK-lookup 'Наличие договора с РО' — skipped>; KEY_CAUSE=<FK-lookup 'Причина смены председателя/представителя' — skipped>; DATE_BEGIN_OT=14.06.2026; DATE_BEGIN_DO=14.06.2026; DATE_END_OT=14.06.2026; DATE_END_DO=14.06.2026,2,5,
+generated.test.GSKOGSKTest,testPartialRequiredFieldValidation,PASS,24951,,3,6,
+generated.test.GSKOGSKTest,testGridIstoriyaGSKOGSK,SKIP,0,,1,3,SKIPPED
+generated.test.GSKOGSKTest,testGridDokumentyGSKOGSK,SKIP,0,,1,3,SKIPPED
+generated.test.DolzhnostnoeLitsoTest,testFieldsPresent,PASS,11620,,1,5,
+generated.test.DolzhnostnoeLitsoTest,testRequiredFieldValidation,SKIP,0,,1,3,SKIPPED
+generated.test.DolzhnostnoeLitsoTest,testCreate,SKIP,0,,1,3,SKIPPED
+generated.test.DolzhnostnoeLitsoTest,testUpdate,PASS,43707,,3,10,
+generated.test.DolzhnostnoeLitsoTest,testDelete,PASS,28261,,0,5,
+generated.test.DolzhnostnoeLitsoTest,testSearch,PASS,30248,LAST_NAME=Test_LAST_NAME; FIRST_NAME=Test_FIRST_NAME; SECOND_NAME=Test_SECOND_NAME; APPOINTMENT=Test_APPOINTMENT; PHONE=Test_PHONE; EMAIL=Test_EMAIL; DATE_BEGIN_OT=14.06.2026; DATE_BEGIN_DO=14.06.2026; DATE_END_OT=14.06.2026; DATE_END_DO=14.06.2026,2,5,
+generated.test.DolzhnostnoeLitsoTest,testPartialRequiredFieldValidation,SKIP,0,,1,3,SKIPPED
+generated.test.PovestkaSoveshchaniyaTest,testTreeNodeFields,FAIL,27486,,0,5,"Child 'Повестка совещания': не удалось подготовить контекст за 3 попытки — узел дерева 'Повестка совещания' не найден(а) в карточке родителя. (Сценарий: родитель → карточка → Повестка совещания). Это реальная проблема навигации, не заглушка."
+generated.test.PriglashNnyyGSKTest,testGridColumns,PASS,10886,,0,5,
+generated.test.PriglashNnyyGSKTest,testCreate,PASS,29250,,2,8,
+generated.test.PriglashNnyyGSKTest,testUpdate,PASS,21107,,1,7,
+generated.test.PriglashNnyyGSKTest,testDelete,FAIL,20118,,0,6,child delete: запись 'Да' всё ещё в гриде И счётчик не уменьшился (1 -> 1). popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?' ==> expected: <true> but was: <false>
+generated.test.DokumentSoveshchaniyaTest,testGridColumns,PASS,12196,,0,5,
+generated.test.DokumentSoveshchaniyaTest,testCreate,PASS,29610,,2,8,
+generated.test.DokumentSoveshchaniyaTest,testUpdate,PASS,21349,,1,7,
+generated.test.DokumentSoveshchaniyaTest,testDelete,FAIL,20066,,0,6,child delete: запись '14.06.2026' всё ещё в гриде И счётчик не уменьшился (2 -> 2). popup='Вы действительно хотите удалить объект? | Вы действительно хотите удалить объект?' ==> expected: <true> but was: <false>
+generated.test.UchastnikSoveshchaniyaTest,testGridColumns,PASS,10822,,0,5,
+generated.test.UchastnikSoveshchaniyaTest,testCreate,PASS,26814,,2,8,
+generated.test.UchastnikSoveshchaniyaTest,testUpdate,PASS,21378,,1,7,
+generated.test.UchastnikSoveshchaniyaTest,testDelete,PASS,20132,,0,6,
+generated.test.IstoriyaGSKOGSKTest,testGridColumns,PASS,12735,,0,5,
+generated.test.SoveshchanieTest,testFieldsPresent,PASS,6513,,1,5,
+generated.test.SoveshchanieTest,testRequiredFieldValidation,PASS,22769,,3,5,
+generated.test.SoveshchanieTest,testCreate,PASS,70086,,4,10,
+generated.test.SoveshchanieTest,testUpdate,PASS,36354,,3,10,
+generated.test.SoveshchanieTest,testDelete,FAIL,10729,,0,3,testDelete: действие 'Удалить' недоступно в карточке открытой записи
+generated.test.SoveshchanieTest,testSearch,PASS,16216,"THEME_CONFERENCE=Test_THEME_CONFERENCE; DATETIME_CONFERENCE=14.06.2026 16:01; ADDRESS_CONFERENCE=Test_ADDRESS_CONFERENCE; CABINET=Test_CABINET; KEY_CHAIRMAN=<FK-lookup 'Председатель' — skipped>; KEY_SECRETARY=<FK-lookup 'Секретарь (тот, кто ведет протокол)' — skipped>",2,5,
+generated.test.SoveshchanieTest,testPartialRequiredFieldValidation,PASS,21206,,4,6,
+generated.test.SoveshchanieTest,testGridPriglashNnyeGSK,SKIP,0,,1,3,SKIPPED
+generated.test.SoveshchanieTest,testGridUchastnikiSoveshchaniya,SKIP,0,,1,3,SKIPPED
+generated.test.SoveshchanieTest,testGridDokumentySoveshchaniya,SKIP,0,,1,3,SKIPPED
+generated.test.DolzhnostnyeLitsaTest,testFieldsPresent,PASS,9996,,1,3,
+generated.test.DolzhnostnyeLitsaTest,testGridDolzhnostnyeLitsa,PASS,10791,,0,3,
+generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest,testFieldsPresent,PASS,8183,,1,5,
+generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest,testCreate,PASS,30632,,2,7,
+generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest,testUpdate,PASS,49350,,1,6,
+generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest,testDelete,PASS,26763,,0,5,
+generated.test.PrichinySmenyPredsedatelyaPredstavitelyaTest,testGridPrichinySmenyPredsedatelyaPredstavitelya,PASS,6925,,0,3,
+generated.test.DokumentGSKOGSKTest,testGridColumns,PASS,12762,,0,5,
+generated.test.DokumentGSKOGSKTest,testCreate,PASS,31148,,2,8,
+generated.test.DokumentGSKOGSKTest,testUpdate,PASS,23085,,1,7,
+generated.test.DokumentGSKOGSKTest,testDelete,PASS,21658,,0,6,
+generated.test.SubsystemsSmokeTest,smokeAllSubsystems,FAIL,1,,0,0,Subsystem did not open. URL=https://rrpo.cmirit.ru/E3Core/client/ screenshot=target/screenshots/smoke-failed-Доступные_подсистемы.png ==> expected: <true> but was: <false>
+generated.test.SubsystemsSmokeTest,smokeAllSubsystems,PASS,0,,0,0,
+generated.test.SubsystemsSmokeTest,smokeAllSubsystems,PASS,0,,0,0,
