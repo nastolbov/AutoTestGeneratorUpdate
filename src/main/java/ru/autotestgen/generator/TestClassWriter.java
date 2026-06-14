@@ -1854,15 +1854,24 @@ public class TestClassWriter {
             w.writeLine("assertTrue(opened, \"testDelete: не удалось открыть созданную запись '\" + marker + \"'\");");
             w.writeLine("waitForCardLoaded(8);");
             w.writeLine("shot(\"record_opened\");");
-            w.openBlock("try");
-            w.writeLine("step(\"Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
-            w.closeBlock();
-            w.openBlock("catch (Exception ignored)");
+            // Сверяем, что открыли ИМЕННО нашу запись (а не чужую row 0) — иначе удалим не то.
+            w.writeLine("Object openedCell = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return window.__lastSelectedCellText || '';\");");
+            w.writeLine("System.out.println(\"testDelete: открыта запись, ячейка='\" + openedCell + \"', ожидаем marker='\" + marker + \"'\");");
+            // Клик «Удалить»: сначала пункт дропдауна «Редактирование», затем фолбэк на кнопку-тулбар.
+            // Результат НЕ игнорируем — если действие недоступно, это и есть реальная причина.
+            w.writeLine("boolean delClicked = clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+            w.writeLine("if (!delClicked) delClicked = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+            w.writeLine("System.out.println(\"testDelete: 'Удалить' clicked=\" + delClicked);");
+            w.openBlock("if (!delClicked)");
+            w.writeLine("dumpCardDiagnostics();");
+            w.writeLine("shot(\"delete_action_missing\");");
+            w.writeLine("fail(\"testDelete: действие 'Удалить' недоступно (нет в дропдауне 'Редактирование' и нет кнопки-тулбара) для записи '\" + marker + \"'. Открыта ли карточка нашей записи? ячейка='\" + openedCell + \"'.\");");
             w.closeBlock();
             w.writeLine("acceptAlertIfPresent();");
             w.writeLine("String delPopup = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+            w.writeLine("boolean confirmed = confirmDialogYes();");
             w.writeLine("confirmDialogYes();");
-            w.writeLine("confirmDialogYes();");
+            w.writeLine("System.out.println(\"testDelete: confirmDialogYes=\" + confirmed + \", popup='\" + delPopup + \"'\");");
             w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_delete\");");
             w.writeLine("assertFalse(isErrorPresent(), \"testDelete: ошибка после удаления\");");
@@ -1876,7 +1885,8 @@ public class TestClassWriter {
             w.writeLine("boolean gone = !gridContainsRow(marker) && !gridStoreContainsText(marker);");
             w.writeLine("System.out.println(\"testDelete: marker='\" + marker + \"' gone=\" + gone);");
             w.writeLine("assertTrue(gone, \"testDelete: запись '\" + marker + \"' всё ещё в гриде после удаления.\"");
-            w.writeLine("    + \" Popup сервера='\" + delPopup + \"' (возможна FK-зависимость или защита от удаления).\");");
+            w.writeLine("    + \" delClicked=\" + delClicked + \", confirmDialogYes=\" + confirmed + \", popup='\" + delPopup + \"'\"");
+            w.writeLine("    + \" (если delClicked=true, confirm=false и popup пуст — стенд не применил удаление; иначе FK/защита).\");");
         } else {
             // Нет INSERT/строкового поля → нельзя безопасно создать свою запись. Удаляем существующую,
             // но БЕЗ заглушки-false: если запись не определить — честный fail с диагностикой.
@@ -1961,15 +1971,22 @@ public class TestClassWriter {
             w.writeLine("boolean opened = selectAndOpenRecord();");
             w.writeLine("assertTrue(opened, \"testArchive: не удалось открыть созданную запись '\" + marker + \"'\");");
             w.writeLine("waitForCardLoaded(8);");
-            w.openBlock("try");
-            w.writeLine("step(\"в Архив\", () -> clickEditDropdownAction(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\"));");
-            w.closeBlock();
-            w.openBlock("catch (Exception ignored)");
+            w.writeLine("Object openedCell = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return window.__lastSelectedCellText || '';\");");
+            w.writeLine("System.out.println(\"testArchive: открыта запись, ячейка='\" + openedCell + \"', ожидаем marker='\" + marker + \"'\");");
+            // Клик «в Архив»: пункт дропдауна, затем фолбэк на кнопку. Результат НЕ игнорируем.
+            w.writeLine("boolean arcClicked = clickEditDropdownAction(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\");");
+            w.writeLine("if (!arcClicked) arcClicked = clickButtonByText(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\");");
+            w.writeLine("System.out.println(\"testArchive: 'в Архив' clicked=\" + arcClicked);");
+            w.openBlock("if (!arcClicked)");
+            w.writeLine("dumpCardDiagnostics();");
+            w.writeLine("shot(\"archive_action_missing\");");
+            w.writeLine("fail(\"testArchive: действие 'в Архив' недоступно (нет в дропдауне 'Редактирование' и нет кнопки) для записи '\" + marker + \"'. ячейка='\" + openedCell + \"'.\");");
             w.closeBlock();
             w.writeLine("acceptAlertIfPresent();");
             w.writeLine("String arcPopup = capturePopupText(\"after-\\u0410\\u0440\\u0445\\u0438\\u0432\");");
+            w.writeLine("boolean confirmed = confirmDialogYes();");
             w.writeLine("confirmDialogYes();");
-            w.writeLine("confirmDialogYes();");
+            w.writeLine("System.out.println(\"testArchive: confirmDialogYes=\" + confirmed + \", popup='\" + arcPopup + \"'\");");
             w.writeLine("waitForGridSettle();");
             w.writeLine("shot(\"after_archive\");");
             w.writeLine("assertFalse(isErrorPresent(), \"testArchive: ошибка после архивации\");");
@@ -1983,7 +2000,7 @@ public class TestClassWriter {
             w.writeLine("boolean gone = !gridContainsRow(marker) && !gridStoreContainsText(marker);");
             w.writeLine("System.out.println(\"testArchive: marker='\" + marker + \"' goneFromActive=\" + gone);");
             w.writeLine("assertTrue(gone, \"testArchive: запись '\" + marker + \"' всё ещё в активном гриде после архивации.\"");
-            w.writeLine("    + \" Popup сервера='\" + arcPopup + \"'.\");");
+            w.writeLine("    + \" arcClicked=\" + arcClicked + \", confirmDialogYes=\" + confirmed + \", popup='\" + arcPopup + \"'.\");");
         } else {
             // Нет seed — архивируем существующую, но без заглушки-false: не определили запись → честный fail.
             w.writeLine("int rowsBefore = page.getTableRowCount();");
