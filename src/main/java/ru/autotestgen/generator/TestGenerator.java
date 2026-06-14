@@ -2479,8 +2479,14 @@ public class TestGenerator {
         w.writeLine("    \"try { if (typeof Ext==='undefined') return 'no-ext';\"");
         w.writeLine("    + \" var gs=[]; if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('editorgrid,gridpanel,grid');\"");
         w.writeLine("    + \" else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.getStore&&c.getColumnModel) gs.push(c);} }\"");
-        w.writeLine("    + \" var best=null,br=-1; for(var i=0;i<gs.length;i++){ var g=gs[i]; if(!g.rendered) continue; var cnt=0; try{cnt=g.getStore().getCount();}catch(e){} if(cnt>br){br=cnt;best=g;} }\"");
-        w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; var s=best.getStore(); var did=[];\"");
+        // РАБОЧИЙ ГРИД = нижний дата-грид с панелью пагинации в активном окне (как locate/count),
+        // а НЕ «самый большой». Иначе обновляли не тот грид.
+        w.writeLine("    + \" var aw=(Ext.WindowMgr&&Ext.WindowMgr.getActive)?Ext.WindowMgr.getActive():null; var awDom=(aw&&aw.getEl)?(aw.getEl().dom||aw.getEl()):null;\"");
+        w.writeLine("    + \" var best=null,bestDom=null,bestScore=-1; for(var i=0;i<gs.length;i++){ var g=gs[i]; if(!g.rendered||!g.getStore) continue; var dom=null; try{var el=g.getEl?g.getEl():null; dom=el?(el.dom||el):null;}catch(e){} if(!dom||dom.offsetWidth<=0) continue;\"");
+        w.writeLine("    + \"  var isProp=false; try{isProp=(g.getXType&&g.getXType()==='propertygrid')||!!g.propertyNames;}catch(e){} if(isProp) continue;\"");
+        w.writeLine("    + \"  var paging=false; try{paging=!!dom.querySelector('.x-tbar-page-number,.x-tbar-page-next,.x-tbar-loading')||!!(g.getBottomToolbar&&g.getBottomToolbar());}catch(e){}\"");
+        w.writeLine("    + \"  var inActive=awDom?(awDom===dom||awDom.contains(dom)):true; var score=(inActive?1000:0)+(paging?400:0); if(score>bestScore){bestScore=score;best=g;bestDom=dom;} }\"");
+        w.writeLine("    + \" if(!best) return 'no-grid'; window.__t2grid=best; window.__t2dom=bestDom; var s=best.getStore(); var did=[];\"");
         // 1) rejectChanges — ГАРАНТИРОВАННО выбрасывает несохранённые phantom/правки из стора.
         //    После НЕудачного save (напр. серверный trunc(date)) они остаются и раздувают счётчик —
         //    это и давало ложный +1. После успешного save модифицированных записей нет → no-op.
@@ -2492,14 +2498,13 @@ public class TestGenerator {
         w.writeLine("    + \" return did.length?did.join(','):'noop'; } catch(e){ return 'err:'+e.message; }\");");
         w.writeLine("System.out.println(\"clickGridRefresh: \" + r);");
         w.writeLine("boolean refreshOk = (r != null && !\"noop\".equals(r) && !String.valueOf(r).startsWith(\"err\") && !\"no-grid\".equals(r) && !\"no-ext\".equals(r));");
-        // Дополнительно физически кликаем DOM-кнопку обновления (.x-tbar-loading), если она видна —
-        // на некоторых сборках doRefresh недоступен, а кнопка есть.
+        // Физически кликаем «зелёную» кнопку обновления В ПАНЕЛИ РАБОЧЕГО ГРИДА (window.__t2dom),
+        // а не любую .x-tbar-loading на странице — на некоторых сборках doRefresh недоступен.
         w.openBlock("try");
-        w.writeLine("java.util.List<WebElement> rb = driver.findElements(By.cssSelector(\".x-tbar-loading, .x-tbar-page-refresh\"));");
-        w.openBlock("for (WebElement b : rb)");
-        w.openBlock("if (b.isDisplayed())");
-        w.writeLine("tryClickAllWays(b); break;");
-        w.closeBlock();
+        w.writeLine("WebElement rbtn = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var d=window.__t2dom||document; var b=d.querySelector('.x-tbar-loading, .x-tbar-page-refresh'); return b||null; } catch(e){ return null; }\");");
+        w.openBlock("if (rbtn != null && rbtn.isDisplayed())");
+        w.writeLine("tryClickAllWays(rbtn);");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");

@@ -523,14 +523,12 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine("Thread.sleep(300);");
         // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
-        // может не зафиксироваться без явного коммита. ENTER заставляет combobox завершить
-        // выбор и закрыть picker, привязывая значение к record'у. Потом TAB сдвигает фокус
-        // PropertyGrid'а на следующую строку, чтобы можно было редактировать другие FK.
+        // может не зафиксироваться без явного коммита. ENTER завершает выбор и закрывает picker,
+        // привязывая значение к record'у. TAB здесь НЕ жмём: он уводил фокус на СЛЕДУЮЩУЮ строку
+        // PropertyGrid, та входила в режим редактирования → запись оставалась «чёрной».
         w.openBlock("try");
         w.writeLine("org.openqa.selenium.WebElement focused = driver.switchTo().activeElement();");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.ENTER);");
-        w.writeLine("Thread.sleep(200);");
-        w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.TAB);");
         w.writeLine("Thread.sleep(200);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
