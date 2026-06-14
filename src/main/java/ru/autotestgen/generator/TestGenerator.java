@@ -100,7 +100,9 @@ public class TestGenerator {
                 + child + " CHILD (tab-grid), " + ref + " REFERENCE_DICTIONARY (FK target)");
         System.out.println("  Report: " + csvPath);
 
-        // Generate SubsystemsSmokeTest (only when smoke-all-subsystems is enabled)
+        // SubsystemsSmokeTest БОЛЬШЕ НЕ ГЕНЕРИРУЕТСЯ (по решению заказчика — не нужен; энтити-тесты
+        // сами выбирают подсистему при навигации, отдельная smoke-фаза только флакала на первой
+        // попытке). Флаг smokeAllSubsystems оставлен (default=false) для обратной совместимости.
         if (config.isSmokeAllSubsystems()) {
             generateSubsystemsSmokeTest(srcDir, basePackage);
         }
@@ -1013,7 +1015,23 @@ public class TestGenerator {
         w.writeLine("    + \" | //div[contains(@class,'x-menu')]\"");
         w.writeLine("    + \"//a[contains(@class,'x-menu-item')][\" + predDeep + \"]\";");
         w.writeLine("List<WebElement> directHits = driver.findElements(By.xpath(itemXpath));");
-        w.openBlock("for (WebElement item : directHits)");
+        // Стем-предикат матчит по основам слов (Должностн*+лиц*) → совпадает СРАЗУ с несколькими
+        // похожими пунктами («Должностное лицо» И «Должностные лица»). Чтобы наводиться на НУЖНЫЙ
+        // (а не на список без «Добавить»), сперва пробуем пункты с ТОЧНЫМ именем сущности.
+        w.writeLine("java.util.List<WebElement> ordered = new java.util.ArrayList<>();");
+        w.writeLine("java.util.List<WebElement> __rest = new java.util.ArrayList<>();");
+        w.writeLine("String __wantName = entityName.trim();");
+        w.openBlock("for (WebElement __h : directHits)");
+        w.openBlock("try");
+        w.writeLine("String __t = __h.getText().trim();");
+        w.writeLine("if (__t.equalsIgnoreCase(__wantName)) ordered.add(__h); else __rest.add(__h);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.writeLine("__rest.add(__h);");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("ordered.addAll(__rest);");
+        w.openBlock("for (WebElement item : ordered)");
         w.openBlock("try");
         w.openBlock("if (!item.isDisplayed())");
         w.writeLine("continue;");

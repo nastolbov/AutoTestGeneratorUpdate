@@ -39,7 +39,6 @@ public class MainController {
     @FXML private TextField outputDirField;
 
     @FXML private ComboBox<String> testLevelCombo;
-    @FXML private CheckBox smokeAllSubsystemsCheck;
     @FXML private CheckBox fastModeCheck;
 
     private final ComboBox<String> siteTypeCombo = new ComboBox<>();
@@ -324,8 +323,7 @@ public class MainController {
             // Test level from ComboBox
             String selectedLevel = testLevelCombo.getSelectionModel().getSelectedItem();
             config.setTestLevel(selectedLevel != null ? selectedLevel.toLowerCase() : "basic");
-            // Smoke-all-subsystems toggle (defaults to checkbox value or true if checkbox not bound)
-            config.setSmokeAllSubsystems(smokeAllSubsystemsCheck == null || smokeAllSubsystemsCheck.isSelected());
+            // SubsystemsSmokeTest не нужен — оставляем default (false), отдельного UI-тумблера нет.
 
             TestGenerator generator = new TestGenerator(config);
             generator.generate(currentModel);
