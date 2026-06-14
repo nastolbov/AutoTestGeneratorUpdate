@@ -24,23 +24,28 @@ public class TestGenerator {
     }
 
     public void generate(AppModel model) throws IOException {
-        Path outputDir = config.getOutputDir();
+        Path baseOutput = config.getOutputDir();
         String basePackage = config.getBasePackage();
-        Path srcDir = outputDir.resolve("src/test/java");
 
-        // Создаём структуру проекта
+        // Каждый XML — в свою подпапку по имени файла, чтобы результаты разных XML не смешивались.
+        Path outputDir = resolveProjectDir(baseOutput, config.getSourceXmlName());
+        boolean isolated = !outputDir.equals(baseOutput);
+
+        // Повторная генерация того же XML: полностью пересоздаём его подпапку (включая target/ со
+        // старыми отчётами и скринами), чтобы не оставалось устаревших тестов и артефактов.
+        if (isolated && Files.exists(outputDir)) {
+            deleteRecursively(outputDir);
+        }
+
+        Path srcDir = outputDir.resolve("src/test/java");
         Files.createDirectories(srcDir);
 
-        // Чистим ранее сгенерированные тест-классы и page object'ы, чтобы при смене вердикта
-        // классификатора не оставались устаревшие тесты. SharedDriver/BaseTest/TestData всё
-        // равно перезаписываются, так что их удалять тоже безопасно.
-        Path generatedRoot = srcDir.resolve(basePackage.replace('.', '/'));
-        if (Files.exists(generatedRoot)) {
-            try (var paths = Files.walk(generatedRoot)) {
-                paths.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
-                    try { Files.delete(p); } catch (IOException ignored) {}
-                });
-            }
+        // Если имя XML неизвестно (подпапку не сделали) — чистим хотя бы ранее сгенерированный
+        // пакет тестов/page object'ов, чтобы при смене вердикта классификатора не оставались
+        // устаревшие тесты. SharedDriver/BaseTest/TestData всё равно перезаписываются.
+        if (!isolated) {
+            Path generatedRoot = srcDir.resolve(basePackage.replace('.', '/'));
+            deleteRecursively(generatedRoot);
         }
 
         // pom.xml тест-проекта
@@ -99,6 +104,36 @@ public class TestGenerator {
                 + child + " CHILD (tab-grid), " + ref + " REFERENCE_DICTIONARY (FK target)");
         System.out.println("  Report: " + csvPath);
 
+    }
+
+    /** Имя подпапки для XML-файла: без пути и расширения, безопасное для файловой системы. */
+    public static String folderNameForXml(String xmlFileName) {
+        if (xmlFileName == null) return "";
+        String n = xmlFileName.trim();
+        int slash = Math.max(n.lastIndexOf('/'), n.lastIndexOf('\\'));
+        if (slash >= 0) n = n.substring(slash + 1);
+        if (n.toLowerCase().endsWith(".xml")) n = n.substring(0, n.length() - 4);
+        n = n.replaceAll("[^\\p{L}\\p{N}_.-]", "_").replaceAll("_+", "_").replaceAll("^_+|_+$", "");
+        return n;
+    }
+
+    /**
+     * Папка тест-проекта для данного XML: baseOutput/&lt;имя XML&gt; (или сам baseOutput, если имя
+     * не задано). Используется и при генерации, и при прогоне, чтобы оба смотрели в одну папку.
+     */
+    public static Path resolveProjectDir(Path baseOutput, String xmlFileName) {
+        String sub = folderNameForXml(xmlFileName);
+        return (sub == null || sub.isEmpty()) ? baseOutput : baseOutput.resolve(sub);
+    }
+
+    /** Рекурсивно удаляет каталог со всем содержимым (если существует). */
+    private static void deleteRecursively(Path root) throws IOException {
+        if (root == null || !Files.exists(root)) return;
+        try (var paths = Files.walk(root)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try { Files.delete(p); } catch (IOException ignored) {}
+            });
+        }
     }
 
     private static String csvEscape(String s) {

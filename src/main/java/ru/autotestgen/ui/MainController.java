@@ -313,6 +313,9 @@ public class MainController {
             config.setLogin(loginField.getText());
             config.setPassword(passwordField.getText());
             config.setOutputDir(Path.of(outputPath));
+            // Имя исходного XML — под него генератор создаёт отдельную подпапку, чтобы результаты
+            // разных XML не смешивались. Повторная генерация того же XML пересоздаёт его подпапку.
+            config.setSourceXmlName(getXmlFileName());
             // Тип сайта
             int siteIdx = siteTypeCombo.getSelectionModel().getSelectedIndex();
             config.setSiteType(siteIdx == 0 ? "e3core" : siteIdx == 1 ? "generic" : "custom");
@@ -324,9 +327,10 @@ public class MainController {
             TestGenerator generator = new TestGenerator(config);
             generator.generate(currentModel);
 
+            java.nio.file.Path projectDir = TestGenerator.resolveProjectDir(Path.of(outputPath), getXmlFileName());
             log("Уровень тестов: " + config.getTestLevel().toUpperCase());
             log("Сгенерировано тестовых классов: " + currentModel.getEntities().size());
-            log("Тесты сгенерированы в: " + outputPath);
+            log("Тесты сгенерированы в: " + projectDir);
             statusLabel.setText("Тесты сгенерированы");
             btnRunTests.setDisable(false);
             btnRunSelected.setDisable(false);
@@ -449,6 +453,8 @@ public class MainController {
             showAlert("Ошибка", "Укажите каталог с тестами.");
             return;
         }
+        // Прогон — в подпапке текущего XML (туда же сгенерировались тесты).
+        final String projectPath = TestGenerator.resolveProjectDir(Path.of(outputPath), getXmlFileName()).toString();
 
         progressBar.setVisible(true);
         progressBar.setProgress(-1);
@@ -463,7 +469,7 @@ public class MainController {
             protected TestRunResult call() throws Exception {
                 TestRunner runner = new TestRunner();
                 boolean fast = fastModeCheck != null && fastModeCheck.isSelected();
-                return runner.run(Path.of(outputPath), getXmlFileName(), urlField.getText(),
+                return runner.run(Path.of(projectPath), getXmlFileName(), urlField.getText(),
                         null, testFilter, fast);
             }
         };
@@ -479,10 +485,10 @@ public class MainController {
             log("Тесты завершены. Всего: " + result.getTotalTests()
                     + ", Успешно: " + result.getPassed()
                     + ", Ошибки: " + result.getFailed());
-            log("HTML-отчёт (v5, с фотолетописью): " + outputPath + "/target/run-report.html");
-            log("HTML-отчёт (стандартный surefire): " + outputPath + "/target/site/surefire-report.html");
-            log("CSV-отчёт: " + outputPath + "/target/run-report.csv");
-            log("Скриншоты: " + outputPath + "/target/screenshots/");
+            log("HTML-отчёт (v5, с фотолетописью): " + projectPath + "/target/run-report.html");
+            log("HTML-отчёт (стандартный surefire): " + projectPath + "/target/site/surefire-report.html");
+            log("CSV-отчёт: " + projectPath + "/target/run-report.csv");
+            log("Скриншоты: " + projectPath + "/target/screenshots/");
             if (result.getMavenOutput() != null && !result.getMavenOutput().isEmpty()) {
                 log("=== Вывод Maven ===");
                 // Показываем последние 100 строк
