@@ -903,6 +903,19 @@ public class TestClassWriter {
         // (stopEditing(false)/completeEdit, без открытия нового редактора), иначе правки видны
         // визуально, но record.set не вызван и запись сохраняется пустой.
         writeCommitAllEditorsScript(w);
+        // Диагностика: остался ли активный редактор у какого-нибудь грида перед «Готово».
+        // Если в run-report тут не 'none' — значит keynav снова открыл редактор и его поле
+        // сервер посчитает незаполненным (попап «Необходимо заполнить …»).
+        w.openBlock("try");
+        w.writeLine("Object activeEd = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return 'no-ext';\"");
+        w.writeLine("    + \"var cmps=(Ext.ComponentQuery&&Ext.ComponentQuery.query)?Ext.ComponentQuery.query('propertygrid,editorgrid,grid'):[];\"");
+        w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i]; if (c && c.activeEditor && c.activeEditor.field){ var f=c.activeEditor.field; var v=f.getValue?f.getValue():''; return 'ACTIVE:'+(f.fieldLabel||f.name||'?')+'=['+v+']'; } }\"");
+        w.writeLine("    + \"return 'none'; } catch(e){ return 'err:'+e.message; }\");");
+        w.writeLine("System.out.println(\"testCreate: активный редактор перед Готово = \" + activeEd);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("shot(\"before_gotovo\");");
         w.writeLine("boolean gotovoClicked = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("System.out.println(\"testCreate: gotovoClicked=\" + gotovoClicked);");
@@ -1130,12 +1143,23 @@ public class TestClassWriter {
         // после ENTER в fill) — иначе completeEdit закоммитит пусто поверх уже заполненного
         // обязательного поля, «Готово» отправит неполные данные и запись не сохранится.
         // Только потом stopEditing(false) фиксирует уже введённые значения.
+        // Повторяем 3 раза: после completeEdit keynav PropertyGrid может снова открыть редактор
+        // соседней строки, поэтому одного прохода на стенде не хватает — ловим переоткрытый
+        // редактор на следующих итерациях.
+        w.writeLine("    + \"for (var pass=0; pass<3; pass++){\"");
         w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
         w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.field) { var f=c.activeEditor.field; var v=f.getValue?f.getValue():(f.getRawValue?f.getRawValue():''); if (v==null || (''+v).trim()==='') { if (c.activeEditor.cancelEdit) c.activeEditor.cancelEdit(); else if (c.stopEditing) c.stopEditing(true); } } } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.stopEditing) c.stopEditing(false); } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.completeEdit) c.activeEditor.completeEdit(); } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.editingPlugin && c.editingPlugin.completeEdit) c.editingPlugin.completeEdit(); } catch(e){}\"");
-        w.writeLine("    + \"}\");");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"}\"");
+        // Финал: снимаем выделение/keynav гридов и гасим фокус, чтобы фокус-навигация уже не
+        // открыла новый редактор до нажатия «Готово».
+        w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
+        w.writeLine("    + \"  try { var sm = c.getSelectionModel ? c.getSelectionModel() : null; if (sm) { if (sm.clearSelections) sm.clearSelections(); else if (sm.deselectAll) sm.deselectAll(); } } catch(e){}\"");
+        w.writeLine("    + \"}\"");
+        w.writeLine("    + \"try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}\");");
         w.writeLine("Thread.sleep(300);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
