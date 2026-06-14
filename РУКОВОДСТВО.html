@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoTestGenerator — Руководство для Windows</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #222;
+         max-width: 900px; margin: 0 auto; padding: 24px; background: #fafafa; }
+  h1 { color: #1565c0; border-bottom: 3px solid #1565c0; padding-bottom: 8px; }
+  h2 { color: #1565c0; margin-top: 32px; border-left: 5px solid #2196F3; padding-left: 10px; }
+  h3 { color: #333; margin-top: 20px; }
+  code, kbd { background: #eceff1; padding: 2px 6px; border-radius: 4px;
+              font-family: Consolas, monospace; font-size: 0.95em; }
+  .step { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+          padding: 16px 20px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .big { font-size: 1.15em; }
+  .file { display: inline-block; background: #e3f2fd; border: 1px solid #90caf9;
+          border-radius: 6px; padding: 3px 10px; font-weight: bold; color: #0d47a1;
+          font-family: Consolas, monospace; }
+  .note { background: #fff8e1; border-left: 5px solid #ffb300; padding: 12px 16px; margin: 14px 0; border-radius: 4px; }
+  .warn { background: #ffebee; border-left: 5px solid #e53935; padding: 12px 16px; margin: 14px 0; border-radius: 4px; }
+  .ok   { background: #e8f5e9; border-left: 5px solid #43a047; padding: 12px 16px; margin: 14px 0; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; }
+  th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+  th { background: #1565c0; color: #fff; }
+  .num { display:inline-block; width: 30px; height: 30px; line-height: 30px; text-align:center;
+         background:#1565c0; color:#fff; border-radius:50%; font-weight:bold; margin-right:8px; }
+  ol li { margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<h1>AutoTestGenerator — руководство для Windows</h1>
+<p class="big">Программа автоматически создаёт UI-автотесты для веб-приложения <b>E3Core</b>
+из XML-модели метаданных и сразу запускает их в браузере, показывая отчёт со скриншотами.</p>
+
+<div class="ok">
+<b>Самое главное.</b> На «пустом» компьютере вам нужно сделать всего <b>две вещи руками</b>:
+установить <b>Google&nbsp;Chrome</b> и иметь <b>интернет</b>. Java и Maven программа поставит
+сама — через файл <span class="file">1_УСТАНОВКА.bat</span>.
+</div>
+
+<h2>Что должно быть на компьютере</h2>
+<table>
+  <tr><th>Компонент</th><th>Нужно ставить вручную?</th><th>Зачем</th></tr>
+  <tr><td>Windows 10 / 11 (64-бит)</td><td>—</td><td>Операционная система</td></tr>
+  <tr><td>Интернет</td><td><b>Да, обязателен</b></td><td>Скачать Java, Maven и зависимости (~250 МБ)</td></tr>
+  <tr><td>Google Chrome</td><td><b>Да</b> (если ещё нет)</td><td>Тесты проходят в реальном браузере Chrome</td></tr>
+  <tr><td>Java 17 (JDK)</td><td>Нет — поставит <code>1_УСТАНОВКА.bat</code></td><td>На ней работает программа и тесты</td></tr>
+  <tr><td>Apache Maven</td><td>Нет — поставит <code>1_УСТАНОВКА.bat</code></td><td>Сборка программы и запуск тестов</td></tr>
+</table>
+<p>Если Chrome ещё не установлен — скачайте его здесь:
+<a href="https://www.google.com/chrome/">https://www.google.com/chrome/</a> и установите.</p>
+
+<h2>Как перенести программу на компьютер</h2>
+<div class="step">
+<p><span class="num">1</span><b>Скачайте папку с программой</b> (без всякого Git):</p>
+<ol>
+  <li>Откройте страницу проекта на GitHub.</li>
+  <li>Нажмите зелёную кнопку <kbd>Code</kbd> → <kbd>Download ZIP</kbd>.</li>
+  <li>Перенесите скачанный ZIP на нужный компьютер (флешка, сеть, почта).</li>
+</ol>
+<p><span class="num">2</span><b>Распакуйте ZIP</b> в простую папку, например <code>C:\AutoTest</code>.</p>
+<div class="note">Старайтесь, чтобы в пути <b>не было русских букв и пробелов</b>
+(<code>C:\AutoTest</code> — хорошо; <code>C:\Мои файлы\тест</code> — может мешать).</div>
+</div>
+
+<h2>Запуск — всего 2 шага</h2>
+
+<div class="step">
+<p class="big"><span class="num">1</span>Двойной клик по <span class="file">1_УСТАНОВКА.bat</span></p>
+<p>Откроется чёрное окно. Скрипт скачает Java 17 и Maven в подпапку <code>tools\</code> и подготовит
+зависимости. Это занимает примерно <b>3–5 минут</b> (зависит от скорости интернета).</p>
+<p>Дождитесь надписи:</p>
+<pre style="background:#263238;color:#aed581;padding:12px;border-radius:6px;">  ГОТОВО! Окружение установлено.
+  Теперь запустите файл  2_ЗАПУСК.bat</pre>
+<p>Этот шаг нужен <b>только один раз</b>. При повторных запусках сразу используйте шаг 2.</p>
+</div>
+
+<div class="step">
+<p class="big"><span class="num">2</span>Двойной клик по <span class="file">2_ЗАПУСК.bat</span></p>
+<p>Через 10–20 секунд откроется главное окно программы.</p>
+<div class="warn"><b>Не закрывайте чёрное окно консоли</b>, пока работаете с программой —
+через него программа управляет тестами. Закрытие консоли закроет и программу.</div>
+</div>
+
+<h2>Как пользоваться программой</h2>
+<div class="step">
+<ol class="big">
+  <li><b>XML-файл</b> — нажмите «Обзор…» и выберите файл модели (в комплекте есть пример
+      <code>5EA195D102D1_Stc (1).xml</code>). Затем нажмите <b>«Разобрать XML»</b> —
+      слева появится дерево сущностей.</li>
+  <li><b>URL сайта, Логин, Пароль</b> — адрес стенда E3Core и учётные данные
+      (по умолчанию уже заполнен тестовый стенд).</li>
+  <li><b>Каталог вывода</b> — папка, куда сложить сгенерированный проект тестов
+      (например <code>C:\AutoTest\out</code>).</li>
+  <li>Нажмите <b>«Сгенерировать тесты»</b> — программа создаст проект тестов.</li>
+  <li>Нажмите <b>«Запустить тесты»</b> (или <b>«Выбрать тесты…»</b> для части)
+      — откроется Chrome и начнётся прогон.
+      Галочка <b>«Быстрый режим (headless)»</b> прячет окно браузера (чуть быстрее).</li>
+  <li>Справа в реальном времени видны результаты (успех/ошибка) и журнал.</li>
+</ol>
+</div>
+
+<h2>Где смотреть результаты</h2>
+<table>
+  <tr><th>Что</th><th>Где</th></tr>
+  <tr><td>Наглядный HTML-отчёт со скриншотами каждого шага</td><td>в каталоге вывода: <code>target\run-report.html</code></td></tr>
+  <tr><td>Таблица результатов (CSV)</td><td><code>target\run-report.csv</code></td></tr>
+  <tr><td>Скриншоты</td><td><code>target\screenshots\</code></td></tr>
+  <tr><td>История прогонов</td><td>кнопка <b>«История прогонов»</b> в программе</td></tr>
+</table>
+
+<h2>Если что-то пошло не так</h2>
+
+<h3>Синее окно «Windows защитила ваш компьютер» (SmartScreen)</h3>
+<p>Это нормально для скачанных <code>.bat</code>-файлов. Нажмите <b>«Подробнее»</b> →
+<b>«Выполнить в любом случае»</b>.</p>
+
+<h3>Ошибка скачивания в 1_УСТАНОВКА.bat</h3>
+<p>Нет интернета или он ограничен (корпоративный прокси/файрвол). Проверьте подключение,
+при необходимости отключите VPN и запустите <span class="file">1_УСТАНОВКА.bat</span> снова.</p>
+
+<h3>2_ЗАПУСК.bat пишет «Сначала запустите 1_УСТАНОВКА.bat»</h3>
+<p>Папка <code>tools\</code> не создана или установка не завершилась. Запустите
+<span class="file">1_УСТАНОВКА.bat</span> и дождитесь надписи «ГОТОВО».</p>
+
+<h3>Тесты не запускаются / ошибка про браузер</h3>
+<p>Убедитесь, что установлен <b>Google Chrome</b> и есть интернет (при первом прогоне
+автоматически скачивается драйвер ChromeDriver под вашу версию Chrome).</p>
+
+<h3>Антивирус блокирует .bat</h3>
+<p>Добавьте папку программы (например <code>C:\AutoTest</code>) в исключения антивируса.</p>
+
+<div class="note" style="margin-top:32px;">
+Более подробное описание (включая ручную установку Java/Maven без скриптов) есть в файле
+<code>USER_GUIDE.md</code>.
+</div>
+
+</body>
+</html>

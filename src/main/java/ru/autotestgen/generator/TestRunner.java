@@ -63,8 +63,11 @@ public class TestRunner {
         }
 
         // Run mvn test (working dir is already the project dir, so just "pom.xml")
+        // На Windows исполняемый файл Maven — mvn.cmd; ProcessBuilder для команды без расширения
+        // ищет только mvn.exe и падает с "Cannot run program mvn". Поэтому выбираем имя по ОС.
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
         List<String> cmd = new ArrayList<>();
-        cmd.add("mvn");
+        cmd.add(isWindows ? "mvn.cmd" : "mvn");
         cmd.add("test");
         if (testFilter != null && !testFilter.isBlank()) {
             cmd.add("-Dtest=" + testFilter);
