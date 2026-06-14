@@ -1124,10 +1124,13 @@ public class TestClassWriter {
     }
 
     /**
-     * Генерирует JS, коммитящий все активные редакторы grid/propertygrid в их записи
-     * (stopEditing(false) / completeEdit). Нужен в модальных потоках create/update, где значение
-     * редактора PropertyGrid должно попасть в record.set до «Готово»/«Сохранить», иначе правка
-     * остаётся только визуальной и запись сохраняется неизменной.
+     * Генерирует JS, мягко закрывающий ТОЛЬКО открытый редактор ячейки grid/propertygrid перед
+     * «Готово»/«Сохранить». Намеренно НЕ коммитит и НЕ сбрасывает dirty уже заполненных полей:
+     * после ENTER в fill значения уже лежат в записи и подсвечены красным («готовы к сохранению»),
+     * а «Готово» сохраняет их само. Принудительный commit всех редакторов делал записи «чистыми»
+     * (красные → чёрные), и форма при сохранении считала, что изменённых записей нет, поэтому не
+     * сохраняла. Здесь трогаем лишь редактор, который keynav PropertyGrid мог оставить открытым
+     * после ENTER (иначе клик по «Готово» уйдёт в открытый input).
      */
     private void writeCommitAllEditorsScript(JavaFileWriter w) {
         w.openBlock("try");
@@ -1139,25 +1142,20 @@ public class TestClassWriter {
         w.writeLine("    + \"  try { var all=Ext.ComponentMgr.all; var arr=all.items||(all.getRange?all.getRange():[]);\"");
         w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && (c.stopEditing || c.activeEditor || c.editingPlugin)) cmps.push(c); } } catch(e) {}\"");
         w.writeLine("    + \"}\"");
-        // Сперва отменяем активный редактор, если он пустой (keynav открыл соседнюю ячейку
-        // после ENTER в fill) — иначе completeEdit закоммитит пусто поверх уже заполненного
-        // обязательного поля, «Готово» отправит неполные данные и запись не сохранится.
-        // Только потом stopEditing(false) фиксирует уже введённые значения.
-        // Повторяем 3 раза: после completeEdit keynav PropertyGrid может снова открыть редактор
-        // соседней строки, поэтому одного прохода на стенде не хватает — ловим переоткрытый
-        // редактор на следующих итерациях.
-        w.writeLine("    + \"for (var pass=0; pass<3; pass++){\"");
+        // ВАЖНО: не коммитим и не чистим dirty уже заполненных ячеек — они уже в записи (красные,
+        // «готовы к сохранению»), «Готово» сохранит их сам. Трогаем ТОЛЬКО открытый редактор,
+        // который keynav PropertyGrid мог оставить открытым после ENTER в последнем fill:
+        //   - пустой редактор (keynav открыл соседнюю ячейку) — отменяем (cancelEdit вернёт уже
+        //     введённое значение записи, ничего не затирая);
+        //   - непустой — мягко завершаем (completeEdit), чтобы закрыть input перед кликом «Готово».
+        // Затем blur гасит фокус. record.commit/stopEditing(false) по всем гридам НЕ вызываем,
+        // иначе красные значения станут чёрными и форма сочтёт, что сохранять нечего.
         w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
-        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.field) { var f=c.activeEditor.field; var v=f.getValue?f.getValue():(f.getRawValue?f.getRawValue():''); if (v==null || (''+v).trim()==='') { if (c.activeEditor.cancelEdit) c.activeEditor.cancelEdit(); else if (c.stopEditing) c.stopEditing(true); } } } catch(e){}\"");
-        w.writeLine("    + \"  try { if (c.stopEditing) c.stopEditing(false); } catch(e){}\"");
-        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.completeEdit) c.activeEditor.completeEdit(); } catch(e){}\"");
-        w.writeLine("    + \"  try { if (c.editingPlugin && c.editingPlugin.completeEdit) c.editingPlugin.completeEdit(); } catch(e){}\"");
-        w.writeLine("    + \"}\"");
-        w.writeLine("    + \"}\"");
-        // Финал: снимаем выделение/keynav гридов и гасим фокус, чтобы фокус-навигация уже не
-        // открыла новый редактор до нажатия «Готово».
-        w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
-        w.writeLine("    + \"  try { var sm = c.getSelectionModel ? c.getSelectionModel() : null; if (sm) { if (sm.clearSelections) sm.clearSelections(); else if (sm.deselectAll) sm.deselectAll(); } } catch(e){}\"");
+        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.field) {\"");
+        w.writeLine("    + \"    var f=c.activeEditor.field; var v=f.getValue?f.getValue():(f.getRawValue?f.getRawValue():'');\"");
+        w.writeLine("    + \"    if (v==null || (''+v).trim()==='') { if (c.activeEditor.cancelEdit) c.activeEditor.cancelEdit(); }\"");
+        w.writeLine("    + \"    else { if (c.activeEditor.completeEdit) c.activeEditor.completeEdit(); }\"");
+        w.writeLine("    + \"  } } catch(e){}\"");
         w.writeLine("    + \"}\"");
         w.writeLine("    + \"try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}\");");
         w.writeLine("Thread.sleep(300);");
