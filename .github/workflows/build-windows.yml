@@ -1,9 +1,17 @@
 name: Build Windows app
 
 # Собирает портативное Windows-приложение (.exe) через jpackage и выкладывает
-# готовый ZIP в артефакты сборки. Запускать вручную: вкладка Actions → этот workflow → Run.
+# готовый ZIP в артефакты сборки. Запускать вручную (вкладка Actions → Run, когда
+# workflow окажется в основной ветке) либо пушем в рабочую ветку.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - claude/keen-feynman-81x1rh
+    paths:
+      - '.github/workflows/build-windows.yml'
+      - 'src/**'
+      - 'pom.xml'
 
 jobs:
   build:
