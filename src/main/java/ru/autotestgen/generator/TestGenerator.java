@@ -1854,6 +1854,39 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
+        // Third pass: ExtJS left-tree node inside the card (tree-node children like
+        // «Повестка совещания»). The node may be COLLAPSED under a group node, so the earlier
+        // passes find nothing displayed. Expand every visible '+' joint, then click the node.
+        w.writeLine("String treeXpath = \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + tabName + \"')]]\";");
+        w.writeLine("List<WebElement> treeHits = driver.findElements(By.xpath(treeXpath));");
+        w.writeLine("boolean anyTreeVisible = false;");
+        w.openBlock("for (WebElement h : treeHits)");
+        w.writeLine("try { if (h.isDisplayed()) { anyTreeVisible = true; break; } } catch (Exception ignored) {}");
+        w.closeBlock();
+        // Node not visible yet → expand collapsed group nodes (cover ExtJS 2/3/4 class variants).
+        w.openBlock("if (!anyTreeVisible)");
+        w.writeLine("List<WebElement> expanders = driver.findElements(By.cssSelector(");
+        w.writeLine("    \".x-tree-elbow-plus, .x-tree-elbow-end-plus, .x-tree-ec-icon, .x-tree3-node-joint, .x-grid-group-hd\"));");
+        w.openBlock("for (WebElement ex : expanders)");
+        w.writeLine("try { if (ex.isDisplayed()) { clickSafely(ex); Thread.sleep(150); } } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("treeHits = driver.findElements(By.xpath(treeXpath));");
+        w.closeBlock();
+        w.openBlock("for (WebElement h : treeHits)");
+        w.openBlock("try");
+        w.openBlock("if (!h.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(h).perform();");
+        w.writeLine("System.out.println(\"openTab: clicking tree node '\" + tabName + \"'\");");
+        w.writeLine("tryClickAllWays(h);");
+        w.writeLine("Thread.sleep(400);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("System.out.println(\"Could not open tab: \" + tabName);");
         w.writeLine("return false;");
         w.closeBlock();
@@ -2354,6 +2387,38 @@ public class TestGenerator {
         w.openBlock("if (!t.isEmpty())");
         w.writeLine("System.out.println(\"  visible header: '\" + t + \"'\");");
         w.writeLine("hShown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // Tree nodes + tab labels — критично для дочерних сущностей из дерева: показывает РЕАЛЬНЫЕ
+        // подписи узлов карточки, чтобы понять, почему openTab(NODE_NAME) не нашёл узел.
+        w.writeLine("List<WebElement> treeNodes = driver.findElements(By.cssSelector(\".x-tree-node-text, .x-tree3-node-text\"));");
+        w.writeLine("int tShown = 0;");
+        w.openBlock("for (WebElement n : treeNodes)");
+        w.openBlock("try");
+        w.openBlock("if (n.isDisplayed() && tShown < 40)");
+        w.writeLine("String t = n.getText() == null ? \"\" : n.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("System.out.println(\"  tree node: '\" + t + \"'\");");
+        w.writeLine("tShown++;");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("List<WebElement> tabLabels = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-inner, .x-tab-text\"));");
+        w.writeLine("int tabShown = 0;");
+        w.openBlock("for (WebElement tl : tabLabels)");
+        w.openBlock("try");
+        w.openBlock("if (tl.isDisplayed() && tabShown < 20)");
+        w.writeLine("String t = tl.getText() == null ? \"\" : tl.getText().trim();");
+        w.openBlock("if (!t.isEmpty())");
+        w.writeLine("System.out.println(\"  tab: '\" + t + \"'\");");
+        w.writeLine("tabShown++;");
         w.closeBlock();
         w.closeBlock();
         w.closeBlock();
