@@ -546,182 +546,128 @@ public class TestClassWriter {
         w.writeLine();
     }
 
+    /**
+     * CHILD grid-вкладка. По платформе E3Core грид редактируется ВНУТРИ грида
+     * (Редактирование → Добавить → пустая строка → заполнить → Сохранить изменения),
+     * НЕ модальной формой. Используем ту же inline-механику, что и для справочников Type 2,
+     * чтобы поведение определялось СТРУКТУРОЙ (тип группы свойств = Грид), а не именами.
+     */
     private void writeChildCreateTest(JavaFileWriter w, List<Property> displayProperties, String tabName) {
-        Property markerField = displayProperties.stream()
-                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
-                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
-                .findFirst().orElse(null);
-
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
-        w.writeLine("@DisplayName(\"Create in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.writeLine("@DisplayName(\"Create inline in '" + tabName.replace("\"", "\\\"") + "'\")");
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"grid_before_add\");");
-        w.writeLine("int rowsBefore = getVisibleRowCount();");
-        w.writeLine();
-        // Click "Добавить" in grid toolbar
-        w.writeLine("boolean addClicked = clickButtonByText(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
-        w.writeLine("System.out.println(\"child testCreate: addClicked=\" + addClicked + \" in tab '\" + TAB_NAME + \"'\");");
-        w.writeLine("Assumptions.assumeTrue(addClicked, \"'\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c' button not found in child grid toolbar\");");
-        w.writeLine("boolean addFormOpen = waitForAddForm();");
-        w.writeLine("System.out.println(\"child testCreate: addFormOpen=\" + addFormOpen);");
-        w.writeLine("Assumptions.assumeTrue(addFormOpen, \"Add form did not open in child grid context\");");
-        w.writeLine("shot(\"add_form\");");
-        w.writeLine();
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
-        w.writeLine("shot(\"fields_filled\");");
-        if (markerField != null) {
-            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
-            w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
-            w.writeLine("step(\"stamp marker\", () -> page." + fillMethod + "(createdMarker));");
-        } else {
-            w.writeLine("String createdMarker = \"\";");
-        }
-        w.writeLine("java.util.LinkedHashMap<String, String> filledSnapshot = new java.util.LinkedHashMap<>(page.lastFilledValues);");
-        w.writeLine("System.out.println(\"child testCreate: filled values: \" + filledSnapshot);");
-        w.writeLine("shot(\"marker_applied\");");
-        w.writeLine();
-        // Save
-        w.writeLine("step(\"click \\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
-        w.writeLine("capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
+        w.writeLine("boolean addClicked = step(\"\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435 \\u2192 \\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\", () -> clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\"));");
+        w.writeLine("if (!addClicked) addClicked = clickButtonByText(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(addClicked, \"child create: не удалось нажать 'Добавить' в гриде вкладки '\" + TAB_NAME + \"'\");");
+        w.writeLine("try { Thread.sleep(900); } catch (InterruptedException ignored) {}");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("shot(\"empty_row_added\");");
+        writeLocateEditableGridScript(w, "colCount", false);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"child create: не нашли editable grid во вкладке '\" + TAB_NAME + \"' (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "child testCreate");
+        w.writeLine("Long newRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
+        w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
+        w.writeLine("    + \" if (idx<0) idx=s.getCount()-1; return idx; } catch(e){ return 0; }\");");
+        w.writeLine("int rowIdx = (newRowL == null || newRowL < 0) ? 0 : newRowL.intValue();");
+        writeSelectGridRowScript(w, "rowIdx");
+        w.writeLine("shot(\"row_selected\");");
+        writeFillEditableCells(w, "child testCreate", "createdMarker", "rowIdx", false);
+        writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("boolean saved = step(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        w.openBlock("if (!saved)");
+        writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.closeBlock();
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(saved, \"child create: не удалось сохранить во вкладке '\" + TAB_NAME + \"'\");");
         w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForDialogClose();");
-        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
-        w.writeLine("System.out.println(\"child testCreate: dialog stuck, pressing \\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
-        w.openBlock("try");
-        w.writeLine("clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\");");
-        w.writeLine("waitForDialogClose();");
-        w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_save\");");
-        w.writeLine();
-        // Verify in child grid
-        w.writeLine("assertFalse(isErrorPresent(), \"Error after creating child record\");");
-        w.writeLine("int rowsAfter = getVisibleRowCount();");
-        w.writeLine("boolean markerFound = !createdMarker.isEmpty() && gridContainsRow(createdMarker);");
-        w.writeLine("String hitVia = markerFound ? \"marker(DOM)\" : \"\";");
-        w.writeLine();
-        w.openBlock("if (!markerFound && !filledSnapshot.isEmpty())");
-        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-        w.writeLine("String v = e.getValue();");
-        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
-        w.writeLine("markerFound = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"'(DOM)\";");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine();
-        w.openBlock("if (!markerFound && !createdMarker.isEmpty())");
-        w.openBlock("if (gridStoreContainsText(createdMarker))");
-        w.writeLine("markerFound = true;");
-        w.writeLine("hitVia = \"marker(ExtJS store)\";");
-        w.closeBlock();
-        w.closeBlock();
-        w.writeLine();
-        w.writeLine("System.out.println(\"child testCreate: markerFound=\" + markerFound + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia)");
-        w.writeLine("    + \" rows \" + rowsBefore + \" -> \" + rowsAfter);");
-        w.writeLine("shot(markerFound ? \"marker_found\" : \"final_grid\");");
-        if (markerField != null) {
-            w.writeLine("assertTrue(markerFound,");
-            w.writeLine("    \"Child grid create: marker '\" + createdMarker + \"' not found in grid after save. rows \" + rowsBefore + \" -> \" + rowsAfter);");
-        } else {
-            w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
-            w.writeLine("    \"Child grid should have same or more rows after create (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
-        }
+        writeServerErrorCheck(w, "child testCreate");
+        w.writeLine("clickGridRefresh();");
+        w.writeLine("boolean created = gridContainsRow(createdMarker) || gridStoreContainsText(createdMarker);");
+        w.writeLine("System.out.println(\"child testCreate: marker='\" + createdMarker + \"' found=\" + created);");
+        w.writeLine("assertTrue(created, \"child create: запись '\" + createdMarker + \"' не найдена в гриде вкладки '\" + TAB_NAME + \"' после сохранения\");");
         w.closeBlock();
         w.writeLine();
     }
 
+    /** CHILD grid-вкладка: update = меняем ОДНО текстовое поле первой строки inline. */
     private void writeChildUpdateTest(JavaFileWriter w, List<Property> displayProperties, String tabName) {
-        Property stringField = displayProperties.stream()
-                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
-                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
-                .findFirst().orElse(null);
-
         w.writeLine("@Test");
         w.writeLine("@Order(4)");
-        w.writeLine("@DisplayName(\"Update in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.writeLine("@DisplayName(\"Update inline in '" + tabName.replace("\"", "\\\"") + "'\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"grid_before_update\");");
-        w.writeLine("int rowCount = getVisibleRowCount();");
-        w.writeLine("Assumptions.assumeTrue(rowCount >= 1, \"No rows in child grid to update\");");
-        w.writeLine();
-        // Open child record
-        w.writeLine("boolean opened = selectAndOpenRecord();");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open child record for editing\");");
-        w.writeLine("waitForCardLoaded(8);");
-        w.writeLine("shot(\"child_record_opened\");");
-        if (stringField != null) {
-            String methodName = "fill" + Transliterator.toClassName(stringField.getAttrName());
-            w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
-            w.writeLine("page." + methodName + "(updatedValue);");
-            w.writeLine("shot(\"value_typed\");");
-        }
-        // Try "Сохранить Изменения" dropdown, fallback to "Готово"
-        w.writeLine("boolean saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
+        w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
+        writeLocateEditableGridScript(w, "colCount", true, true);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"child update: грид вкладки '\" + TAB_NAME + \"' пуст или не найден (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "child testUpdate");
+        w.writeLine("int editRow = 0;");
+        writeSelectGridRowScript(w, "editRow");
+        w.writeLine("shot(\"row_selected\");");
+        writeFillEditableCells(w, "child testUpdate", "updatedValue", "editRow", true);
+        writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("boolean saved = step(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
         w.openBlock("if (!saved)");
-        w.writeLine("saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        writeCommitGridEditorScript(w);
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("saved = clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\");");
         w.closeBlock();
-        w.writeLine("Assumptions.assumeTrue(saved, \"Neither '\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f' nor '\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e' found\");");
-        w.writeLine("capturePopupText(\"after-save\");");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("assertTrue(saved, \"child update: не удалось сохранить во вкладке '\" + TAB_NAME + \"'\");");
         w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForDialogClose();");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_update\");");
-        w.writeLine("assertFalse(isErrorPresent(), \"Error after updating child record\");");
-        if (stringField != null) {
-            w.writeLine("boolean updated = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
-            w.writeLine("System.out.println(\"child testUpdate: updatedValue='\" + updatedValue + \"' found=\" + updated);");
-        }
+        writeServerErrorCheck(w, "child testUpdate");
+        w.writeLine("clickGridRefresh();");
+        w.writeLine("boolean inView = gridContainsRow(updatedValue) || gridStoreContainsText(updatedValue);");
+        w.writeLine("System.out.println(\"child testUpdate: value='\" + updatedValue + \"' found=\" + inView);");
+        w.writeLine("assertTrue(inView, \"child update: новое значение '\" + updatedValue + \"' не найдено в гриде вкладки '\" + TAB_NAME + \"' после сохранения\");");
         w.closeBlock();
         w.writeLine();
     }
 
+    /** CHILD grid-вкладка: delete = выбрать строку в гриде → Редактирование → Удалить (inline). */
     private void writeChildDeleteTest(JavaFileWriter w, String tabName) {
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
-        w.writeLine("@DisplayName(\"Delete in '" + tabName.replace("\"", "\\\"") + "'\")");
+        w.writeLine("@DisplayName(\"Delete inline in '" + tabName.replace("\"", "\\\"") + "'\")");
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"grid_before_delete\");");
-        w.writeLine("int rowsBefore = getVisibleRowCount();");
-        w.writeLine("Assumptions.assumeTrue(rowsBefore >= 1, \"No rows in child grid to delete\");");
+        writeLocateEditableGridScript(w, "colCount", true, true);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"child delete: грид вкладки '\" + TAB_NAME + \"' пуст или не найден (код=\" + colCount + \")\");");
+        writeReadGridCount(w, "countBefore");
         w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
-        w.writeLine("System.out.println(\"child testDelete: marker='\" + deletedMarker + \"' rowsBefore=\" + rowsBefore);");
-        w.writeLine();
-        // Open child record then delete via dropdown
-        w.writeLine("boolean opened = selectAndOpenRecord();");
-        w.writeLine("Assumptions.assumeTrue(opened, \"Could not open child record for deletion\");");
-        w.writeLine("shot(\"child_record_opened\");");
-        w.openBlock("try");
-        w.writeLine("clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
-        w.closeBlock();
-        w.writeLine("shot(\"delete_clicked\");");
+        w.writeLine("System.out.println(\"child testDelete: marker='\" + deletedMarker + \"' countBefore=\" + countBefore);");
+        w.writeLine("int editRow = 0;");
+        writeSelectGridRowScript(w, "editRow");
+        w.writeLine("shot(\"row_selected\");");
+        w.writeLine("boolean delClicked = clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.writeLine("if (!delClicked) delClicked = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(delClicked, \"child delete: не удалось нажать 'Удалить' в гриде вкладки '\" + TAB_NAME + \"'\");");
         w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("String delPopup = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
         w.writeLine("confirmDialogYes();");
-        w.writeLine("shot(\"after_confirm\");");
-        w.writeLine("waitForDialogClose();");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_delete\");");
-        w.writeLine();
-        w.writeLine("assertFalse(isErrorPresent(), \"Error after deleting child record\");");
-        w.writeLine("int rowsAfter = getVisibleRowCount();");
-        w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
-        w.writeLine("System.out.println(\"child testDelete: rows \" + rowsBefore + \" -> \" + rowsAfter + \", markerGone=\" + markerGone);");
-        w.openBlock("if (deletedMarker.isEmpty())");
-        w.writeLine("Assumptions.assumeTrue(rowsAfter < rowsBefore,");
-        w.writeLine("    \"Delete: no marker captured AND row count unchanged (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
-        w.closeBlock();
-        w.openBlock("else");
-        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
-        w.writeLine("    \"Delete in child grid: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND marker '\" + deletedMarker + \"' still present\");");
-        w.closeBlock();
+        writeServerErrorCheck(w, "child testDelete");
+        w.writeLine("clickGridRefresh();");
+        writeReadGridCount(w, "countAfter");
+        w.writeLine("boolean gone = !deletedMarker.isEmpty() && !gridContainsRow(deletedMarker) && !gridStoreContainsText(deletedMarker);");
+        w.writeLine("boolean countDropped = (countBefore != null && countAfter != null && countBefore >= 0 && countAfter < countBefore);");
+        w.writeLine("System.out.println(\"child testDelete: gone=\" + gone + \" count \" + countBefore + \" -> \" + countAfter + \" popup='\" + delPopup + \"'\");");
+        w.writeLine("assertTrue(gone || countDropped, \"child delete: запись '\" + deletedMarker + \"' всё ещё в гриде И счётчик не уменьшился (\" + countBefore + \" -> \" + countAfter + \"). popup='\" + delPopup + \"'\");");
         w.closeBlock();
         w.writeLine();
     }
