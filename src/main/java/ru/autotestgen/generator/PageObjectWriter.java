@@ -51,6 +51,9 @@ public class PageObjectWriter {
         // Используется в testCreate для поиска записи в гриде по заполненным значениям.
         // Сбрасывается в fillAllFields / fillRequiredFields.
         w.writeLine("public java.util.LinkedHashMap<String, String> lastFilledValues = new java.util.LinkedHashMap<>();");
+        // Уже опробованные значения FK/списков по имени поля: при переподборе (после отказа
+        // валидации) берём следующее НЕ пробованное значение, а не случайное.
+        w.writeLine("private final java.util.Map<String, java.util.Set<String>> triedDropdownValues = new java.util.HashMap<>();");
         w.writeLine();
 
         // Конструктор: без PageFactory, так как у PropertyGrid нет именованных инпутов.
@@ -362,8 +365,12 @@ public class PageObjectWriter {
         // нет — пробует кликнуть видимую кнопку-триггер (стрелку справа от инпута). Когда
         // пункты появились — выбирает случайный и кликает по нему. Ничего не печатает,
         // только выбор из готового списка справочника.
-        w.openBlock("private void fillFKViaDropdown(String fieldName)");
+        w.openBlock("private boolean fillFKViaDropdown(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
+        // selected=true, если удалось выбрать НОВОЕ (не пробованное ранее) значение списка.
+        // Используется при переподборе после отказа валидации (repickDropdown).
+        w.writeLine("boolean selected = false;");
+        w.writeLine("java.util.Set<String> triedHere = triedDropdownValues.computeIfAbsent(fieldName, k -> new java.util.HashSet<>());");
         // Только реальный клик: ищем видимую ячейку поля в текущем активном табе
         // и делаем dblclick. ExtJS откроет пикер / выпадающий список, выбираем
         // случайный элемент.
@@ -388,17 +395,17 @@ public class PageObjectWriter {
         w.closeBlock();
         w.openBlock("if (nameCell == null)");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (label cell not in DOM)\");");
-        w.writeLine("return;");
+        w.writeLine("return false;");
         w.closeBlock();
         w.writeLine("java.util.List<WebElement> rows = nameCell.findElements(By.xpath(\"ancestor::tr\"));");
         w.openBlock("if (rows.isEmpty())");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (no ancestor tr)\");");
-        w.writeLine("return;");
+        w.writeLine("return false;");
         w.closeBlock();
         w.writeLine("java.util.List<WebElement> cells = rows.get(0).findElements(By.cssSelector(\"td\"));");
         w.openBlock("if (cells.size() < 2)");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = SKIP (row has \" + cells.size() + \" cells)\");");
-        w.writeLine("return;");
+        w.writeLine("return false;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
         // Прокручиваем ячейку в зону видимости — иначе верхние FK (Включён, Тип)
@@ -488,8 +495,9 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception e)");
         w.writeLine("try { row.click(); Thread.sleep(200); new org.openqa.selenium.interactions.Actions(driver).moveToElement(row).doubleClick().perform(); } catch (Exception ignored) {}");
         w.closeBlock();
+        w.writeLine("triedHere.add(rowText);");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = OK picker-window ('\" + rowText + \"')\");");
-        w.writeLine("return;");
+        w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
@@ -498,10 +506,24 @@ public class PageObjectWriter {
         w.openBlock("if (items.isEmpty())");
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' = FAIL (no dropdown, no NEW picker window; activeBefore=\" + activeBefore + \")\");");
         w.writeLine("dumpDropdownDiagnostic();");
-        w.writeLine("return;");
+        w.writeLine("return false;");
         w.closeBlock();
-        w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
-        w.writeLine("String pickedText = pick.getText() == null ? \"\" : pick.getText().trim();");
+        // Берём первый НЕ пробованный пункт (при переподборе после отказа валидации это даст
+        // следующее значение, а не то же самое). Если все варианты уже пробованы — случайный.
+        w.writeLine("WebElement pick = null;");
+        w.writeLine("String pickedText = \"\";");
+        w.openBlock("for (WebElement it : items)");
+        w.writeLine("String t = it.getText() == null ? \"\" : it.getText().trim();");
+        w.openBlock("if (!triedHere.contains(t))");
+        w.writeLine("pick = it; pickedText = t; selected = true; break;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (pick == null)");
+        w.writeLine("pick = items.get(new java.util.Random().nextInt(items.size()));");
+        w.writeLine("pickedText = pick.getText() == null ? \"\" : pick.getText().trim();");
+        w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' все \" + items.size() + \" вариантов уже пробованы — берём случайный\");");
+        w.closeBlock();
+        w.writeLine("triedHere.add(pickedText);");
         // Пауза 1с перед кликом: список уже в DOM, но ExtJS ещё привязывает обработчики.
         // Без паузы клик иногда проходил впустую и значение не выбиралось.
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ждём 1с и кликаем элемент '\" + pickedText + \"'\");");
@@ -532,6 +554,17 @@ public class PageObjectWriter {
         w.openBlock("finally");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.closeBlock();
+        w.writeLine("return selected;");
+        w.closeBlock();
+        w.writeLine();
+
+        // repickDropdown: повторно открыть список поля и выбрать СЛЕДУЮЩЕЕ не пробованное значение.
+        // Возвращает true, если удалось выбрать новое значение (есть смысл повторить сохранение).
+        // Используется в testCreate, когда сервер отклонил save с popup'ом по полю-списку
+        // (например «Тип ГСК/ОГСК», где некоторые значения создавать нельзя).
+        w.openBlock("public boolean repickDropdown(String fieldName)");
+        w.writeLine("System.out.println(\"  [repick] переподбираем значение списка '\" + fieldName + \"'\");");
+        w.writeLine("return fillFKViaDropdown(fieldName);");
         w.closeBlock();
         w.writeLine();
 

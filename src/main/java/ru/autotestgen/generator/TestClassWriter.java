@@ -944,6 +944,60 @@ public class TestClassWriter {
         // если диалог всё ещё открыт и видна кнопка «Готово» — жмём её снова (следующий шаг мастера).
         w.writeLine("String createPopupText = capturePopupText(\"after-\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
         w.writeLine("System.out.println(\"testCreate: popup после Готово = '\" + createPopupText + \"'\");");
+        // Самовосстановление: если сервер отклонил save валидацией по полю-списку (например
+        // «Тип ГСК/ОГСК», где некоторые значения создавать нельзя), скриним popup (это уже сделал
+        // capturePopupText), переподбираем следующее значение упомянутых списков и повторяем
+        // «Готово». До 3 попыток; popup каждой попытки попадает в отчёт. Если не помогло — ниже FAIL.
+        StringBuilder lfSb = new StringBuilder();
+        for (Property p : displayProperties) {
+            if (("Directory".equals(p.getStereoType()) || "Ref".equals(p.getStereoType())) && !isSystemField(p)) {
+                if (lfSb.length() > 0) lfSb.append(", ");
+                lfSb.append("\"").append(p.getName().replace("\\", "\\\\").replace("\"", "\\\"")).append("\"");
+            }
+        }
+        w.writeLine("String[] LIST_FIELDS = { " + lfSb + " };");
+        w.writeLine("int saveTry = 1;");
+        w.openBlock("while (saveTry < 3 && createPopupText != null && (createPopupText.contains(\"\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e\") || createPopupText.contains(\"\\u041d\\u0435 \\u0437\\u0430\\u043f\\u043e\\u043b\\u043d\\u0435\\u043d\\u043e\")))");
+        w.writeLine("System.out.println(\"testCreate: save отклонён валидацией (попытка \" + saveTry + \"): \" + createPopupText);");
+        w.writeLine("shot(\"retry_\" + saveTry + \"_validation\");");
+        // Закрываем popup (OK/Да), чтобы вернуться в карточку «Сведения».
+        w.writeLine("confirmDialogYes();");
+        w.openBlock("try");
+        w.writeLine("Thread.sleep(400);");
+        w.closeBlock();
+        w.openBlock("catch (InterruptedException ignored)");
+        w.closeBlock();
+        // Для каждого поля-списка, упомянутого в popup, выбираем следующее не пробованное значение.
+        w.writeLine("boolean repicked = false;");
+        w.openBlock("for (String lf : LIST_FIELDS)");
+        w.openBlock("if (createPopupText.contains(lf))");
+        w.writeLine("boolean ok = page.repickDropdown(lf);");
+        w.writeLine("System.out.println(\"testCreate: переподбор '\" + lf + \"' -> \" + ok);");
+        w.writeLine("repicked = repicked || ok;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (!repicked)");
+        w.writeLine("System.out.println(\"testCreate: нечего переподбирать (нет полей-списков в popup или варианты кончились) — прекращаем повторы\");");
+        w.writeLine("break;");
+        w.closeBlock();
+        // Фиксируем редакторы перед повторным «Готово» (как в основном потоке).
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}\");");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        writeCommitAllEditorsScript(w);
+        w.writeLine("shot(\"retry_\" + saveTry + \"_before_gotovo\");");
+        w.writeLine("boolean againSave = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.openBlock("if (!againSave)");
+        w.writeLine("againSave = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"testCreate: повтор save, кнопка нажата=\" + againSave);");
+        w.writeLine("createPopupText = capturePopupText(\"retry-save\");");
+        w.writeLine("System.out.println(\"testCreate: popup после повтора = '\" + createPopupText + \"'\");");
+        w.writeLine("saveTry++;");
+        w.closeBlock();
         w.writeLine("confirmDialogYes();");
         w.writeLine("waitForDialogClose();");
         // Ждём 3с на серверный round-trip. Карточка может остаться открытой (на некоторых стендах
@@ -958,8 +1012,8 @@ public class TestClassWriter {
         // не ходим в грид.
         w.openBlock("if (createPopupText != null && (createPopupText.contains(\"\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e\") || createPopupText.contains(\"\\u041d\\u0435 \\u0437\\u0430\\u043f\\u043e\\u043b\\u043d\\u0435\\u043d\\u043e\")))");
         w.writeLine("shot(\"validation_error\");");
-        w.writeLine("fail(\"testCreate: сервер отверг save с popup'ом валидации: '\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
-        w.writeLine("    + \". ExtJS rec.set вернул OK, но сервер при save видит эти поля пустыми — возможно поле зависит от FK/wizard-шага которого мы не проходили.\");");
+        w.writeLine("fail(\"testCreate: сервер отверг save с popup'ом валидации (после \" + saveTry + \" попыток переподбора значений списков): '\" + createPopupText + \"'. Заполненные поля: \" + filledSnapshot");
+        w.writeLine("    + \". Если ругается на поле-список — возможно для всех доступных значений создание запрещено бизнес-логикой, либо поле зависит от FK/wizard-шага которого мы не проходили. Скриншоты всех popup'ов — в отчёте.\");");
         w.closeBlock();
         // Закрываем карточку через Esc/Отмена, только если popup не был валидационным.
         // «Сведения» после save может оставаться открытым read-only, а нам надо вернуться к гриду,
