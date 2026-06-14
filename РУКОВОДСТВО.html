@@ -74,6 +74,24 @@
 скачивает нужные библиотеки из интернета. Последующие прогоны идут быстро.</div>
 </div>
 
+<h2>Если у вас Mac</h2>
+<div class="step">
+<p>Для macOS есть отдельные сборки — возьмите архив под ваш Mac:</p>
+<ul>
+  <li><span class="file">AutoTestGenerator-macos-arm64.zip</span> — Apple&nbsp;Silicon (M1/M2/M3…);</li>
+  <li><span class="file">AutoTestGenerator-macos-x64.zip</span> — Mac на процессоре Intel.</li>
+</ul>
+<p><span class="num">1</span>Распакуйте архив.</p>
+<p><span class="num">2</span>Первый запуск: <b>правый клик</b> (или Ctrl+клик) по
+<span class="file">AutoTestGenerator.app</span> → <b>«Открыть»</b> → в диалоге ещё раз
+<b>«Открыть»</b>. Приложение не подписано сертификатом, поэтому macOS один раз спрашивает
+подтверждение (аналог SmartScreen на Windows) — это не вирус.</p>
+<div class="note">Если macOS пишет, что приложение «повреждено и не может быть открыто»,
+выполните один раз в Терминале (из папки с приложением):
+<pre style="background:#263238;color:#aed581;padding:10px;border-radius:6px;">xattr -dr com.apple.quarantine AutoTestGenerator.app</pre>
+и снова откройте приложение. Chrome и интернет нужны так же, как на Windows.</div>
+</div>
+
 <h2>Обзор окна программы</h2>
 <p>Заголовок окна — <i>«AutoTestGenerator — Генерация автотестов из XML-модели»</i>. Окно состоит из четырёх зон:</p>
 <table>

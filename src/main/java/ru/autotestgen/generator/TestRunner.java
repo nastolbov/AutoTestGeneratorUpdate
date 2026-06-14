@@ -65,17 +65,22 @@ public class TestRunner {
         // На Windows исполняемый файл Maven — mvn.cmd; ProcessBuilder для команды без расширения
         // ищет только mvn.exe и падает с "Cannot run program mvn". Поэтому выбираем имя по ОС.
         boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        String mvnExe = isWindows ? "mvn.cmd" : "mvn";
 
-        // В упакованном виде (jpackage) JDK и Maven лежат внутри папки приложения, а не в PATH.
-        // appDir — корень приложения: java.home указывает на …/AutoTestGenerator/runtime,
-        // его родитель и есть корень. Рядом ожидаем maven/ и (опц.) maven-repo/.
-        Path appDir = Path.of(System.getProperty("java.home")).getParent();
-        Path bundledMaven = appDir == null ? null
-                : appDir.resolve("maven").resolve("bin").resolve(isWindows ? "mvn.cmd" : "mvn");
-        boolean useBundled = bundledMaven != null && Files.exists(bundledMaven);
+        // В упакованном виде (jpackage) JDK и Maven лежат внутри приложения, а не в PATH. Структура
+        // отличается: на Windows это …/AutoTestGenerator/runtime, в macOS — …/AutoTestGenerator.app/
+        // Contents/runtime/Contents/Home. Поэтому идём вверх от java.home и ищем каталог maven/bin/<mvn>.
+        Path mavenBin = null;
+        Path probe = Path.of(System.getProperty("java.home"));
+        for (int i = 0; i < 6 && probe != null; i++) {
+            Path cand = probe.resolve("maven").resolve("bin").resolve(mvnExe);
+            if (Files.exists(cand)) { mavenBin = cand; break; }
+            probe = probe.getParent();
+        }
+        boolean useBundled = mavenBin != null;
 
         List<String> cmd = new ArrayList<>();
-        cmd.add(useBundled ? bundledMaven.toString() : (isWindows ? "mvn.cmd" : "mvn"));
+        cmd.add(useBundled ? mavenBin.toString() : mvnExe);
         cmd.add("test");
         if (testFilter != null && !testFilter.isBlank()) {
             cmd.add("-Dtest=" + testFilter);
@@ -89,8 +94,8 @@ public class TestRunner {
             cmd.add("-Dheadless=true");
         }
         if (useBundled) {
-            // Прогретый локальный репозиторий рядом с приложением — первый прогон без долгой докачки.
-            Path bundledRepo = appDir.resolve("maven-repo");
+            // Прогретый локальный репозиторий рядом с каталогом maven — первый прогон без долгой докачки.
+            Path bundledRepo = mavenBin.getParent().getParent().getParent().resolve("maven-repo");
             if (Files.exists(bundledRepo)) {
                 cmd.add("-Dmaven.repo.local=" + bundledRepo);
             }
@@ -106,8 +111,7 @@ public class TestRunner {
             var env = pb.environment();
             env.put("JAVA_HOME", javaHome);
             String sep = isWindows ? ";" : ":";
-            String extraPath = appDir.resolve("runtime").resolve("bin")
-                    + sep + appDir.resolve("maven").resolve("bin");
+            String extraPath = Path.of(javaHome).resolve("bin") + sep + mavenBin.getParent();
             // На Windows переменная PATH может называться Path — ищем без учёта регистра.
             String pathKey = env.keySet().stream()
                     .filter(k -> k.equalsIgnoreCase("PATH")).findFirst().orElse("PATH");
