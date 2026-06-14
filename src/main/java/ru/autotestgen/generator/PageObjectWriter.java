@@ -9,9 +9,9 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Generates Selenium Page Object classes for each entity.
- * Each page class contains WebElements for form fields and methods
- * for interacting with them based on dmodule type.
+ * Генерирует классы Page Object (Selenium) для каждой сущности.
+ * Каждый класс страницы содержит WebElement-ы для полей формы и методы
+ * для работы с ними в зависимости от типа dmodule.
  */
 public class PageObjectWriter {
 
@@ -31,7 +31,7 @@ public class PageObjectWriter {
 
         JavaFileWriter w = new JavaFileWriter();
 
-        // Package and imports
+        // Пакет и импорты
         w.writeLine("package " + packageName + ";");
         w.writeLine();
         w.writeLine("import org.openqa.selenium.WebDriver;");
@@ -42,47 +42,38 @@ public class PageObjectWriter {
         w.writeLine("import java.time.Duration;");
         w.writeLine();
 
-        // Class declaration
+        // Объявление класса
         w.openBlock("public class " + className);
         w.writeLine();
         w.writeLine("private WebDriver driver;");
         w.writeLine("private WebDriverWait wait;");
-        // Сюда складываем (Русское имя поля -> значение) КАЖДЫЙ раз, когда тест что-то
-        // вписывает через fillX(...). Используется в testCreate, чтобы после сохранения
-        // искать запись в гриде НЕ по «рассчитанному» маркеру, а по фактически
-        // заполненным значениям полей. Сбрасывается в fillAllFields / fillRequiredFields.
+        // Хранит пары (русское имя поля, значение) для каждого вызова fillX(...).
+        // Используется в testCreate для поиска записи в гриде по заполненным значениям.
+        // Сбрасывается в fillAllFields / fillRequiredFields.
         w.writeLine("public java.util.LinkedHashMap<String, String> lastFilledValues = new java.util.LinkedHashMap<>();");
         w.writeLine();
 
-        // Constructor — no PageFactory since PropertyGrid has no named inputs
+        // Конструктор: без PageFactory, так как у PropertyGrid нет именованных инпутов.
         w.openBlock("public " + className + "(WebDriver driver)");
         w.writeLine("this.driver = driver;");
         w.writeLine("this.wait = new WebDriverWait(driver, Duration.ofSeconds(3));");
         w.closeBlock();
         w.writeLine();
 
-        // Generic helper to fill a PropertyGrid field by its display name.
-        // ВАЖНО: для надёжности сначала пробуем ExtJS API (setValue по fieldLabel),
-        // и только потом fall-back на DOM-клик ячейки + inline-редактор.
-        // fillPropertyGridField: открывает inline-редактор ячейки PropertyGrid по русскому
-        // имени поля и вводит value. Логирует результат каждой попытки чтобы было видно,
-        // какие именно обязательные поля не заполняются (раньше падали в silent skip и в
-        // итоге Готово отбивался валидацией).
+        // fillPropertyGridField: заполняет поле PropertyGrid по русскому имени.
+        // Сначала ExtJS API (startEditing), затем запасной вариант — DOM-клик ячейки
+        // и inline-редактор. Логирует результат каждой попытки.
         w.openBlock("private void fillPropertyGridField(String fieldName, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(80));");
-        // value == null означает FK / Directory / Ref-поле. Сразу идём в DOM-пикер выпадашки.
+        // value == null означает FK/Directory/Ref-поле: сразу открываем DOM-пикер выпадающего списка.
         w.openBlock("if (value == null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' — FK field, opening dropdown\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("fillFKViaDropdown(fieldName);");
         w.writeLine("return;");
         w.closeBlock();
-        // СТРАТЕГИЯ A (ExtJS rec.set) УБРАНА — она лазала по всем компонентам через
-        // ComponentMgr и как побочный эффект переключала табы (Сведения → Документы).
-        // НОВАЯ СТРАТЕГИЯ: открываем editor через ExtJS API grid.startEditing(rowIndex, 1).
-        // Это надёжно: ExtJS сам найдёт правильную ячейку и откроет НУЖНЫЙ editor.
-        // Раньше click+positioning часто открывал editor чужого поля (x-form-num-field
-        // или x-combo-noedit) и sendKeys уходили в воздух или переключали раздел.
+        // Открываем редактор через ExtJS API grid.startEditing(rowIndex, 1):
+        // ExtJS сам найдёт нужную ячейку и откроет правильный редактор.
         w.openBlock("try");
         w.writeLine("Object startResult = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try {\"");
@@ -94,8 +85,8 @@ public class PageObjectWriter {
         w.writeLine("    + \"  if (mgr.all.items) allItems = mgr.all.items;\"");
         w.writeLine("    + \"  else if (mgr.all.each) mgr.all.each(function(c){allItems.push(c);});\"");
         w.writeLine("    + \"  else for (var k in mgr.all) allItems.push(mgr.all[k]);\"");
-        // СКОУП к активному окну. Без этого startEditing мог попасть в SEARCH PARAMS
-        // PropertyGrid вместо «Сведения ГСК/ОГСК», и row=1 был не Наименование а Тип.
+        // Ограничиваем поиск активным окном, иначе startEditing может попасть в чужой
+        // PropertyGrid (например, в параметры поиска вместо карточки сведений).
         w.writeLine("    + \"  var activeWin = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null;\"");
         w.writeLine("    + \"  var activeDom = (activeWin && activeWin.getEl) ? (activeWin.getEl().dom || activeWin.getEl()) : null;\"");
         w.writeLine("    + \"  var items = [];\"");
@@ -115,9 +106,8 @@ public class PageObjectWriter {
         w.writeLine("    + \"      var rec = s.getAt(j); if (!rec || !rec.data) continue;\"");
         w.writeLine("    + \"      var dn = rec.data.displayName != null ? String(rec.data.displayName) : '';\"");
         w.writeLine("    + \"      var nn = rec.data.name != null ? String(rec.data.name) : '';\"");
-        // Очищаем хвостовую звёздочку '*' (индикатор required) и пробелы — на стенде
-        // displayName приходит как 'Наименование ГСК/ОГСК *' но в модели у нас просто
-        // 'Наименование ГСК/ОГСК'.
+        // Убираем хвостовую звёздочку '*' (признак обязательности) и пробелы:
+        // на стенде displayName может приходить со звёздочкой, а в модели её нет.
         w.writeLine("    + \"      var dnClean = dn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
         w.writeLine("    + \"      var nnClean = nn.replace(/\\\\s*\\\\*\\\\s*$/, '').trim();\"");
         w.writeLine("    + \"      if (dnClean === name || nnClean === name) {\"");
@@ -126,9 +116,8 @@ public class PageObjectWriter {
         w.writeLine("    + \"      }\"");
         w.writeLine("    + \"    }\"");
         w.writeLine("    + \"  }\"");
-        // FALLBACK: если в активном окне не нашли — обходим ВСЕ visible PropertyGrid'ы.
-        // На стенде activeWin.getEl().dom может не покрывать всю карточку (например
-        // PropertyGrid рендерится в отдельном слое).
+        // Запасной вариант: если в активном окне не нашли — обходим все видимые PropertyGrid.
+        // Активное окно может не покрывать всю карточку (например, грид рендерится в отдельном слое).
         w.writeLine("    + \"  for (var i = 0; i < allItems.length; i++) {\"");
         w.writeLine("    + \"    var c = allItems[i];\"");
         w.writeLine("    + \"    if (!c || !c.rendered || !c.getStore || !c.customEditors || !c.startEditing) continue;\"");
@@ -155,11 +144,9 @@ public class PageObjectWriter {
         w.writeLine("    \"return document.activeElement;\");");
         w.openBlock("if (startedEditor != null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через startEditing: id=\" + startedEditor.getAttribute(\"id\") + \" class=\" + startedEditor.getAttribute(\"class\"));");
-        // СНАЧАЛА ЧИСТИМ ПОЛЕ, ПОТОМ ЗАПОЛНЯЕМ (требование заказчика для update — иначе старое
-        // значение НЕ удаляется и новое накладывается). Очистка через JS value=''+input — это
-        // ОЧИСТКА, а НЕ вставка значения; само значение вводится С КЛАВЫ (sendKeys ниже).
-        // Одиночный Ctrl+A на этом ExtJS-редакторе не выделял текст → оставляем Ctrl+A как
-        // дополнительную страховку ПОСЛЕ JS-очистки.
+        // Сначала очищаем поле, потом заполняем (для update, иначе новое значение
+        // накладывается на старое). Очистка через JS (value=''), значение вводится
+        // с клавиатуры (sendKeys). Ctrl+A — страховка после JS-очистки.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", startedEditor);");
@@ -173,12 +160,9 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(150);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(300);");
-        // ENTER коммитит ячейку, НО в ExtJS PropertyGrid keynav сразу открывает редактор
-        // СЛЕДУЮЩЕЙ строки → после ввода остаётся «лишний» открытый редактор (запись «дёргается»,
-        // выглядит как от TAB). При create этот пустой редактор потом коммитился поверх
-        // обязательного поля → «Готово» слал неполные данные → запись не сохранялась. Поэтому
-        // сразу гасим любой активный редактор гридов/propertygrid (stopEditing(false) коммитит
-        // ТЕКУЩЕЕ значение и закрывает) + blur, чтобы соседний редактор НЕ оставался открытым.
+        // ENTER подтверждает ячейку, но keynav ExtJS PropertyGrid сразу открывает редактор
+        // следующей строки, который может записаться поверх обязательного поля.
+        // Поэтому гасим любой активный редактор гридов (stopEditing(false)) и делаем blur.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { if (typeof Ext==='undefined') return;\"");
@@ -201,12 +185,10 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception startEx)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' startEditing threw: \" + startEx.getMessage());");
         w.closeBlock();
-        // СТРАТЕГИЯ B (DOM): fallback — клик по ячейке + sendKeys.
+        // Запасной вариант через DOM: клик по ячейке + sendKeys.
         w.openBlock("try");
-        // НЕ ИСПОЛЬЗУЕМ Esc — в ExtJS PropertyGrid Esc отменяет inline-add и УДАЛЯЕТ
-        // последнюю добавленную строку (см. фидбек пользователя 'то первую строку удаляешь').
-        // Editor предыдущего fillX закрывается через ENTER в самом конце той fillX, так что
-        // к моменту нового fillX редактор уже закрыт сам.
+        // Esc не используем: в ExtJS PropertyGrid он отменяет inline-add и удаляет
+        // последнюю добавленную строку. Редактор предыдущего fillX уже закрыт по ENTER.
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
         w.writeLine("    + \" or contains(normalize-space(.), '\" + fieldName + \"')\"");
@@ -237,10 +219,9 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
-        // ScrollIntoView + лог Y-координаты — иначе верхние ячейки (Наименование, Включён)
-        // после прокрутки формы уезжали за viewport и клик не активировал редактор.
-        // Используем scrollIntoView({block:'center'}) чтобы ячейка оказалась посередине
-        // окна (не у самого верха, где её может перекрыть заголовок диалога).
+        // Прокручиваем ячейку в центр окна, иначе верхние ячейки уезжают за область
+        // видимости и клик не активирует редактор. scrollIntoView({block:'center'})
+        // держит ячейку посередине, где её не перекроет заголовок диалога.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});\", valueCell);");
@@ -251,7 +232,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Активируем editor через click + pause + click (тот же жест что для FK)
+        // Активируем редактор через click + pause + click (тот же жест, что и для FK).
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver)");
         w.writeLine("    .moveToElement(valueCell)");
@@ -264,11 +245,9 @@ public class PageObjectWriter {
         w.writeLine("try { valueCell.click(); Thread.sleep(200); valueCell.click(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine("Thread.sleep(300);");
-        // Найти видимый input редактора
-        // КРИТИЧНО: ищем editor правильно. Раньше findElements без скоупа брал ПЕРВЫЙ
-        // input на странице — а это часто readonly-комбо чужого поля. Сейчас:
-        // 1) Сначала document.activeElement (то что в фокусе после клика по ячейке).
-        // 2) Если не подходит — ищем не-readonly INPUT в области координат ячейки.
+        // Находим видимый input редактора:
+        // 1) сначала document.activeElement (то, что в фокусе после клика по ячейке);
+        // 2) если не подходит — ищем не readonly INPUT в области координат ячейки.
         w.writeLine("WebElement editor = null;");
         w.openBlock("try");
         w.writeLine("WebElement active = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
@@ -285,7 +264,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Fallback: общий поиск, но ОТФИЛЬТРОВАННЫЙ от readonly и x-combo-noedit.
+        // Запасной вариант: общий поиск с отсевом readonly и x-combo-noedit.
         w.openBlock("if (editor == null)");
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input.x-form-text:not([type='hidden']):not([readonly]), input.x-form-field:not([type='hidden']):not([readonly]), textarea.x-form-textarea:not([readonly])\"));");
         w.openBlock("for (WebElement ed : inputs)");
@@ -305,26 +284,22 @@ public class PageObjectWriter {
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = SKIP (no editor input visible — клик по ячейке не активировал editor)\");");
         w.writeLine("return;");
         w.closeBlock();
-        // Очистка + ввод как с клавиатуры. ExtJS form-binding читает значение из input
-        // только если оно пришло через keypress/keyup events — JS-set'тер игнорируется.
-        // Поэтому: editor.clear() + editor.sendKeys(value посимвольно) + ENTER чтобы
-        // ExtJS зафиксировал значение и закрыл редактор ячейки.
+        // Очистка и ввод с клавиатуры. ExtJS читает значение из input только если оно
+        // пришло через события клавиатуры, JS-setter игнорируется. Поэтому очистка,
+        // посимвольный sendKeys(value) и ENTER, чтобы ExtJS зафиксировал значение.
         w.openBlock("try");
         w.writeLine("editor.click();");
         w.writeLine("Thread.sleep(150);");
-        // Лог содержимого ДО ввода — увидим что в редакторе изначально (от предыдущего fill?)
+        // Лог содержимого до ввода — что в редакторе изначально (от предыдущего fill).
         w.openBlock("try");
         w.writeLine("String beforeVal = editor.getAttribute(\"value\");");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor.value BEFORE = '\" + (beforeVal == null ? \"\" : beforeVal) + \"'\");");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // ОДНИМ chord'ом: Ctrl+A выделяет всё, потом сразу sendKeys(value) перетирает
-        // выделение. Раньше было editor.clear() + Ctrl+A + DELETE отдельными вызовами —
-        // после DELETE редактор ExtJS закрывался, sendKeys(value) уходил в body вместо
-        // ячейки → ячейка оставалась ПУСТОЙ (как пользователь и видел после marker stamp).
+        // Одним chord: Ctrl+A выделяет всё, затем sendKeys(value) перетирает выделение.
         w.openBlock("try");
-        // Сначала очистка (JS value=''+input), затем ввод с клавы — без наложения старого значения.
+        // Сначала очистка (JS value=''+input), затем ввод с клавиатуры — без наложения старого значения.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
@@ -340,7 +315,7 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception keyEx)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' sendKeys threw: \" + keyEx.getMessage());");
         w.closeBlock();
-        // Лог содержимого ПОСЛЕ ввода, ДО ENTER
+        // Лог содержимого после ввода, до ENTER.
         w.openBlock("try");
         w.writeLine("String afterVal = editor.getAttribute(\"value\");");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor.value AFTER sendKeys = '\" + (afterVal == null ? \"\" : afterVal) + \"' (expected '\" + value + \"')\");");
@@ -351,8 +326,8 @@ public class PageObjectWriter {
         // и применяет value к rec.data.
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(250);");
-        // Верификация: читаем ОБРАТНО текст value-ячейки. Если в ней нет нашего value —
-        // sendKeys ушёл не туда (например в чужой редактор), и поле осталось пустым.
+        // Проверка: читаем обратно текст value-ячейки. Если в ней нет нашего value —
+        // sendKeys ушёл не туда (например, в чужой редактор), и поле осталось пустым.
         w.openBlock("try");
         w.writeLine("Object cellText = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"return (arguments[0].innerText || arguments[0].textContent || '').trim();\", valueCell);");
@@ -382,20 +357,19 @@ public class PageObjectWriter {
         w.writeLine();
 
 
-        // fillFKViaDropdown: для FK/Ref-полей. Находит ячейку value, делает dblclick, ждёт пол
-        // секунды, ищет выпадающий список (.x-combo-list-item / .x-boundlist-item). Если списка
-        // нет — пробует кликнуть видимую кнопку-триггер (стрелочку справа от инпута). Когда
-        // пункты появились — выбирает СЛУЧАЙНЫЙ и кликает по нему. Не пытается ничего печатать —
+        // fillFKViaDropdown: для FK/Ref-полей. Находит ячейку value, делает dblclick, ждёт
+        // и ищет выпадающий список (.x-combo-list-item / .x-boundlist-item). Если списка
+        // нет — пробует кликнуть видимую кнопку-триггер (стрелку справа от инпута). Когда
+        // пункты появились — выбирает случайный и кликает по нему. Ничего не печатает,
         // только выбор из готового списка справочника.
         w.openBlock("private void fillFKViaDropdown(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
-        // СТРАТЕГИЯ A (ExtJS rec.set) УБРАНА — она лазала по всем компонентам через
-        // ComponentMgr и переключала табы как побочный эффект. Теперь только реальный
-        // клик: ищем ВИДИМУЮ ячейку поля в текущем активном табе и кликаем dblclick.
-        // ExtJS откроет пикер / выпадашку, мы выберем случайный элемент.
+        // Только реальный клик: ищем видимую ячейку поля в текущем активном табе
+        // и делаем dblclick. ExtJS откроет пикер / выпадающий список, выбираем
+        // случайный элемент.
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' — открываем пикер реальным кликом\");");
 
-        // === СТРАТЕГИЯ B: реальный клик по ячейке value FK-поля ===
+        // Реальный клик по ячейке value FK-поля.
         w.openBlock("try");
         w.writeLine("String xp = \"//div[contains(@class,'x-grid3-cell-inner')][\"");
         w.writeLine("    + \"normalize-space(.) = '\" + fieldName + \"'\"");
@@ -427,8 +401,8 @@ public class PageObjectWriter {
         w.writeLine("return;");
         w.closeBlock();
         w.writeLine("WebElement valueCell = cells.get(1);");
-        // Scroll cell into view — иначе верхние FK (Включён, Тип) уезжали за viewport
-        // после прокрутки формы и dblclick по ним не работал.
+        // Прокручиваем ячейку в зону видимости — иначе верхние FK (Включён, Тип)
+        // уезжают за пределы экрана после прокрутки формы и dblclick по ним не работает.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});\", valueCell);");
@@ -436,15 +410,14 @@ public class PageObjectWriter {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Запомним id активного окна ДО клика — иначе если пикер не открылся, Ext.WindowMgr
-        // вернёт тот же диалог Сведения, и мы dblclick'нем его property-row (как было в прошлой
-        // версии — пик попал на 'Дата изменения').
+        // Запоминаем id активного окна до клика: если пикер не открылся, Ext.WindowMgr
+        // вернёт тот же диалог Сведения, и мы сделаем dblclick по его property-row.
         w.writeLine("String activeBefore = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var aw = (Ext.WindowMgr && Ext.WindowMgr.getActive) ? Ext.WindowMgr.getActive() : null; return aw ? aw.id : null; } catch (e) { return null; }\");");
-        // Жест из реального UX: первый click выделяет PropertyGrid-row, второй (через паузу)
-        // активирует inline-editor на выделенной row, что у E3Core combo триггерит
-        // авто-открытие выпадашки. ExtJS doubleClick из Actions слипал два клика в dblclick-
-        // event, который у этого стенда сбрасывал editor — поэтому никакой dropdown не открывался.
+        // Имитация реального жеста: первый click выделяет PropertyGrid-row, второй (через паузу)
+        // активирует inline-редактор на выделенной строке, что у combo E3Core запускает
+        // авто-открытие выпадающего списка. ExtJS doubleClick из Actions склеивал два клика
+        // в один dblclick, который на этом стенде сбрасывал редактор, и список не открывался.
         w.openBlock("try");
         w.writeLine("new org.openqa.selenium.interactions.Actions(driver)");
         w.writeLine("    .moveToElement(valueCell)");
@@ -460,7 +433,7 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // ExtJS combo list загружается асинхронно — ждём появления пунктов до 2.5с поллингом.
+        // Список combo ExtJS загружается асинхронно — опрашиваем DOM до появления пунктов, до 2.5с.
         w.writeLine("java.util.List<WebElement> items = pollDropdownItems(2500);");
         w.openBlock("if (items.isEmpty())");
         w.writeLine("java.util.List<WebElement> triggers = driver.findElements(By.cssSelector(");
@@ -479,8 +452,8 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
         w.closeBlock();
-        // F4 на активном элементе — стандартный ExtJS combobox expand. Иногда нужен после
-        // dblclick если editor открылся, но dropdown не подтянулся автоматом.
+        // F4 на активном элементе — стандартное раскрытие combobox ExtJS. Иногда нужно после
+        // dblclick, если редактор открылся, но список не подтянулся автоматически.
         w.openBlock("if (items.isEmpty())");
         w.openBlock("try");
         w.writeLine("driver.switchTo().activeElement().sendKeys(org.openqa.selenium.Keys.F4);");
@@ -489,9 +462,9 @@ public class PageObjectWriter {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // E3Core: FK поля часто открывают отдельное МОДАЛЬНОЕ окно-пикер с гридом записей.
-        // Берём активное окно ТОЛЬКО если его id ОТЛИЧАЕТСЯ от activeBefore — иначе мы
-        // вернёмся в тот же диалог редактирования и dblclick'нем его property-row.
+        // E3Core: FK-поля часто открывают отдельное модальное окно-пикер с гридом записей.
+        // Берём активное окно только если его id отличается от activeBefore — иначе
+        // вернёмся в тот же диалог редактирования и сделаем dblclick по его property-row.
         w.openBlock("if (items.isEmpty())");
         w.openBlock("try");
         w.writeLine("Object pickerRow = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
@@ -529,8 +502,8 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine("WebElement pick = items.get(new java.util.Random().nextInt(items.size()));");
         w.writeLine("String pickedText = pick.getText() == null ? \"\" : pick.getText().trim();");
-        // 1с пауза ПЕРЕД кликом — выпадашка появилась в DOM, но ExtJS ещё биндит её
-        // обработчики. Без этого клик иногда проходил «впустую» и значение не выбиралось.
+        // Пауза 1с перед кликом: список уже в DOM, но ExtJS ещё привязывает обработчики.
+        // Без паузы клик иногда проходил впустую и значение не выбиралось.
         w.writeLine("System.out.println(\"  [fill-FK] '\" + fieldName + \"' ждём 1с и кликаем элемент '\" + pickedText + \"'\");");
         w.writeLine("Thread.sleep(1000);");
         w.openBlock("try");
@@ -540,10 +513,10 @@ public class PageObjectWriter {
         w.writeLine("try { pick.click(); } catch (Exception ignored) {}");
         w.closeBlock();
         w.writeLine("Thread.sleep(300);");
-        // ВАЖНО: после клика по пункту ExtJS combobox получил value, но запись в PropertyGrid
-        // может не зафиксироваться без явного коммита. ENTER завершает выбор и закрывает picker,
-        // привязывая значение к record'у. TAB здесь НЕ жмём: он уводил фокус на СЛЕДУЮЩУЮ строку
-        // PropertyGrid, та входила в режим редактирования → запись оставалась «чёрной».
+        // После клика по пункту combobox ExtJS получил value, но запись в PropertyGrid
+        // может не зафиксироваться без явного подтверждения. ENTER завершает выбор и
+        // закрывает пикер, привязывая значение к записи. TAB не используем: он уводит
+        // фокус на следующую строку PropertyGrid, и та входит в режим редактирования.
         w.openBlock("try");
         w.writeLine("org.openqa.selenium.WebElement focused = driver.switchTo().activeElement();");
         w.writeLine("focused.sendKeys(org.openqa.selenium.Keys.ENTER);");
@@ -579,9 +552,9 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // pollDropdownItems: ждёт пока выпадающий список появится (до timeoutMs мс),
-        // опрашивая DOM каждые 200мс. ExtJS combo list иногда подгружается store'ом
-        // асинхронно — фиксированная пауза 500мс была слишком короткой.
+        // pollDropdownItems: ждёт появления выпадающего списка (до timeoutMs мс),
+        // опрашивая DOM каждые 200мс. Список combo ExtJS подгружается store асинхронно,
+        // поэтому фиксированной паузы 500мс не хватало.
         w.openBlock("private java.util.List<WebElement> pollDropdownItems(int timeoutMs)");
         w.writeLine("long deadline = System.currentTimeMillis() + timeoutMs;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
@@ -599,8 +572,8 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // dumpDropdownDiagnostic: на FAIL fillFKViaDropdown — печатает что РЕАЛЬНО видно в
-        // DOM, чтобы понять под какой селектор / класс открывается список на этом стенде.
+        // dumpDropdownDiagnostic: при сбое fillFKViaDropdown печатает, что реально видно
+        // в DOM, чтобы понять, под какой селектор / класс открывается список на этом стенде.
         w.openBlock("private void dumpDropdownDiagnostic()");
         w.openBlock("try");
         w.writeLine("System.out.println(\"  [fill-FK] dropdown diagnostic:\");");
@@ -627,19 +600,19 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Input methods for each property based on dmodule type
+        // Методы ввода для каждого свойства по типу dmodule
         for (Property prop : displayProperties) {
             if (isSystemField(prop)) continue;
             writeInputMethod(w, prop);
         }
 
-        // Method to fill all required fields
+        // Метод заполнения всех обязательных полей
         writeFilAllRequiredMethod(w, displayProperties);
 
-        // Method to fill all fields with test data
+        // Метод заполнения всех полей тестовыми данными
         writeFillAllFieldsMethod(w, displayProperties);
 
-        // Action button methods from modifiers (search any PropertyGroup)
+        // Методы кнопок действий из модификаторов (ищем в любой PropertyGroup)
         Operation crudOperation = entity.getPropertyGroups().stream()
                 .map(PropertyGroup::getOperation)
                 .filter(op -> op != null && !op.getModifiers().isEmpty())
@@ -651,10 +624,10 @@ public class PageObjectWriter {
             }
         }
 
-        // Check field presence methods
+        // Методы проверки наличия полей
         writeCheckFieldsPresentMethod(w, displayProperties);
 
-        // Method to check if field is displayed — tries property grid + standard selectors
+        // Метод проверки отображения поля — пробует PropertyGrid и стандартные селекторы
         w.writeLine("// Overload: search by display name only");
         w.openBlock("public boolean isFieldDisplayed(String displayName)");
         w.writeLine("return isFieldDisplayed(displayName, displayName);");
@@ -693,7 +666,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Method to get field value — tries standard selectors, then PropertyGrid by display name
+        // Метод получения значения поля — стандартные селекторы, затем PropertyGrid по отображаемому имени
         w.openBlock("public String getFieldValue(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
         w.openBlock("try");
@@ -719,7 +692,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Method to check if validation errors are visible
+        // Метод проверки видимости ошибок валидации
         w.openBlock("public boolean hasValidationErrors()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
         w.openBlock("try");
@@ -735,7 +708,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Method to check if a specific field has validation error
+        // Метод проверки ошибки валидации у конкретного поля
         w.openBlock("public boolean fieldHasError(String fieldName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));");
         w.openBlock("try");
@@ -756,7 +729,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Method to get row count in grid/table
+        // Метод подсчёта строк в гриде/таблице
         w.openBlock("public int getTableRowCount()");
         w.openBlock("try");
         w.writeLine("java.util.List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, tr.data-row, tr[data-index], tbody tr\"));");
@@ -768,7 +741,7 @@ public class PageObjectWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Method to clear form
+        // Метод очистки формы
         w.openBlock("public void clearForm()");
         w.writeLine("java.util.List<WebElement> inputs = driver.findElements(By.cssSelector(\"input[type='text'], textarea\"));");
         w.openBlock("for (WebElement input : inputs)");
@@ -780,20 +753,20 @@ public class PageObjectWriter {
         w.closeBlock();
         w.closeBlock();
 
-        w.closeBlock(); // end class
+        w.closeBlock(); // конец класса
 
         w.writeToFile(dir, className + ".java");
     }
 
     private void writeInputMethod(JavaFileWriter w, Property prop) {
         String methodName = "fill" + Transliterator.toClassName(prop.getAttrName());
-        String displayName = prop.getName(); // Russian display name for PropertyGrid lookup
+        String displayName = prop.getName(); // русское имя для поиска в PropertyGrid
 
-        // All field types use fillPropertyGridField with the Russian display name
+        // Все типы полей используют fillPropertyGridField с русским отображаемым именем
         w.openBlock("public void " + methodName + "(String value)");
         w.writeLine("fillPropertyGridField(\"" + displayName + "\", value);");
-        // Записываем фактически вписанное значение (не null — пустые/FK-пикеры мы не
-        // можем сравнивать с гридом) в lastFilledValues для последующего поиска записи
+        // Записываем фактически вписанное значение (не null: пустые/FK-пикеры нельзя
+        // сравнивать с гридом) в lastFilledValues для последующего поиска записи
         // в результирующей таблице.
         w.openBlock("if (value != null && !value.isEmpty())");
         w.writeLine("lastFilledValues.put(\"" + displayName.replace("\\", "\\\\").replace("\"", "\\\"") + "\", value);");
@@ -806,7 +779,7 @@ public class PageObjectWriter {
         w.openBlock("public void fillRequiredFields()");
         w.writeLine("lastFilledValues.clear();");
         w.writeLine("String __uniq = String.valueOf(System.nanoTime());");
-        // Подсчёт сколько required-полей мы ОЖИДАЕМ заполнить — потом сравним с реально
+        // Считаем, сколько обязательных полей ожидаем заполнить — потом сравним с реально
         // вписанными (lastFilledValues.size()). Если меньше — fillPropertyGridField
         // промахнулся для части полей.
         int expectedCount = 0;
@@ -834,9 +807,9 @@ public class PageObjectWriter {
     }
 
     private void writeFillAllFieldsMethod(JavaFileWriter w, List<Property> properties) {
-        // fillAllFields() — заполнить всё. fillAllFieldsExcept(skip) — пропустить
-        // поле с переданным displayName (нужно для testCreate: marker stamp заменяет
-        // эту fill, иначе sendKeys приклеивает marker к Test_GBS_NAME → 'AT...Test_...').
+        // fillAllFields() заполняет всё. fillAllFieldsExcept(skip) пропускает поле
+        // с переданным displayName (нужно для testCreate: маркер заменяет это заполнение,
+        // иначе sendKeys приклеивает маркер к значению поля).
         w.openBlock("public void fillAllFields()");
         w.writeLine("fillAllFieldsExcept(null);");
         w.closeBlock();
@@ -935,8 +908,8 @@ public class PageObjectWriter {
     private boolean isSystemField(Property prop) {
         String stereo = prop.getStereoType();
         if ("RoleA".equals(stereo) || "ObjectName".equals(stereo)) return true;
-        // Серверные auto-fill поля (Дата изменения, Оператор, Дата создания) — стенд E3Core
-        // заполняет их сам. Если автотест туда пишет, форма отвергает create.
+        // Серверные авто-заполняемые поля (Дата изменения, Оператор, Дата создания) —
+        // стенд E3Core заполняет их сам. Если автотест туда пишет, форма отвергает create.
         if (prop.getDefValueSource() != null && !prop.getDefValueSource().isEmpty()) return true;
         String n = prop.getName();
         if (n != null) {

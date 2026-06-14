@@ -5,10 +5,8 @@ import java.util.Locale;
 
 /**
  * Классифицирует сущности XML-модели на PRIMARY / CHILD / REFERENCE_DICTIONARY.
- * Это нужно чтобы:
- *   - не генерировать отдельный тест-класс для справочников и дочерних сущностей,
- *     которые в меню недоступны (там и берётся 21 skipped из текущего прогона);
- *   - явно показать в отчёте, какая сущность к какому типу отнесена и почему.
+ * Нужна, чтобы не генерировать отдельный тест-класс для справочников и дочерних
+ * сущностей, недоступных из меню, и показать в отчёте тип каждой сущности и причину.
  */
 public final class EntityClassifier {
 
@@ -18,9 +16,9 @@ public final class EntityClassifier {
     public static final class Classification {
         public final EntityKind kind;
         public final String reason;
-        /** For CHILD entities: the parent entity that hosts this child's grid tab. */
+        /** Для CHILD: родительская сущность, на чьей grid-вкладке размещён этот ребёнок. */
         public final EntityObject parentEntity;
-        /** For CHILD entities: the Grid PropertyGroup inside the parent. */
+        /** Для CHILD: PropertyGroup типа Grid внутри родителя. */
         public final PropertyGroup parentGrid;
 
         public Classification(EntityKind kind, String reason) {
@@ -48,10 +46,9 @@ public final class EntityClassifier {
         if (childResult != null) {
             return childResult;
         }
-        // Tree-node child: сущность со СВОИМ CRUD, которую родитель показывает узлом дерева
-        // (ассоциация с addFromTree="1"), а НЕ пунктом главного меню. Пример: «Повестка совещания»
-        // внутри «Совещание». Как самостоятельная PRIMARY она недостижима (в меню её нет) и тесты
-        // уходят в SKIP — поэтому помечаем CHILD с parentGrid=null (узел дерева, не grid-таб).
+        // Ребёнок-узел дерева: сущность со своим CRUD, которую родитель показывает узлом дерева
+        // (ассоциация с addFromTree="1"), а не пунктом главного меню. Как самостоятельная PRIMARY
+        // она недостижима, поэтому помечаем CHILD с parentGrid=null (узел дерева, не grid-вкладка).
         EntityObject treeParent = findTreeParent(entity, model);
         if (treeParent != null && entity.hasCrudOperations()) {
             return new Classification(EntityKind.CHILD,
@@ -88,9 +85,9 @@ public final class EntityClassifier {
     }
 
     /**
-     * Returns the entity that hosts {@code entity} as a left-tree node (an association with
-     * addFromTree="1" pointing at it). Such children are reached by opening the parent's card and
-     * expanding the tree node, not from the main menu.
+     * Возвращает сущность, которая показывает {@code entity} узлом левого дерева (ассоциация с
+     * addFromTree="1", указывающая на неё). Такие дети доступны через карточку родителя
+     * и раскрытие узла дерева, а не из главного меню.
      */
     static EntityObject findTreeParent(EntityObject entity, AppModel model) {
         String guid = entity.getGuid();
@@ -108,25 +105,25 @@ public final class EntityClassifier {
     }
 
     /**
-     * For an inline directory list (CRUD lives on a Grid group, the entity has NO own form view),
-     * finds the singular "card" twin: another entity that HAS a form view WITH its own CRUD ops,
-     * whose name matches by word-stems and which shares the same underlying table. When such a twin
-     * exists the list's rows are actually created/edited through the twin's modal form
-     * (e.g. «Должностные лица» list ↔ «Должностное лицо» card), so the list itself must NOT generate
-     * a duplicate inline-CRUD test. Returns null for genuine inline dictionaries whose only editable
-     * surface is the grid (e.g. «Причины смены председателя» — its singular twin «Причина …» is
-     * read-only, no ops), which keep their inline-CRUD tests.
+     * Для встроенного списка-справочника (CRUD живёт на группе Grid, у сущности нет своей формы)
+     * находит «карточку»-двойника: другую сущность с формой и собственными CRUD-операциями, чьё имя
+     * совпадает по корням слов и которая использует ту же таблицу. Если такой двойник есть, строки
+     * списка реально создаются/редактируются через его модальную форму (например, список
+     * «Должностные лица» ↔ карточка «Должностное лицо»), поэтому сам список не должен генерировать
+     * дублирующий inline-CRUD-тест. Возвращает null для настоящих встроенных справочников, где
+     * единственная редактируемая поверхность — грид (двойник только для чтения), они сохраняют
+     * свои inline-CRUD-тесты.
      */
     public static EntityObject findModalTwin(EntityObject entity, AppModel model) {
-        if (entity.getFormView() != null) return null;       // entity already has its own modal form
+        if (entity.getFormView() != null) return null;       // у сущности уже есть своя модальная форма
         if (!entity.hasCrudOperations()) return null;
         String gridTable = gridColumnTable(entity);
         for (EntityObject other : model.getEntities()) {
             if (other == entity) continue;
             if (other.getGuid() != null && other.getGuid().equals(entity.getGuid())) continue;
             PropertyGroup twinForm = other.getFormView();
-            if (twinForm == null) continue;                  // twin must have a modal form ...
-            if (!other.hasCrudOperations()) continue;        // ... with its own CRUD operations
+            if (twinForm == null) continue;                  // у двойника должна быть модальная форма ...
+            if (!other.hasCrudOperations()) continue;        // ... со своими CRUD-операциями
             if (!nameStemsMatch(entity.getName(), other.getName())) continue;
             if (gridTable != null) {
                 String twinTable = twinForm.getProperties().stream()
@@ -140,7 +137,7 @@ public final class EntityClassifier {
         return null;
     }
 
-    /** First non-empty table_name among the entity's grid columns (the table the grid edits). */
+    /** Первое непустое table_name среди колонок грида сущности (таблица, которую правит грид). */
     private static String gridColumnTable(EntityObject entity) {
         for (PropertyGroup pg : entity.getPropertyGroups()) {
             if (!"Grid".equals(pg.getStereoType())) continue;
@@ -171,13 +168,13 @@ public final class EntityClassifier {
         for (EntityObject other : model.getEntities()) {
             if (other == entity) continue;
             if (other.getGuid() != null && other.getGuid().equals(guid)) continue;
-            // Skip refs from entities that are children OF this one (reverse-pointer
-            // back to parent shouldn't count as 'someone uses me as FK').
+            // Пропускаем ссылки от сущностей, которые сами являются детьми этой (обратный
+            // указатель на родителя не должен считаться «кто-то использует меня как FK»).
             if (isChildOf(other, entity)) continue;
             for (Association a : other.getAssociations()) {
                 if (!guid.equals(a.getAssociateItemGuid())) continue;
-                // addFromTree=1 OR flag_display=1 means parent shows this entity in its UI
-                // (left tree node or grid tab) — it's a real navigable child, not an FK picker.
+                // addFromTree=1 или flag_display=1 значит, что родитель показывает эту сущность в UI
+                // (узел дерева или вкладка-грид) — это настоящий навигируемый ребёнок, а не FK-пикер.
                 if (a.isAddFromTree() || a.isFlagDisplay()) {
                     navRefs++;
                 } else {
@@ -193,7 +190,7 @@ public final class EntityClassifier {
         return null;
     }
 
-    /** true if `child` appears as a Grid row inside `parent` (by name-stem match). */
+    /** true, если `child` присутствует строкой грида внутри `parent` (по совпадению корней имён). */
     private static boolean isChildOf(EntityObject child, EntityObject parent) {
         for (PropertyGroup pg : parent.getPropertyGroups()) {
             if (!"Grid".equals(pg.getStereoType())) continue;

@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Creates the SQLite schema (CREATE TABLE IF NOT EXISTS) on startup.
- * Separated from {@link ReportDao} so that DDL concerns live in one place.
+ * Создаёт схему SQLite (CREATE TABLE IF NOT EXISTS) при запуске.
+ * Вынесен из {@link ReportDao}, чтобы вся работа с DDL была в одном месте.
  */
 public class SchemaInitializer {
 

@@ -16,8 +16,8 @@ import static ru.autotestgen.parser.XmlNamespaces.NS_E;
 import static ru.autotestgen.parser.XmlNamespaces.NS_E3;
 
 /**
- * Facade for parsing E3Core XML metadata into an {@link AppModel}.
- * Dispatches each top-level element to the matching specialised parser:
+ * Фасад для разбора XML-метаданных E3Core в {@link AppModel}.
+ * Каждый элемент верхнего уровня передаётся профильному парсеру:
  * {@code <Object>} → {@link EntityParser}, {@code <Searches>} → {@link SearchParser}.
  */
 public class XmlModelParser {

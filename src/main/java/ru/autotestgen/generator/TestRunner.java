@@ -16,16 +16,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Runs the generated test project via Maven Surefire
- * and parses the XML reports to build TestRunResult.
+ * Запускает сгенерированный проект тестов через Maven Surefire
+ * и разбирает XML-отчёты в TestRunResult.
  */
 public class TestRunner {
 
     private String lastMavenOutput = "";
 
     /**
-     * Runs 'mvn test' in the generated project directory
-     * and parses Surefire XML reports.
+     * Запускает 'mvn test' в каталоге сгенерированного проекта
+     * и разбирает XML-отчёты Surefire.
      */
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl) throws IOException {
         return run(projectDir, xmlFileName, baseUrl, null);
@@ -36,9 +36,9 @@ public class TestRunner {
     }
 
     /**
-     * Runs the generated tests. When {@code testFilter} is non-empty it is passed to Surefire
-     * as {@code -Dtest=<filter>}, so only the selected test classes / methods run.
-     * Filter syntax (Surefire): {@code Class1Test,Class2Test#testCreate*+testUpdate*}.
+     * Запускает сгенерированные тесты. Если {@code testFilter} не пуст, он передаётся в Surefire
+     * как {@code -Dtest=<filter>}, и выполняются только выбранные классы / методы тестов.
+     * Синтаксис фильтра (Surefire): {@code Class1Test,Class2Test#testCreate*+testUpdate*}.
      */
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
                              Consumer<String> lineConsumer, String testFilter) throws IOException {
@@ -46,23 +46,22 @@ public class TestRunner {
     }
 
     /**
-     * Runs the generated tests. {@code fastMode=true} adds -Dheadless=true (без видимого окна
-     * браузера, чуть быстрее). ВАЖНО: forkCount остаётся 1 — НЕ запускаем несколько Chrome
-     * параллельно. На одном стендовом логине (AIS_GSK) параллельные сессии конфликтуют:
-     * правки одной сущности гоняются между сессиями + теряется фокус у клавиатурных Actions,
-     * из-за чего create/update не сохраняются. Надёжность важнее скорости для мутирующих тестов.
+     * Запускает сгенерированные тесты. {@code fastMode=true} добавляет -Dheadless=true (без видимого
+     * окна браузера, чуть быстрее). forkCount остаётся 1 — несколько Chrome параллельно не запускаем:
+     * на одном стендовом логине (AIS_GSK) параллельные сессии конфликтуют (правки одной сущности
+     * пересекаются, теряется фокус у клавиатурных Actions), из-за чего create/update не сохраняются.
      */
     public TestRunResult run(Path projectDir, String xmlFileName, String baseUrl,
                              Consumer<String> lineConsumer, String testFilter, boolean fastMode) throws IOException {
         long startTime = System.currentTimeMillis();
 
-        // Verify pom.xml exists
+        // Проверяем наличие pom.xml
         Path pomFile = projectDir.resolve("pom.xml");
         if (!Files.exists(pomFile)) {
             throw new IOException("pom.xml не найден в " + projectDir + ". Сначала сгенерируйте тесты.");
         }
 
-        // Run mvn test (working dir is already the project dir, so just "pom.xml")
+        // Запуск mvn test (рабочий каталог уже равен каталогу проекта).
         // На Windows исполняемый файл Maven — mvn.cmd; ProcessBuilder для команды без расширения
         // ищет только mvn.exe и падает с "Cannot run program mvn". Поэтому выбираем имя по ОС.
         boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -71,12 +70,12 @@ public class TestRunner {
         cmd.add("test");
         if (testFilter != null && !testFilter.isBlank()) {
             cmd.add("-Dtest=" + testFilter);
-            // Don't fail the build when a filtered class has no matching methods.
+            // Не валим сборку, если в отфильтрованном классе нет подходящих методов.
             cmd.add("-DfailIfNoTests=false");
         }
         if (fastMode) {
-            // forkCount=1: один браузер за раз. 3 параллельных Chrome на одном логине ломали
-            // сохранение (гонки правок одной сущности + потеря фокуса у Actions-клавиатуры).
+            // forkCount=1: один браузер за раз. Несколько параллельных Chrome на одном логине ломали
+            // сохранение (гонки правок одной сущности и потеря фокуса у Actions-клавиатуры).
             cmd.add("-DforkCount=1");
             cmd.add("-Dheadless=true");
         }
@@ -112,7 +111,7 @@ public class TestRunner {
 
         long durationMs = System.currentTimeMillis() - startTime;
 
-        // Parse Surefire XML reports
+        // Разбор XML-отчётов Surefire
         TestRunResult result = new TestRunResult();
         result.setRunTimestamp(LocalDateTime.now());
         result.setDurationMs(durationMs);
@@ -130,12 +129,12 @@ public class TestRunner {
             result.setSkipped(0);
         }
 
-        // Enrich each test case with screenshots from target/screenshots/ (named so we can map by
-        // <Entity>_<testMethod>_…). Done after Surefire parsing so test results already exist.
+        // Привязываем к тест-кейсам скриншоты из target/screenshots/ (имена позволяют сопоставить
+        // по <Entity>_<testMethod>_…). Делаем после разбора Surefire, когда результаты уже есть.
         linkScreenshots(projectDir.resolve("target/screenshots"), result);
 
-        // Write the standalone HTML run report. It's the single artifact the user opens to see
-        // what happened: per-test screenshots, search params, step timings, failure messages.
+        // Пишем автономный HTML-отчёт о прогоне — это единый артефакт, который открывает пользователь:
+        // скриншоты по тестам, параметры поиска, тайминги шагов, сообщения об ошибках.
         try {
             new RunReportWriter().write(projectDir.resolve("target/run-report.html"), result);
             new RunReportWriter().writeCsv(projectDir.resolve("target/run-report.csv"), result);
@@ -146,13 +145,13 @@ public class TestRunner {
         return result;
     }
 
-    /** Maps PNGs in target/screenshots/ to test cases by file-name convention. */
+    /** Сопоставляет PNG из target/screenshots/ с тест-кейсами по соглашению об именах файлов. */
     private void linkScreenshots(Path shotDir, TestRunResult result) {
         if (!Files.exists(shotDir)) return;
         try (var stream = Files.list(shotDir)) {
             stream.filter(p -> p.toString().endsWith(".png")).forEach(p -> {
                 String name = p.getFileName().toString();
-                // Expected: <EntityClass>_<testMethod>_NN_<step>_<status>.png
+                // Ожидаемый формат: <EntityClass>_<testMethod>_NN_<step>_<status>.png
                 int firstUnderscore = name.indexOf('_');
                 if (firstUnderscore < 0) return;
                 String entity = name.substring(0, firstUnderscore);
@@ -208,7 +207,7 @@ public class TestRunner {
                                 tcr.setDurationMs((long) (parseDoubleAttr(reader, "time") * 1000));
                                 tcr.setPassed(true);
 
-                                // Scan child elements until </testcase>
+                                // Обходим дочерние элементы до </testcase>
                                 while (reader.hasNext()) {
                                     event = reader.next();
                                     if (event == XMLStreamConstants.END_ELEMENT && "testcase".equals(reader.getLocalName())) {
@@ -242,7 +241,7 @@ public class TestRunner {
             }
         }
 
-        // Calculate from actual testcase results (more reliable than testsuite attrs)
+        // Считаем по фактическим результатам testcase (надёжнее, чем атрибуты testsuite)
         int actualPassed = 0, actualFailed = 0, actualSkipped = 0;
         for (TestCaseResult tcr : allResults) {
             if (tcr.isSkipped()) actualSkipped++;
@@ -269,11 +268,11 @@ public class TestRunner {
     }
 
     /**
-     * Normalises the message attribute on a Surefire {@code <skipped>} element.
-     * JUnit Assumptions usually arrive as
-     * "org.opentest4j.TestAbortedException: Assumption failed: <reason>";
-     * {@code @Disabled("reason")} arrives as just "reason". Strip the boilerplate so the
-     * UI just shows the human-readable cause.
+     * Нормализует атрибут message у элемента Surefire {@code <skipped>}.
+     * JUnit Assumptions обычно приходят как
+     * "org.opentest4j.TestAbortedException: Assumption failed: <причина>",
+     * а {@code @Disabled("reason")} — просто как "reason". Убираем служебный префикс,
+     * чтобы в интерфейсе осталась только понятная причина.
      */
     private String cleanSkipMessage(String raw) {
         if (raw == null || raw.isEmpty()) return "SKIPPED";
@@ -284,8 +283,8 @@ public class TestRunner {
     }
 
     /**
-     * Pulls "=== Search params for 'X' ===" blocks out of test stdout. Each contained line
-     * matches "  KEY = 'VALUE'" (printed by BaseTest.logSearchParams). Returns the merged map.
+     * Извлекает из stdout теста блоки "=== Search params for 'X' ===". Каждая строка внутри
+     * имеет вид "  KEY = 'VALUE'" (печатается в BaseTest.logSearchParams). Возвращает объединённую карту.
      */
     private java.util.Map<String, String> extractSearchParams(String stdout) {
         java.util.LinkedHashMap<String, String> result = new java.util.LinkedHashMap<>();
@@ -295,7 +294,7 @@ public class TestRunner {
             if (line.startsWith("=== Search params")) { inBlock = true; continue; }
             if (line.startsWith("===") && inBlock) { inBlock = false; continue; }
             if (!inBlock) continue;
-            // Expected:   KEY = 'VALUE'
+            // Ожидаемый вид:   KEY = 'VALUE'
             int eq = line.indexOf('=');
             if (eq <= 0) continue;
             String key = line.substring(0, eq).trim();
@@ -308,7 +307,7 @@ public class TestRunner {
         return result;
     }
 
-    /** Pulls "[step] name: NNNms" lines into the test case timeline. */
+    /** Переносит строки "[step] name: NNNms" в таймлайн тест-кейса. */
     private void extractStepTimings(String stdout, TestCaseResult tcr) {
         if (stdout == null || stdout.isEmpty()) return;
         java.util.regex.Pattern pat = java.util.regex.Pattern.compile("^\\[step\\] (.+?): (\\d+)ms\\s*$");

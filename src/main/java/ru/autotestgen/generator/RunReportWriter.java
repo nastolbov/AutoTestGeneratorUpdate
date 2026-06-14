@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Writes a standalone HTML run report — the "max signal per run" artifact:
- * per-test screenshot strip, captured stdout, parsed search params, step timings,
- * failure messages. Plus a flat CSV beside it for Excel ingestion.
+ * Формирует самостоятельный HTML-отчёт о прогоне: по каждому тесту — лента
+ * скриншотов, перехваченный stdout, разобранные параметры поиска, время по шагам
+ * и сообщения об ошибках. Рядом — плоский CSV для импорта в Excel.
  */
 public class RunReportWriter {
 
@@ -72,7 +72,7 @@ public class RunReportWriter {
         h.append("  <div class=\"pill skip\">⏭ ").append(result.getSkipped()).append("</div>\n");
         h.append("</div>\n");
 
-        // Group test cases by class
+        // Группируем тест-кейсы по классам
         Map<String, java.util.List<TestCaseResult>> byClass = new LinkedHashMap<>();
         for (TestCaseResult tc : result.getResults()) {
             String cls = tc.getClassName() == null ? "(no class)" : tc.getClassName();
@@ -162,7 +162,7 @@ public class RunReportWriter {
         System.out.println("Run report: " + htmlPath);
     }
 
-    /** Flat CSV — one line per test case — for Excel/Sheets ingestion. */
+    /** Плоский CSV — по строке на тест-кейс — для импорта в Excel/Sheets. */
     public void writeCsv(Path csvPath, TestRunResult result) throws IOException {
         StringBuilder s = new StringBuilder();
         s.append("class,test,status,duration_ms,search_params,step_count,screenshot_count,failure_msg\n");
@@ -205,12 +205,12 @@ public class RunReportWriter {
         return dot < 0 ? cls : cls.substring(dot + 1);
     }
 
-    /** Pulls "step_status" out of "EntityClass_testMethod_NN_step_status.png". */
+    /** Извлекает "step_status" из имени "EntityClass_testMethod_NN_step_status.png". */
     private static String extractStepLabel(String filename) {
         String base = filename.endsWith(".png") ? filename.substring(0, filename.length() - 4) : filename;
         String[] parts = base.split("_");
         if (parts.length >= 5) {
-            // join everything from index 3 (step) to end (which may include status)
+            // Склеиваем всё с индекса 3 (шаг) до конца (может включать статус)
             StringBuilder sb = new StringBuilder();
             for (int i = 3; i < parts.length; i++) {
                 if (sb.length() > 0) sb.append(" ");

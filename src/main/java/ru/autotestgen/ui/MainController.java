@@ -31,7 +31,7 @@ import java.util.Optional;
 
 public class MainController {
 
-    // Input fields
+    // Поля ввода
     @FXML private TextField xmlPathField;
     @FXML private TextField urlField;
     @FXML private TextField loginField;
@@ -43,7 +43,7 @@ public class MainController {
     private final ComboBox<String> siteTypeCombo = new ComboBox<>();
     private final TextField subsystemField = new TextField();
 
-    // Buttons
+    // Кнопки
     @FXML private Button btnSelectXml;
     @FXML private Button btnSelectOutputDir;
     @FXML private Button btnParse;
@@ -52,7 +52,7 @@ public class MainController {
     @FXML private Button btnRunSelected;
     @FXML private Button btnShowHistory;
 
-    /** Test-type categories: {label, Surefire method-name pattern}. One row per real test method. */
+    /** Категории видов тестов: {подпись, шаблон имени метода для Surefire}. Одна строка на тестовый метод. */
     private static final String[][] TEST_CATEGORIES = {
         {"Поля формы",                       "testFieldsPresent"},
         {"Создание",                         "testCreate"},
@@ -69,7 +69,7 @@ public class MainController {
     // Entity tree (что будет протестировано / что нет)
     @FXML private TreeView<EntityNode> entityTreeView;
 
-    // Results table
+    // Таблица результатов
     @FXML private TableView<TestCaseRow> resultsTable;
     @FXML private TableColumn<TestCaseRow, String> colClass;
     @FXML private TableColumn<TestCaseRow, String> colMethod;
@@ -77,12 +77,12 @@ public class MainController {
     @FXML private TableColumn<TestCaseRow, String> colDuration;
     @FXML private TableColumn<TestCaseRow, String> colMessage;
 
-    // Status
+    // Статус
     @FXML private Label statusLabel;
     @FXML private ProgressBar progressBar;
     @FXML private TextArea logArea;
 
-    // Summary labels
+    // Итоговые метки
     @FXML private Label totalLabel;
     @FXML private Label passedLabel;
     @FXML private Label failedLabel;
@@ -92,7 +92,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
-        // Setup table columns
+        // Настройка колонок таблицы
         colClass.setCellValueFactory(new PropertyValueFactory<>("className"));
         colMethod.setCellValueFactory(new PropertyValueFactory<>("methodName"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
@@ -106,11 +106,11 @@ public class MainController {
 
         // Уровень тестов всегда FULL (максимальный) — выбор уровня убран из UI.
 
-        // Site type selector
+        // Выбор типа сайта
         siteTypeCombo.getItems().addAll("E3Core (ExtJS)", "Обычный HTML-сайт", "Свой (Custom)");
         siteTypeCombo.getSelectionModel().selectFirst();
 
-        // Default values
+        // Значения по умолчанию
         urlField.setText("https://rrpo.cmirit.ru/E3Core");
         loginField.setText("test");
         passwordField.setText("b394e86609");
@@ -164,7 +164,7 @@ public class MainController {
             // CHILD-детьми), REFERENCE_DICTIONARY/FK → пропуск (тесты не генерируются).
             buildEntityTree();
 
-            // Take subsystem name from XML CategoryName ("Logical View::<name>") when present.
+            // Берём имя подсистемы из CategoryName ("Logical View::<имя>"), если оно задано.
             String xmlSubsystem = currentModel.getSubsystemNameFromCategory();
             if (!xmlSubsystem.isEmpty()) {
                 subsystemField.setText(xmlSubsystem);
@@ -185,7 +185,7 @@ public class MainController {
     /** Узел дерева сущностей: подпись + стиль (цвет) + tooltip (причина классификации). */
     private static final class EntityNode {
         final String text;
-        final String style;     // inline-стиль ячейки (цвет/жирность); пусто = по умолчанию
+        final String style;     // стиль ячейки (цвет/жирность); пусто = по умолчанию
         final String tooltip;   // подсказка (причина классификации); null = без подсказки
         EntityNode(String text, String style, String tooltip) {
             this.text = text;
@@ -313,13 +313,13 @@ public class MainController {
             config.setLogin(loginField.getText());
             config.setPassword(passwordField.getText());
             config.setOutputDir(Path.of(outputPath));
-            // Site type
+            // Тип сайта
             int siteIdx = siteTypeCombo.getSelectionModel().getSelectedIndex();
             config.setSiteType(siteIdx == 0 ? "e3core" : siteIdx == 1 ? "generic" : "custom");
             config.setSubsystemName(subsystemField.getText());
-            // Уровень тестов всегда максимальный (FULL) — выбора больше нет.
+            // Уровень тестов всегда максимальный (FULL).
             config.setTestLevel("full");
-            // SubsystemsSmokeTest не нужен — оставляем default (false), отдельного UI-тумблера нет.
+            // SubsystemsSmokeTest не требуется — оставляем значение по умолчанию (false).
 
             TestGenerator generator = new TestGenerator(config);
             generator.generate(currentModel);
@@ -343,8 +343,8 @@ public class MainController {
     }
 
     /**
-     * Opens a dialog to pick entities and test types, then runs only the selected subset.
-     * Empty test-type selection = run all tests of the chosen entities.
+     * Открывает диалог выбора сущностей и видов тестов и запускает только выбранное подмножество.
+     * Если ни один вид тестов не выбран — запускаются все тесты выбранных сущностей.
      */
     @FXML
     private void onRunSelected() {
@@ -360,7 +360,7 @@ public class MainController {
         ButtonType runBtn = new ButtonType("Запустить", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(runBtn, ButtonType.CANCEL);
 
-        // Entity checkboxes
+        // Флажки сущностей
         List<CheckBox> entityChecks = new ArrayList<>();
         VBox entityBox = new VBox(4);
         for (EntityObject entity : currentModel.getEntities()) {
@@ -372,7 +372,7 @@ public class MainController {
         CheckBox allEntities = new CheckBox("— выбрать все сущности —");
         allEntities.setOnAction(e -> entityChecks.forEach(c -> c.setSelected(allEntities.isSelected())));
 
-        // Test-type checkboxes
+        // Флажки видов тестов
         List<CheckBox> typeChecks = new ArrayList<>();
         VBox typeBox = new VBox(4);
         for (String[] cat : TEST_CATEGORIES) {
@@ -382,7 +382,7 @@ public class MainController {
             typeBox.getChildren().add(cb);
         }
 
-        // Live preview of the resulting -Dtest filter.
+        // Превью итогового фильтра -Dtest в реальном времени.
         TextArea preview = new TextArea();
         preview.setEditable(false);
         preview.setWrapText(true);
@@ -440,8 +440,8 @@ public class MainController {
     }
 
     /**
-     * Runs the generated tests. {@code testFilter} null/blank = run everything;
-     * otherwise it is passed to Surefire as {@code -Dtest=<filter>}.
+     * Запускает сгенерированные тесты. {@code testFilter} null/пустой — запуск всех;
+     * иначе значение передаётся Surefire как {@code -Dtest=<filter>}.
      */
     private void launchRun(String testFilter) {
         String outputPath = outputDirField.getText();
@@ -485,7 +485,7 @@ public class MainController {
             log("Скриншоты: " + outputPath + "/target/screenshots/");
             if (result.getMavenOutput() != null && !result.getMavenOutput().isEmpty()) {
                 log("=== Вывод Maven ===");
-                // Show last 100 lines
+                // Показываем последние 100 строк
                 String[] lines = result.getMavenOutput().split("\n");
                 int start = Math.max(0, lines.length - 100);
                 for (int i = start; i < lines.length; i++) {
@@ -523,7 +523,7 @@ public class MainController {
         }
         log(sb.toString());
 
-        // Also show the most recent run details in the table
+        // Также показываем в таблице детали последнего прогона
         if (!runs.isEmpty()) {
             displayResults(runs.get(0));
         }
@@ -599,7 +599,7 @@ public class MainController {
     }
 
     /**
-     * Row model for the results TableView.
+     * Модель строки таблицы результатов.
      */
     public static class TestCaseRow {
         private final String className;

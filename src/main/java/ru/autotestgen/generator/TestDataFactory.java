@@ -11,15 +11,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
 /**
- * Generates appropriate test data values based on field type, mask, and stereoType.
- * Respects mask patterns from XML metadata to produce valid input.
+ * Генерирует тестовые значения по типу поля, маске и стереотипу.
+ * Учитывает маски из XML-метаданных, чтобы значение было корректным.
  */
 public class TestDataFactory {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final ZoneId MSK = ZoneId.of("Europe/Moscow");
-    private static final Random RND = new Random(42); // fixed seed for reproducibility
+    private static final Random RND = new Random(42); // фиксированное зерно для воспроизводимости
 
     /** Текущее МСК-время минус 10 минут — реалистичное значение для DATETIME-полей,
      *  не падает в будущее (некоторые валидаторы отвергают «дата позже now»). */
@@ -32,16 +32,16 @@ public class TestDataFactory {
     }
 
     /**
-     * Generates a test value for a Property, respecting mask if present.
+     * Генерирует тестовое значение для свойства с учётом маски, если она задана.
      */
     public static String generateValue(Property property) {
         if ("Directory".equals(property.getStereoType()) || "Ref".equals(property.getStereoType())) {
-            return null; // Dropdowns/references handled separately
+            return null; // выпадающие списки/ссылки обрабатываются отдельно
         }
 
         String mask = property.getMask();
 
-        // If mask is present, generate data matching the mask
+        // Если маска задана — генерируем значение по ней
         if (mask != null && !mask.isEmpty()) {
             return generateFromMask(mask);
         }
@@ -55,7 +55,7 @@ public class TestDataFactory {
     }
 
     /**
-     * Generates a test value for a SearchParam, respecting its valueType and mask.
+     * Генерирует тестовое значение для параметра поиска с учётом его типа и маски.
      */
     public static String generateSearchParamValue(SearchParam param) {
         String mask = param.getMask();
@@ -75,20 +75,19 @@ public class TestDataFactory {
     }
 
     /**
-     * Generates data from an E3Core mask pattern.
+     * Генерирует значение по маске E3Core.
      *
-     * Placeholder grammar (must stay in sync with {@code matchesMask} in generated tests):
-     *   digit  : '9', '0', '#'
-     *   letter : 'a', 'A', 'L'
-     *   any    : 'X', 'x', '*', '?'
-     *   other chars are treated as literal separators (-, /, ., space, ...).
+     * Грамматика плейсхолдеров (должна совпадать с {@code matchesMask} в сгенерированных тестах):
+     *   цифра  : '9', '0', '#'
+     *   буква  : 'a', 'A', 'L'
+     *   любой  : 'X', 'x', '*', '?'
+     *   остальные символы считаются литеральными разделителями (-, /, ., пробел, ...).
      *
-     * E.g., mask="999999999999" (INN) -> "123456789012"
-     * E.g., mask="99-99" -> "12-34"
+     * Напр., mask="999999999999" (ИНН) -> "123456789012"
+     * Напр., mask="99-99" -> "12-34"
      *
-     * Special case: masks that look like date or date-time patterns return TODAY's date instead
-     * of the synthetic digit sequence. The previous "12.34.5678" output got rejected by the server
-     * as an invalid date, masking the real check.
+     * Особый случай: маски, похожие на дату или дату-время, возвращают сегодняшнюю дату вместо
+     * синтетической последовательности цифр — иначе сервер отвергает значение как некорректную дату.
      */
     public static String generateFromMask(String mask) {
         if (mask == null || mask.isEmpty()) return "";
@@ -99,43 +98,43 @@ public class TestDataFactory {
         for (int i = 0; i < mask.length(); i++) {
             char c = mask.charAt(i);
             if (isDigitMaskChar(c)) {
-                sb.append((digitCounter++) % 10); // digits 1,2,3,...,0,1,2,...
+                sb.append((digitCounter++) % 10); // цифры 1,2,3,...,0,1,2,...
             } else if (isLetterMaskChar(c) || isAnyMaskChar(c)) {
                 sb.append((char) ('A' + (i % 26)));
             } else {
-                sb.append(c); // literal separators like -, /, .
+                sb.append(c); // литеральные разделители вроде -, /, .
             }
         }
         return sb.toString();
     }
 
-    /** Mask placeholder for a digit position. */
+    /** Плейсхолдер маски для позиции цифры. */
     static boolean isDigitMaskChar(char c) {
         return c == '9' || c == '0' || c == '#';
     }
 
-    /** Mask placeholder for a letter position. */
+    /** Плейсхолдер маски для позиции буквы. */
     static boolean isLetterMaskChar(char c) {
         return c == 'a' || c == 'A' || c == 'L';
     }
 
-    /** Mask placeholder for an "any character" position. */
+    /** Плейсхолдер маски для позиции «любой символ». */
     static boolean isAnyMaskChar(char c) {
         return c == 'X' || c == 'x' || c == '*' || c == '?';
     }
 
-    /** True for masks like "99.99.9999", "00/00/0000", "##-##-####". */
+    /** true для масок вида "99.99.9999", "00/00/0000", "##-##-####". */
     private static boolean looksLikeDateMask(String mask) {
         return mask != null && mask.matches("[90#]{2}[./\\-][90#]{2}[./\\-][90#]{4}");
     }
 
-    /** True for masks like "99.99.9999 99:99". */
+    /** true для масок вида "99.99.9999 99:99". */
     private static boolean looksLikeDateTimeMask(String mask) {
         return mask != null && mask.matches("[90#]{2}[./\\-][90#]{2}[./\\-][90#]{4}\\s+[90#]{2}[:.][90#]{2}");
     }
 
     /**
-     * Returns a Java code expression (as a String literal in generated code) for the value.
+     * Возвращает значение как выражение Java (строковый литерал в сгенерированном коде).
      */
     public static String generateValueExpression(Property property) {
         String value = generateValue(property);

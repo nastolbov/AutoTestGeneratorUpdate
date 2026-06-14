@@ -8,11 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Facade over the SQLite report database. Composes
+ * Фасад над базой отчётов SQLite. Объединяет
  * {@link DatabaseConnection}, {@link SchemaInitializer},
- * {@link TestRunDao} and {@link TestCaseDao} so the rest of the
- * application can keep its existing {@code saveRun} / {@code getAllRuns}
- * interface.
+ * {@link TestRunDao} и {@link TestCaseDao}, сохраняя для остального
+ * приложения привычный интерфейс {@code saveRun} / {@code getAllRuns}.
  */
 public class ReportDao {
 

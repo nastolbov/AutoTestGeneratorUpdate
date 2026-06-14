@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAO for the {@code test_run} table. Inserts a new run row and lists
- * all existing runs (without their cases — case loading is delegated
- * to {@link TestCaseDao}).
+ * DAO для таблицы {@code test_run}. Добавляет запись о прогоне и возвращает
+ * список всех прогонов (без тест-кейсов — их загрузка делегируется
+ * {@link TestCaseDao}).
  */
 public class TestRunDao {
 
@@ -31,8 +31,8 @@ public class TestRunDao {
     }
 
     /**
-     * Inserts the run header into {@code test_run} and returns the generated id.
-     * Uses the caller's connection so the whole save is one transaction.
+     * Вставляет заголовок прогона в {@code test_run} и возвращает сгенерированный id.
+     * Использует соединение вызывающего кода, чтобы вся запись шла одной транзакцией.
      */
     public long insert(Connection conn, TestRunResult result) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -54,9 +54,9 @@ public class TestRunDao {
     }
 
     /**
-     * Loads run headers (without per-case results) ordered by id DESC.
-     * Caller is responsible for hydrating {@code results} via {@link TestCaseDao}.
-     * Returns the runs together with the loaded id list, paired by index.
+     * Загружает заголовки прогонов (без результатов по тест-кейсам) в порядке id DESC.
+     * Заполнение {@code results} через {@link TestCaseDao} — на стороне вызывающего кода.
+     * Возвращает прогоны вместе с их id.
      */
     public List<RunRow> selectAll(Connection conn) throws SQLException {
         List<RunRow> rows = new ArrayList<>();
@@ -79,7 +79,7 @@ public class TestRunDao {
         return rows;
     }
 
-    /** Pair of (database id, hydrated run header). */
+    /** Пара (id в базе, заполненный заголовок прогона). */
     public static final class RunRow {
         public final long runId;
         public final TestRunResult run;

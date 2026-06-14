@@ -1,7 +1,7 @@
 package ru.autotestgen.parser;
 
 /**
- * XML namespace constants for E3Core metadata format.
+ * Константы XML-пространств имён формата метаданных E3Core.
  */
 public final class XmlNamespaces {
 

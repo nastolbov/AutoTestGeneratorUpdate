@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Utility for writing formatted Java source files.
+ * Утилита для записи форматированных Java-файлов.
  */
 public class JavaFileWriter {
 

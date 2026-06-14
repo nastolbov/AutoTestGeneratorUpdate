@@ -12,7 +12,7 @@ public class TestCaseResult {
     private boolean skipped;
     private String failureMessage;
     private long durationMs;
-    // v5: enrich the per-test record with everything needed by the HTML/CSV run report.
+    // Дополнительные данные по тесту для HTML/CSV-отчёта о прогоне.
     private String stdOut = "";
     private Map<String, String> searchParams = new LinkedHashMap<>();
     private List<String> screenshots = new ArrayList<>();

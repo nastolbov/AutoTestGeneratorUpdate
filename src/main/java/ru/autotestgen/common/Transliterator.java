@@ -3,7 +3,7 @@ package ru.autotestgen.common;
 import java.util.Map;
 
 /**
- * Converts Cyrillic names to valid Java identifiers.
+ * Преобразует кириллические имена в корректные Java-идентификаторы.
  * "ГСК/ОГСК" -> "GskOgsk", "Совещание" -> "Soveshchanie"
  */
 public class Transliterator {
@@ -23,12 +23,12 @@ public class Transliterator {
     );
 
     /**
-     * Converts a Cyrillic name to a PascalCase Java class name.
+     * Преобразует кириллическое имя в имя Java-класса в PascalCase.
      */
     public static String toClassName(String russianName) {
         if (russianName == null || russianName.isEmpty()) return "Unknown";
 
-        // Split by non-letter characters (spaces, slashes, dashes, etc.)
+        // Разбиваем по не-буквенным символам (пробелы, слэши, дефисы и т.п.)
         String[] words = russianName.split("[^а-яА-Яa-zA-Z0-9]+");
         StringBuilder result = new StringBuilder();
 
@@ -46,7 +46,7 @@ public class Transliterator {
         String name = result.toString();
         if (name.isEmpty()) return "Unknown";
 
-        // Ensure starts with letter
+        // Гарантируем, что имя начинается с буквы
         if (!Character.isLetter(name.charAt(0))) {
             name = "E" + name;
         }
@@ -54,7 +54,7 @@ public class Transliterator {
     }
 
     /**
-     * Converts a Cyrillic name to a camelCase Java method name.
+     * Преобразует кириллическое имя в имя Java-метода в camelCase.
      */
     public static String toMethodName(String russianName) {
         String className = toClassName(russianName);
@@ -63,11 +63,11 @@ public class Transliterator {
     }
 
     /**
-     * Converts a Cyrillic name to a valid Java field/variable name.
+     * Преобразует кириллическое имя в корректное имя поля/переменной Java.
      */
     public static String toFieldName(String attrName) {
         if (attrName == null || attrName.isEmpty()) return "field";
-        // If already Latin (like KEY_GB_SOCIETY), convert to camelCase
+        // Если имя уже латиницей (например, KEY_GB_SOCIETY) — приводим к camelCase
         if (attrName.matches("[A-Z_0-9]+")) {
             return snakeToCamel(attrName);
         }

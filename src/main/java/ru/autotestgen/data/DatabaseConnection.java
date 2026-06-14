@@ -5,8 +5,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Manages the JDBC connection to the SQLite report database.
- * Single source of truth for the JDBC URL.
+ * Управляет JDBC-подключением к базе отчётов SQLite.
+ * Единственный источник JDBC-URL.
  */
 public class DatabaseConnection {
 

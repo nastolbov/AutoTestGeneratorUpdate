@@ -5,8 +5,8 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 /**
- * Static helpers shared by all parser components: attribute access,
- * safe integer parsing and a generic "skip to closing element" cursor advance.
+ * Статические вспомогательные методы для всех парсеров: доступ к атрибутам,
+ * безопасный разбор целых чисел и перемотка курсора до закрывающего элемента.
  */
 public final class StaxUtils {
 

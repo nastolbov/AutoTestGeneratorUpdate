@@ -12,8 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Orchestrator: creates the generated test project structure,
- * generates Page Objects and Test classes for each entity.
+ * Создаёт структуру генерируемого тест-проекта и генерирует
+ * Page Object'ы и тест-классы для каждой сущности.
  */
 public class TestGenerator {
 
@@ -28,13 +28,12 @@ public class TestGenerator {
         String basePackage = config.getBasePackage();
         Path srcDir = outputDir.resolve("src/test/java");
 
-        // Create project structure
+        // Создаём структуру проекта
         Files.createDirectories(srcDir);
 
-        // Wipe previously-generated test classes and page objects so changing the entity-classifier
-        // verdict (e.g. v3 ran with no classifier and dropped 19 test classes here) doesn't leave
-        // stale tests that Maven will still execute. Generated SharedDriver/BaseTest/TestData are
-        // rewritten unconditionally below so wiping them is also safe.
+        // Чистим ранее сгенерированные тест-классы и page object'ы, чтобы при смене вердикта
+        // классификатора не оставались устаревшие тесты. SharedDriver/BaseTest/TestData всё
+        // равно перезаписываются, так что их удалять тоже безопасно.
         Path generatedRoot = srcDir.resolve(basePackage.replace('.', '/'));
         if (Files.exists(generatedRoot)) {
             try (var paths = Files.walk(generatedRoot)) {
@@ -44,25 +43,25 @@ public class TestGenerator {
             }
         }
 
-        // Generate pom.xml for the test project
+        // pom.xml тест-проекта
         generatePom(outputDir);
 
-        // Generate junit-platform.properties (sequential — shared browser)
+        // junit-platform.properties (последовательный прогон — общий браузер)
         generateJUnitConfig(outputDir);
 
-        // Generate SharedDriver.java (shared browser instance)
+        // SharedDriver.java (общий экземпляр браузера)
         generateSharedDriver(srcDir, basePackage);
 
-        // Generate BaseTest.java
+        // BaseTest.java
         generateBaseTest(srcDir, basePackage);
 
-        // Generate TestData.java
+        // TestData.java
         generateTestData(srcDir, basePackage);
 
-        // Classify entities and generate Page Objects / Test classes only for PRIMARY entities.
-        // CHILD entities live as tab-grids of a parent; REFERENCE_DICTIONARY entities are picker
-        // targets reached only via FK fields in other forms. Generating standalone tests for either
-        // produces 21 "Could not navigate" skips — wasted clock time and meaningless reports.
+        // Классифицируем сущности и генерируем Page Object'ы / тест-классы только для PRIMARY.
+        // CHILD-сущности живут как табы-гриды родителя; REFERENCE_DICTIONARY — справочники,
+        // достижимые только через FK-поля в других формах. Отдельные тесты для них дают лишь
+        // пропуски навигации — потерянное время и бессмысленные отчёты.
         PageObjectWriter pageWriter = new PageObjectWriter(basePackage);
         TestClassWriter testWriter = new TestClassWriter(basePackage, config.getTestLevel());
         StringBuilder csv = new StringBuilder("kind,entity,reason\n");
@@ -79,12 +78,12 @@ public class TestGenerator {
             } else if (cls.kind == EntityKind.CHILD) {
                 child++;
                 if (cls.parentEntity != null && cls.parentGrid != null) {
-                    // grid-tab child (e.g. История/Документы ГСК)
+                    // дочерняя сущность-таб с гридом (например, История/Документы ГСК)
                     pageWriter.write(entity, srcDir);
                     testWriter.writeChildTest(entity, model, srcDir, cls);
                 } else if (cls.parentEntity != null) {
-                    // tree-node child (addFromTree=1, e.g. Повестка совещания) — reached by opening
-                    // the parent card and expanding the tree node, not from the main menu.
+                    // дочерний узел дерева (addFromTree=1, например, Повестка совещания) — открывается
+                    // через карточку родителя и раскрытие узла дерева, а не из главного меню.
                     pageWriter.write(entity, srcDir);
                     testWriter.writeTreeChildTest(entity, model, srcDir, cls);
                 }
@@ -92,20 +91,14 @@ public class TestGenerator {
                 ref++;
             }
         }
-        // Write the classification report next to the generated test project. Lets the user see at
-        // a glance which entities were treated as tests, which as tabs, which as dictionaries.
+        // Сохраняем отчёт о классификации рядом с тест-проектом — сразу видно, какие сущности
+        // стали тестами, какие табами, какие справочниками.
         Path csvPath = outputDir.resolve("entity-classification.csv");
         Files.writeString(csvPath, csv.toString(), StandardCharsets.UTF_8);
         System.out.println("Entity classification: " + primary + " PRIMARY, "
                 + child + " CHILD (tab-grid), " + ref + " REFERENCE_DICTIONARY (FK target)");
         System.out.println("  Report: " + csvPath);
 
-        // SubsystemsSmokeTest БОЛЬШЕ НЕ ГЕНЕРИРУЕТСЯ (по решению заказчика — не нужен; энтити-тесты
-        // сами выбирают подсистему при навигации, отдельная smoke-фаза только флакала на первой
-        // попытке). Флаг smokeAllSubsystems оставлен (default=false) для обратной совместимости.
-        if (config.isSmokeAllSubsystems()) {
-            generateSubsystemsSmokeTest(srcDir, basePackage);
-        }
     }
 
     private static String csvEscape(String s) {
@@ -116,7 +109,7 @@ public class TestGenerator {
         return s;
     }
 
-    // Entity-classification logic lives in ru.autotestgen.model.EntityClassifier.
+    // Логика классификации сущностей — в ru.autotestgen.model.EntityClassifier.
 
     private void generatePom(Path outputDir) throws IOException {
         JavaFileWriter w = new JavaFileWriter();
@@ -229,7 +222,7 @@ public class TestGenerator {
         w.writeLine("private static final List<SmokeResult> smokeResults = new ArrayList<>();");
         w.writeLine();
 
-        // SmokeResult inner class
+        // Вложенный класс SmokeResult
         w.writeLine("/** Result of opening one subsystem during the smoke phase. */");
         w.openBlock("public static class SmokeResult");
         w.writeLine("public final String name;");
@@ -291,7 +284,7 @@ public class TestGenerator {
         w.closeBlock(); // end initialize()
         w.writeLine();
 
-        // setupDriver() — extracted so we can call it again after a quit() between subsystems
+        // setupDriver() — вынесен отдельно, чтобы вызвать заново после quit() между подсистемами
         w.writeLine("/** Creates a fresh WebDriver / WebDriverWait, replacing any existing one. */");
         w.openBlock("private static void setupDriver()");
         w.writeLine("String browser = System.getProperty(\"browser\", \"" + config.getBrowserType() + "\");");
@@ -333,7 +326,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // restartBrowserAndLogin() — quit the current driver, recreate, log in fresh
+        // restartBrowserAndLogin() — закрываем текущий драйвер, создаём заново, логинимся с нуля
         w.writeLine("/** Quits the current driver, recreates it, and logs in. Used to isolate each smoke iteration. */");
         w.openBlock("private static void restartBrowserAndLogin()");
         w.openBlock("try");
@@ -402,10 +395,9 @@ public class TestGenerator {
         w.closeBlock(); // end performLogin
         w.writeLine();
 
-        // selectSubsystem(name) — tries multiple tag variants the launcher can use for tile labels.
-        // Original code locked onto <b> only; some stand themes/builds render the tile name in
-        // span/div/a instead. With a 3-second wait and a single XPath we'd fail every test class
-        // ("Subsystem selection failed" → all 24 tests SKIP). Broader locator + longer wait fixes.
+        // selectSubsystem(name) — перебирает варианты тегов, в которых лаунчер может рендерить
+        // название плитки (b/span/div/a). Широкий локатор плюс увеличенное ожидание, иначе на
+        // некоторых сборках выбор подсистемы не срабатывает и все тесты пропускаются.
         w.writeLine("/** Double-clicks the tile of the given subsystem and verifies the launcher was left. */");
         w.openBlock("private static boolean selectSubsystem(String name)");
         w.openBlock("try");
@@ -443,7 +435,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"Subsystem selection failed for '\" + name + \"': \" + e.getMessage().split(\"\\n\")[0]);");
-        // Diagnostic dump: what visible tile-like elements DID we find?
+        // Диагностика: какие видимые элементы-плитки вообще нашлись?
         w.openBlock("try");
         w.writeLine("List<WebElement> any = driver.findElements(By.xpath(\"//*[self::b or self::span[contains(@class,'tile') or contains(@class,'panel-header')] or self::div[contains(@class,'tile')] or self::a]\"));");
         w.writeLine("int shown = 0;");
@@ -473,7 +465,7 @@ public class TestGenerator {
         w.closeBlock(); // end selectSubsystem
         w.writeLine();
 
-        // discoverSubsystems — same broader xpath so smoke-mode finds tiles too.
+        // discoverSubsystems — тот же широкий xpath, чтобы smoke-режим тоже находил плитки.
         w.writeLine("/** Returns display names of all visible subsystem tiles on the launcher screen. */");
         w.openBlock("private static List<String> discoverSubsystems()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
@@ -545,8 +537,8 @@ public class TestGenerator {
         w.writeLine("boolean ok = false;");
         w.writeLine("String error = null;");
         w.openBlock("try");
-        // Restart browser before every iteration after the first — first iteration uses the
-        // already-logged-in session that initialize() set up.
+        // Перезапускаем браузер перед каждой итерацией кроме первой — первая использует уже
+        // залогиненную сессию из initialize().
         w.openBlock("if (i > 0)");
         w.writeLine("System.out.println(\"Restarting browser for subsystem #\" + (i + 1) + \": \" + name);");
         w.writeLine("restartBrowserAndLogin();");
@@ -561,7 +553,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("smokeResults.add(new SmokeResult(name, ok, error));");
         w.closeBlock();
-        // Final restart so entity tests get a clean session on the launcher
+        // Финальный перезапуск, чтобы тесты сущностей стартовали с чистой сессии в лаунчере
         w.openBlock("if (!names.isEmpty())");
         w.writeLine("System.out.println(\"Smoke phase done — restarting browser for entity tests\");");
         w.writeLine("restartBrowserAndLogin();");
@@ -634,25 +626,24 @@ public class TestGenerator {
         w.writeLine("protected WebDriver driver;");
         w.writeLine("protected WebDriverWait wait;");
         w.writeLine("protected boolean navigationOk = false;");
-        // Cache so navigation is attempted at most ONCE per test class. After a failed first try,");
-        // subsequent test methods short-circuit instead of re-running a 10-second menu search.");
+        // Кэш: навигация выполняется не более одного раза на тест-класс. После неудачной
+        // первой попытки остальные методы не повторяют 10-секундный поиск по меню.
         w.writeLine("protected boolean navigationAttempted = false;");
         w.writeLine("protected boolean cachedNavigationOk = false;");
-        // Cache card-open result: after the first openRecordCard attempt fails, subsequent
-        // testGrid* tests in the same class instance skip the 5-strategy retry (which costs
-        // ~30-50 seconds per attempt). Saves ~2-3 minutes per typical run.
+        // Кэш открытия карточки: после неудачной первой попытки openRecordCard следующие
+        // testGrid* в этом классе пропускают перебор из 5 стратегий (по ~30-50с каждая).
         w.writeLine("protected boolean cardOpenAttempted = false;");
         w.writeLine("private boolean cachedCardOpenOk = false;");
-        // Cache add-dialog state: if waitForDialog times out once in this test class, mark the
-        // dialog as unreachable. CRUD tests that come later (testCreate, testUpdate, …) hit the
-        // cache and return false immediately instead of waiting another 4s each.
+        // Кэш диалога добавления: если waitForDialog один раз истёк по таймауту, считаем диалог
+        // недоступным. Последующие CRUD-тесты (testCreate, testUpdate, …) сразу возвращают false,
+        // не дожидаясь ещё 4с каждый.
         w.writeLine("protected boolean addDialogFailed = false;");
-        // Screenshot bookkeeping — currentTestName captured in @BeforeEach, stepCounter resets per test.
+        // Учёт скриншотов: currentTestName берётся в @BeforeEach, stepCounter сбрасывается на каждый тест.
         w.writeLine("protected String currentTestName = \"test\";");
         w.writeLine("protected int stepCounter = 0;");
         w.writeLine();
 
-        // BeforeAll - get driver from SharedDriver
+        // BeforeAll — берём драйвер из SharedDriver
         w.writeLine("@BeforeAll");
         w.openBlock("void initDriver()");
         w.writeLine("driver = SharedDriver.getDriver();");
@@ -660,8 +651,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // BeforeEach in BaseTest — capture test name for screenshots; reset step counter.
-        // Runs BEFORE the subclass @BeforeEach (JUnit 5 default ordering: parent first).
+        // BeforeEach в BaseTest — запоминаем имя теста для скриншотов и сбрасываем счётчик шагов.
+        // Выполняется ДО @BeforeEach подкласса (порядок JUnit 5: родитель первым).
         w.writeLine("@org.junit.jupiter.api.BeforeEach");
         w.openBlock("void initTestContext(TestInfo info)");
         w.writeLine("this.currentTestName = info.getTestMethod().map(java.lang.reflect.Method::getName).orElse(\"test\");");
@@ -669,7 +660,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: perform action via E3Core menu (e.g., Добавить, Найти)
+        // Хелпер: выполнить действие через меню E3Core (например, Добавить, Найти)
         w.openBlock("protected void menuAction(String entityName, String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -707,10 +698,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: navigate to entity. First call does the real work; subsequent calls in the
-        // same test class instance return the cached result so failed navigation does not
-        // pay a 10-second cost on every @BeforeEach.
-        // 2-arg overload keeps the original behaviour (entity has a «Найти» search form).
+        // Хелпер: навигация к сущности. Первый вызов делает реальную работу; последующие в том же
+        // экземпляре класса возвращают кэш, чтобы неудачная навигация не стоила 10с на каждый
+        // @BeforeEach. Перегрузка с 2 аргументами — для сущностей с формой поиска «Найти».
         w.openBlock("protected void navigateToEntity(String entityName, String featureName)");
         w.writeLine("navigateToEntity(entityName, featureName, true);");
         w.closeBlock();
@@ -732,13 +722,13 @@ public class TestGenerator {
         w.openBlock("else");
         w.writeLine("navigateGeneric(entityName);");
         w.closeBlock();
-        // After "Найти" lands on the parameters page, automatically run the empty search so
-        // the result grid is populated. Without this, isFieldDisplayed sees only the parameter
-        // form (Тип/Наименование) and reports "Fields found: 0 of N".
+        // После «Найти» открывается страница параметров — автоматически запускаем пустой поиск,
+        // чтобы наполнить грид результатов. Иначе isFieldDisplayed видит только форму параметров
+        // (Тип/Наименование) и сообщает «Fields found: 0 of N».
         w.openBlock("if (navigationOk && hasSearchForm)");
-        // After Найти, E3Core opens a "Дерево поисков" window but leaves the form blank
-        // until the user double-clicks the "по параметрам" tree node. Without this step
-        // the parameter form never renders and executeSearchIfPresent can't find its button.
+        // После «Найти» E3Core открывает окно «Дерево поисков», но форма пустая, пока не сделать
+        // двойной клик по узлу «по параметрам». Без этого шага форма параметров не отрисуется и
+        // executeSearchIfPresent не найдёт свою кнопку.
         w.writeLine("openParamSearchInTree();");
         w.writeLine("executeSearchIfPresent();");
         w.closeBlock();
@@ -753,13 +743,13 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // openParamSearchInTree: after "Найти" opens the "Дерево поисков" window, double-click
-        // the "по параметрам" leaf in the tree to actually render the parameter form on the right.
-        // Falls back to a single click via JS if double-click is silently ignored.
+        // openParamSearchInTree: после открытия окна «Дерево поисков» делает двойной клик по узлу
+        // «по параметрам», чтобы справа отрисовалась форма параметров. Если двойной клик
+        // проигнорирован, откатывается на одиночный клик через JS.
         w.openBlock("protected void openParamSearchInTree()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Wait up to 4s for the tree node to appear.
+        // Ждём появления узла дерева до 4с.
         w.writeLine("WebElement node = null;");
         w.writeLine("long deadline = System.currentTimeMillis() + 4000;");
         w.openBlock("while (System.currentTimeMillis() < deadline)");
@@ -808,12 +798,12 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // executeSearchIfPresent: click "Выполнить поиск" if visible, otherwise no-op.
-        // Used after navigation so the result grid is populated before tests run.
+        // executeSearchIfPresent: жмёт «Выполнить поиск», если кнопка видна, иначе ничего не делает.
+        // Вызывается после навигации, чтобы грид результатов был наполнен до старта тестов.
         w.openBlock("protected void executeSearchIfPresent()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        // Poll up to 5 seconds for the button — page may still be loading after "Найти" click.
+        // Опрашиваем кнопку до 5с — страница может ещё грузиться после клика «Найти».
         w.writeLine("WebElement btn = null;");
         w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
         w.openBlock("while (System.currentTimeMillis() < deadline && btn == null)");
@@ -823,7 +813,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.openBlock("if (btn == null)");
-        // Diagnostic dump so we can see what was on the page
+        // Диагностический дамп — чтобы видеть, что было на странице
         w.writeLine("String url = \"\";");
         w.writeLine("String title = \"\";");
         w.openBlock("try");
@@ -833,7 +823,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("System.out.println(\"executeSearchIfPresent: '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a' button NOT FOUND after 5s. URL=\" + url + \" Title='\" + title + \"'\");");
-        // List anything that contains "Выпол" so we can see button variants
+        // Выводим всё, что содержит «Выпол», чтобы увидеть варианты кнопок
         w.writeLine("List<WebElement> hints = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b')]\"));");
         w.writeLine("int dumpCount = 0;");
         w.openBlock("for (WebElement h : hints)");
@@ -855,7 +845,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("System.out.println(\"executeSearchIfPresent: clicking <\" + btn.getTagName() + \"> with text '\" + btn.getText().trim() + \"'\");");
         w.writeLine("clickSafely(btn);");
-        // v5: instead of a blind 2-second buffer, wait for the grid to stop changing.
+        // Вместо слепой паузы 2с ждём, пока грид перестанет меняться.
         w.writeLine("waitForGridSettle();");
         w.writeLine("List<WebElement> gridRows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row\"));");
         w.writeLine("long visibleRows = gridRows.stream().filter(WebElement::isDisplayed).count();");
@@ -870,12 +860,12 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // findVisibleSearchButton: returns the first visible "Выполнить поиск" trigger, or null.
-        // Filters out window/container divs whose text *contains* the label but which aren't actual buttons.
+        // findVisibleSearchButton: возвращает первый видимый триггер «Выполнить поиск» или null.
+        // Отсеивает контейнеры/окна, в тексте которых есть подпись, но которые не являются кнопками.
         w.openBlock("private WebElement findVisibleSearchButton()");
         w.openBlock("try");
         w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
-        // div removed — search-tree window's title div contains the label too.
+        // div исключён — заголовок окна дерева поисков тоже содержит эту подпись.
         w.writeLine("    \"//*[self::button or self::a or self::input or self::span or self::td or self::em]\"");
         w.writeLine("    + \"[contains(normalize-space(.), '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
         w.writeLine("    + \"   or contains(@title, '\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a')\"");
@@ -887,8 +877,8 @@ public class TestGenerator {
         w.openBlock("if (!c.isDisplayed())");
         w.writeLine("continue;");
         w.closeBlock();
-        // A real button's text is short. The search-tree window's title div is 200+ chars and would
-        // hijack the click otherwise.
+        // У настоящей кнопки текст короткий. Заголовок окна дерева поисков — 200+ символов, иначе
+        // клик ушёл бы в него.
         w.writeLine("String txt = c.getText() == null ? \"\" : c.getText().trim();");
         w.openBlock("if (txt.length() > 60)");
         w.writeLine("continue;");
@@ -906,7 +896,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // E3Core navigation: ExtJS cascading menus with recursive submenu descent
+        // Навигация E3Core: каскадные меню ExtJS с рекурсивным спуском по подменю
         w.openBlock("private void navigateE3Core(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -938,18 +928,15 @@ public class TestGenerator {
         w.closeBlock(); // end navigateE3Core
         w.writeLine();
 
-        // addViaMenu: открывает диалог «Добавить» через ГЛАВНОЕ меню — тот же путь, что
-        // navigateE3Core делает для «Найти», но кликает пункт «Добавить» в подменю сущности.
-        // По требованию заказчика create-форма открывается ИМЕННО так, а НЕ из карточки записи
-        // через «Редактирование → Добавить» (этого пункта в карточке нет — там только
-        // «Сохранить Изменения» / «Удалить»).
+        // addViaMenu: открывает диалог «Добавить» через главное меню — тот же путь, что
+        // navigateE3Core для «Найти», но кликает пункт «Добавить» в подменю сущности.
+        // Форма создания открывается именно так, а не из карточки записи (в карточке есть
+        // только «Сохранить Изменения» / «Удалить»).
         w.openBlock("protected boolean addViaMenu(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
-        // Aggressive cleanup перед открытием меню: закрываем ВСЕ x-window'ы и шлём ESC.
-        // Без этого если предыдущий тест (например testRequiredFieldValidation) оставил
-        // диалог с ошибками валидации, новый «Добавить» открывается ПОВЕРХ него, и
-        // waitForAddForm видит старый «Готово» вместо нового — addFormOpen=true,
-        // а тест на самом деле льёт данные в чужой диалог.
+        // Очистка перед открытием меню: закрываем все x-window'ы и шлём ESC. Без этого, если
+        // предыдущий тест оставил диалог с ошибками валидации, новый «Добавить» открывается
+        // поверх него, и waitForAddForm видит старую кнопку «Готово» — данные уйдут в чужой диалог.
         w.openBlock("try");
         w.writeLine("java.util.List<WebElement> closes = driver.findElements(By.cssSelector(\".x-window .x-tool-close, .x-window .x-window-close\"));");
         w.openBlock("for (WebElement c : closes)");
@@ -1000,7 +987,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // descendMenu: recursive submenu walker
+        // descendMenu: рекурсивный обход подменю
         w.writeLine("/**");
         w.writeLine(" * Searches the currently open ExtJS menus (and their submenus, up to maxDepth)");
         w.writeLine(" * for an item whose text matches entityName by per-word stems (so \"\\u0414\\u043e\\u043b\\u0436\\u043d\\u043e\\u0441\\u0442\\u043d\\u043e\\u0435 \\u043b\\u0438\\u0446\\u043e\" finds");
@@ -1045,8 +1032,8 @@ public class TestGenerator {
         w.writeLine("actionBtn = findVisibleActionBtn(\"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\");");
         w.closeBlock();
         w.openBlock("if (actionBtn != null)");
-        // Try multiple click strategies — ExtJS menu items sometimes ignore a plain WebElement.click()
-        // because the underlying event handler is on mousedown/mouseup or on a sibling element.
+        // Пробуем несколько стратегий клика — пункты меню ExtJS иногда игнорируют обычный
+        // WebElement.click(), т.к. обработчик висит на mousedown/mouseup или соседнем элементе.
         w.writeLine("String actionLabel = actionBtn.getText().trim();");
         w.writeLine("System.out.println(\"descendMenu: trying to click '\" + actionLabel + \"' for entity '\" + entityName + \"'\");");
         w.writeLine("tryClickAllWays(actionBtn);");
@@ -1071,7 +1058,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Step 2: not found directly — find submenu parents and recurse
+        // Шаг 2: напрямую не нашли — ищем родительские пункты с подменю и рекурсивно спускаемся
         w.openBlock("if (maxDepth <= 0)");
         w.writeLine("return false;");
         w.closeBlock();
@@ -1096,8 +1083,8 @@ public class TestGenerator {
         w.openBlock("for (String parentText : parentTexts)");
         w.writeLine("tried.add(parentText);");
         w.openBlock("try");
-        // Re-find by full visible text. Text lives in nested <span class="x-menu-item-text">,
-        // so we look at the concatenated descendant text via normalize-space(.).
+        // Перенаходим по полному видимому тексту. Текст лежит во вложенном
+        // <span class="x-menu-item-text">, поэтому берём текст потомков через normalize-space(.).
         w.openBlock("if (parentText.contains(\"'\"))");
         w.writeLine("continue;");
         w.closeBlock();
@@ -1130,9 +1117,9 @@ public class TestGenerator {
         w.closeBlock(); // end descendMenu
         w.writeLine();
 
-        // entityStemPredicate: builds an XPath predicate that matches by per-word stems.
-        // For "Должностное лицо" → contains(text(),'Должностн') and contains(text(),'лиц').
-        // This handles ExtJS menu items that use a different declension (plural/genitive/etc.).
+        // entityStemPredicate: строит XPath-предикат, совпадающий по основам слов.
+        // Для «Должностное лицо» → contains(text(),'Должностн') and contains(text(),'лиц').
+        // Это покрывает пункты меню ExtJS в другом склонении (множественное/родительный и т.п.).
         w.writeLine("/** Builds an XPath predicate that matches an entity by per-word stems (handles Russian declensions). */");
         w.openBlock("protected String entityStemPredicate(String entityName, String textFn)");
         w.writeLine("String[] words = entityName.split(\"[\\\\s/]+\");");
@@ -1143,7 +1130,7 @@ public class TestGenerator {
         w.openBlock("if (word.isEmpty() || word.contains(\"'\"))");
         w.writeLine("continue;");
         w.closeBlock();
-        // Stem: drop last 2 chars when word is long enough; keep short words as-is.
+        // Основа: у длинного слова отбрасываем 2 последних символа; короткие оставляем как есть.
         w.writeLine("String stem = word.length() <= 3 ? word : word.substring(0, word.length() - 2);");
         w.openBlock("if (!first)");
         w.writeLine("sb.append(\" and \");");
@@ -1152,14 +1139,14 @@ public class TestGenerator {
         w.writeLine("first = false;");
         w.closeBlock();
         w.openBlock("if (sb.length() == 0)");
-        // Fallback to exact contains() if no stems could be built (e.g. all words have apostrophes)
+        // Откат на точный contains(), если основы не построились (например, во всех словах апострофы)
         w.writeLine("sb.append(\"contains(\").append(textFn).append(\", '\").append(entityName.replace(\"'\", \"\")).append(\"')\");");
         w.closeBlock();
         w.writeLine("return sb.toString();");
         w.closeBlock();
         w.writeLine();
 
-        // findVisibleActionBtn: locates a visible menu item with the given action label (Найти, Открыть, …).
+        // findVisibleActionBtn: находит видимый пункт меню с нужной подписью действия (Найти, Открыть, …).
         w.writeLine("/** Returns the last currently-visible menu item whose label contains actionName, or null. */");
         w.openBlock("protected WebElement findVisibleActionBtn(String actionName)");
         w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
@@ -1179,8 +1166,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // tryClickAllWays: try plain click, then Actions.click(), then JS click.
-        // ExtJS menu items sometimes ignore one of them depending on the event binding.
+        // tryClickAllWays: пробует обычный click, затем Actions.click(), затем JS-клик.
+        // Пункты меню ExtJS иногда игнорируют один из вариантов из-за привязки событий.
         w.writeLine("/** Try standard click, then Actions.click(), then JS click — to defeat ExtJS event-binding quirks. */");
         w.openBlock("protected void tryClickAllWays(WebElement el)");
         w.openBlock("try");
@@ -1209,8 +1196,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // captureNavScreenshot: saves a screenshot to target/screenshots/post-nav-<entity>-<phase>.png
-        // and also logs what tab/panel titles are visible so we can diagnose where we landed.
+        // captureNavScreenshot: сохраняет скриншот в target/screenshots/post-nav-<entity>-<phase>.png
+        // и логирует видимые заголовки табов/панелей, чтобы понять, куда мы попали.
         w.writeLine("/** Saves a screenshot and logs visible tab strip titles after a navigation attempt. */");
         w.openBlock("private void captureNavScreenshot(String entityName, String phase)");
         w.openBlock("try");
@@ -1221,7 +1208,7 @@ public class TestGenerator {
         w.writeLine("String fname = \"post-nav-\" + safe + \"-\" + phase + \".png\";");
         w.writeLine("java.nio.file.Files.copy(src.toPath(), dir.resolve(fname), java.nio.file.StandardCopyOption.REPLACE_EXISTING);");
         w.writeLine("System.out.println(\"  screenshot: target/screenshots/\" + fname);");
-        // Log visible tab strip titles
+        // Логируем видимые заголовки таб-стрипа
         w.writeLine("List<WebElement> tabs = driver.findElements(By.cssSelector(\".x-tab-strip-text, .x-tab-strip-active\"));");
         w.writeLine("StringBuilder tabList = new StringBuilder();");
         w.openBlock("for (WebElement t : tabs)");
@@ -1241,7 +1228,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Generic navigation
+        // Универсальная навигация
         w.openBlock("private void navigateGeneric(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -1265,13 +1252,13 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: assume navigation succeeded
+        // Хелпер: считаем, что навигация удалась
         w.openBlock("protected void assumeNavigated()");
         w.writeLine("Assumptions.assumeTrue(navigationOk, \"Skipped: could not navigate to entity\");");
         w.closeBlock();
         w.writeLine();
 
-        // Helper: select first record
+        // Хелпер: выбрать первую запись
         w.openBlock("protected void selectFirstRecord()");
         w.openBlock("try");
         w.writeLine("WebElement row = driver.findElement(By.cssSelector(\".x-grid3-row, tr.data-row, tr[data-index='0'], tbody tr:first-child\"));");
@@ -1365,7 +1352,7 @@ public class TestGenerator {
         w.openBlock("protected boolean selectAndOpenRecordAtIndex(int idx)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Find a visible row in the result grid. На одном экране может быть НЕСКОЛЬКО гридов
+        // Ищем видимую строку в гриде результатов. На одном экране может быть НЕСКОЛЬКО гридов
         // (параметры поиска + результаты + side-панели). Группируем видимые .x-grid3-row по
         // родительскому ext-гриду и берём строку из САМОЙ БОЛЬШОЙ группы — это всегда грид
         // результатов поиска (10 строк), а не грид параметров (1-3 строки).
@@ -1436,7 +1423,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("System.out.println(\"selectAndOpenRecord: physical click+dblclick on row idx=\" + idx + \" of largest visible grid group\");");
-        // Step 1: single-click to select the row
+        // Шаг 1: одиночный клик для выделения строки
         w.openBlock("try");
         w.writeLine("firstRow.click();");
         w.writeLine("Thread.sleep(200);");
@@ -1444,7 +1431,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"  single-click failed: \" + e.getMessage());");
         w.closeBlock();
-        // Step 2: dblclick via Actions, with JS dispatchEvent as backup
+        // Шаг 2: двойной клик через Actions, с запасным JS dispatchEvent
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
         w.writeLine("Thread.sleep(250);");
@@ -1488,7 +1475,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check for errors
+        // Хелпер: проверить наличие ошибок
         w.openBlock("protected boolean isErrorPresent()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -1546,7 +1533,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: accept alert
+        // Хелпер: принять alert
         w.openBlock("protected void acceptAlertIfPresent()");
         w.openBlock("try");
         w.writeLine("Alert alert = driver.switchTo().alert();");
@@ -1557,10 +1544,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // capturePopupText: печатает И возвращает текст самого верхнего видимого .x-window /
-        // .x-message-box (если есть). Раньше возвращал void — но в testCreate / testCreateOnlyRequired
-        // мы хотим включить причину отказа («Необходимо обязательно указать значения свойств: X»)
-        // в текст assert/fail, чтобы по логу сразу было видно ПОЧЕМУ save отвергнут.
+        // capturePopupText: печатает и возвращает текст самого верхнего видимого .x-window /
+        // .x-message-box (если есть). Текст нужен, чтобы включить причину отказа («Необходимо
+        // обязательно указать значения свойств: X») в сообщение assert/fail.
         w.openBlock("protected String capturePopupText(String tag)");
         w.writeLine("StringBuilder collected = new StringBuilder();");
         w.openBlock("try");
@@ -1663,31 +1649,31 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: open search by tree-node name. Tries direct double-click first; if the tree
-        // isn't visible (e.g. after the first search the tree window closed), re-opens it via
-        // menuAction(entityName(), "Найти") and retries.
+        // Хелпер: открыть поиск по имени узла дерева. Сначала пробует двойной клик; если дерево
+        // не видно (например, окно дерева закрылось после первого поиска), переоткрывает его
+        // через clickEntityMenuItem(entityName(), «Найти») и повторяет.
         w.openBlock("protected void openSearch(String searchName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Collapse runs of whitespace — XML labels sometimes have double spaces ("по  параметрам")
-        // that won't match the single-space tree-node text.
+        // Схлопываем повторы пробелов — в XML-подписях иногда двойные пробелы («по  параметрам»),
+        // которые не совпадут с текстом узла дерева с одинарным пробелом.
         w.writeLine("String trimmed = searchName.trim().replaceAll(\"\\\\s+\", \" \");");
         w.writeLine("WebElement searchLink = findTreeNode(trimmed);");
         w.openBlock("if (searchLink == null)");
-        // 1st fallback: tree might be closed. Re-trigger menu lookup to bring it back.
+        // Откат 1: дерево могло закрыться. Заново вызываем меню, чтобы вернуть его.
         w.writeLine("System.out.println(\"openSearch: tree node '\" + trimmed + \"' not visible — re-opening tree via clickEntityMenuItem('Найти')\");");
         w.writeLine("clickEntityMenuItem(entityName(), new String[]{ \"\\u041d\\u0430\\u0439\\u0442\\u0438\" });");
         w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         w.writeLine("searchLink = findTreeNode(trimmed);");
         w.closeBlock();
         w.openBlock("if (searchLink == null)");
-        // 2nd fallback: named searches like «Поиск ОГСК», «Поиск объединений» often live as
-        // DIRECT submenu items of the entity, not as tree nodes. Try clicking the search name
-        // straight via the same robust stem-matching helper.
+        // Откат 2: именованные поиски («Поиск ОГСК», «Поиск объединений») часто живут как прямые
+        // пункты подменю сущности, а не как узлы дерева. Кликаем по имени поиска напрямую через
+        // тот же хелпер с подбором по основам слов.
         w.writeLine("System.out.println(\"openSearch: '\" + trimmed + \"' not a tree node — trying as direct menu item\");");
         w.writeLine("boolean directClicked = clickEntityMenuItem(entityName(), new String[]{ trimmed });");
         w.openBlock("if (directClicked)");
-        // Result grid is auto-rendered for named searches; no double-click / submit needed.
+        // Для именованных поисков грид результатов отрисовывается сам; двойной клик/submit не нужны.
         w.writeLine("waitForGridSettle();");
         w.writeLine("return;");
         w.closeBlock();
@@ -1700,8 +1686,8 @@ public class TestGenerator {
         w.openBlock("catch (Exception eDbl)");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", searchLink);");
         w.closeBlock();
-        // Wait up to 3 seconds for the form to render — poll every 250ms for ANY visible input.
-        // Without this, fast tests hit fillSearchParam before the search form has painted.
+        // Ждём отрисовки формы до 3с — опрашиваем каждые 250мс на любой видимый input.
+        // Без этого быстрые тесты доходят до fillSearchParam до отрисовки формы поиска.
         w.writeLine("long formDeadline = System.currentTimeMillis() + 3000;");
         w.writeLine("boolean formRendered = false;");
         w.openBlock("while (System.currentTimeMillis() < formDeadline)");
@@ -1724,7 +1710,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // findTreeNode: locates the named leaf in the open search-tree window, or null if absent.
+        // findTreeNode: находит именованный лист в открытом окне дерева поисков, или null если его нет.
         w.openBlock("private WebElement findTreeNode(String trimmedName)");
         w.openBlock("try");
         w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
@@ -1747,13 +1733,13 @@ public class TestGenerator {
         w.writeLine();
         w.writeLine();
 
-        // Helper: execute search
+        // Хелпер: выполнить поиск
         w.openBlock("protected void executeSearch()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // E3Core search forms use «Готово» as the submit button (PropertyGrid-style dialogs);
-        // some result-grid pages use «Выполнить поиск»/«Найти». Try all three in order of likelihood
-        // and pick whichever is visible.
+        // В формах поиска E3Core кнопка submit — «Готово» (диалоги в стиле PropertyGrid);
+        // на некоторых страницах с гридом — «Выполнить поиск»/«Найти». Пробуем все три по
+        // убыванию вероятности и берём первую видимую.
         w.writeLine("String[] candidates = { \"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\", \"\\u0412\\u044b\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c \\u043f\\u043e\\u0438\\u0441\\u043a\", \"\\u041d\\u0430\\u0439\\u0442\\u0438\" };");
         w.openBlock("for (String label : candidates)");
         w.openBlock("try");
@@ -1788,7 +1774,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check search result
+        // Хелпер: проверить результат поиска
         w.openBlock("protected boolean isSearchResultPresent()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -1804,13 +1790,13 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: open tab. Supports both ExtJS 3 (.x-tab-strip-text) and 4/5 (.x-tab-inner,
-        // .x-tab-button, role="tab"), plus plain HTML and ARIA-role variants. Tabs live INSIDE
-        // an open record card — if no card is open this will (correctly) fail.
+        // Хелпер: открыть таб. Поддерживает ExtJS 3 (.x-tab-strip-text) и 4/5 (.x-tab-inner,
+        // .x-tab-button, role="tab"), плюс обычный HTML и варианты с ARIA-ролями. Табы находятся
+        // ВНУТРИ открытой карточки записи — если карточка не открыта, метод (закономерно) упадёт.
         w.openBlock("protected boolean openTab(String tabName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // First pass: classic ExtJS tab-strip elements (other builds use these).
+        // Проход 1: классические элементы таб-стрипа ExtJS.
         w.writeLine("List<WebElement> candidates = driver.findElements(By.xpath(");
         w.writeLine("    \"//span[contains(@class,'x-tab-strip-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
         w.writeLine("    + \" | //span[contains(@class,'x-tab-inner')][contains(normalize-space(.), '\" + tabName + \"')]\"");
@@ -1829,9 +1815,9 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Second pass: "Единый объект" view — the available property groups («Сведения»,
-        // «История», «Документы») are rows in a grid/list on the right side, NOT a tab strip.
-        // Click any visible row, link, or div whose text contains the tab name.
+        // Проход 2: вид «Единый объект» — группы свойств («Сведения», «История», «Документы»)
+        // здесь строки грида/списка справа, а не таб-стрип. Кликаем любую видимую строку, ссылку
+        // или div, в тексте которых есть имя таба.
         w.writeLine("List<WebElement> fallback = driver.findElements(By.xpath(");
         w.writeLine("    \"//*[self::div or self::a or self::td or self::span or self::tr]\"");
         w.writeLine("    + \"[contains(normalize-space(.), '\" + tabName + \"')]\"));");
@@ -1840,8 +1826,8 @@ public class TestGenerator {
         w.openBlock("if (!c.isDisplayed())");
         w.writeLine("continue;");
         w.closeBlock();
-        // Reject candidates whose visible text is "too long" — these are page wrappers, not the
-        // narrow row we want. Tab labels are typically short (≤80 chars).
+        // Отсеиваем кандидатов со слишком длинным текстом — это обёртки страницы, а не нужная нам
+        // узкая строка. Подписи табов обычно короткие (до 80 символов).
         w.writeLine("String txt = c.getText() == null ? \"\" : c.getText().trim();");
         w.openBlock("if (txt.length() == 0 || txt.length() > 80)");
         w.writeLine("continue;");
@@ -1854,9 +1840,9 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Third pass: ExtJS left-tree node inside the card (tree-node children like
-        // «Повестка совещания»). The node may be COLLAPSED under a group node, so the earlier
-        // passes find nothing displayed. Expand every visible '+' joint, then click the node.
+        // Проход 3: узел левого дерева ExtJS внутри карточки (дочерние узлы вроде
+        // «Повестка совещания»). Узел может быть свёрнут под групповым, поэтому предыдущие проходы
+        // ничего не видят. Раскрываем все видимые «плюсы», затем кликаем узел.
         w.writeLine("String treeXpath = \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.), '\" + tabName + \"')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.), '\" + tabName + \"')]]\";");
         w.writeLine("List<WebElement> treeHits = driver.findElements(By.xpath(treeXpath));");
@@ -1864,7 +1850,7 @@ public class TestGenerator {
         w.openBlock("for (WebElement h : treeHits)");
         w.writeLine("try { if (h.isDisplayed()) { anyTreeVisible = true; break; } } catch (Exception ignored) {}");
         w.closeBlock();
-        // Node not visible yet → expand collapsed group nodes (cover ExtJS 2/3/4 class variants).
+        // Узел ещё не виден → раскрываем свёрнутые групповые узлы (классы ExtJS 2/3/4).
         w.openBlock("if (!anyTreeVisible)");
         w.writeLine("List<WebElement> expanders = driver.findElements(By.cssSelector(");
         w.writeLine("    \".x-tree-elbow-plus, .x-tree-elbow-end-plus, .x-tree-ec-icon, .x-tree3-node-joint, .x-grid-group-hd\"));");
@@ -1900,13 +1886,12 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // openRecordCard: brings up the record's edit dialog so its tab-grids can be exercised.
-        // Tries three strategies in order — double-click, right-click+«Изменить»/«Открыть»,
-        // and menuAction(entity, «Изменить»). Stops at the first one that produces a dialog.
+        // openRecordCard: открывает карточку записи, чтобы можно было работать с её таб-гридами.
+        // Пробует несколько стратегий по очереди (двойной клик, контекстное меню «Изменить»/
+        // «Открыть», тулбар, Enter, поиск по меню) и останавливается на первой, открывшей карточку.
         w.openBlock("protected boolean openRecordCard()");
-        // Cache: if a previous openRecordCard call in this test class already failed all five
-        // strategies, return false immediately. Saves ~30-50 seconds per subsequent testGrid*
-        // test in the same class.
+        // Кэш: если предыдущий вызов openRecordCard в этом классе уже провалил все пять стратегий,
+        // сразу возвращаем false. Экономит ~30-50с на каждый следующий testGrid* в классе.
         w.openBlock("if (cardOpenAttempted)");
         w.openBlock("if (!cachedCardOpenOk)");
         w.writeLine("System.out.println(\"openRecordCard: cached miss — skipping retry\");");
@@ -1914,7 +1899,7 @@ public class TestGenerator {
         w.writeLine("return cachedCardOpenOk;");
         w.closeBlock();
         w.writeLine("cardOpenAttempted = true;");
-        // Strategy 0: ExtJS API. На ExtJS-grid'ах синтетический click из Selenium не активирует
+        // Стратегия 0: ExtJS API. На ExtJS-гридах синтетический click из Selenium не активирует
         // row-dblclick, зато прямой вызов через JS работает.
         w.openBlock("if (openViaExtApi())");
         w.writeLine("boolean opened0 = waitUntil(d -> isOnRecordCard(), 8, \"card after ExtJS API\");");
@@ -1942,11 +1927,10 @@ public class TestGenerator {
         w.writeLine("System.out.println(\"openRecordCard: no visible row to open\");");
         w.writeLine("return false;");
         w.closeBlock();
-        // Strategy 1: select-then-open. User confirmed the stand needs two separate clicks:
-        // first click selects the row (highlights it), second click opens the «Единый объект»
-        // view. A fast Actions.doubleClick() bundles the two clicks too tightly and ExtJS
-        // doesn't fire the row-activated event. So we do an explicit click → pause → click
-        // → wait up to 5s for the card to appear (page load can be slow).
+        // Стратегия 1: выделить, затем открыть. Стенду нужны два отдельных клика: первый выделяет
+        // строку, второй открывает вид «Единый объект». Быстрый Actions.doubleClick() склеивает
+        // клики слишком плотно, и ExtJS не срабатывает. Поэтому делаем явно клик → пауза → клик
+        // → ждём появления карточки до 5с (загрузка может быть медленной).
         w.openBlock("try");
         w.writeLine("new Actions(driver)");
         w.writeLine("    .moveToElement(firstRow)");
@@ -1963,7 +1947,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 1b: native doubleClick — fallback for builds where one fast double-click works
+        // Стратегия 1b: нативный doubleClick — для сборок, где работает один быстрый двойной клик
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).doubleClick().perform();");
         w.writeLine("boolean opened1b = waitUntil(d -> isOnRecordCard(), 5, \"card after double-click\");");
@@ -1975,9 +1959,9 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 1c: JS-dispatched native dblclick — ExtJS 3 listens for raw DOM event, but
-        // Selenium's Actions sometimes generates two separate `click` events instead. dispatching
-        // a real `dblclick` MouseEvent via JS bypasses this.
+        // Стратегия 1c: нативный dblclick через JS — ExtJS 3 слушает сырое DOM-событие, а Actions
+        // от Selenium иногда генерирует два отдельных `click`. Диспатч реального `dblclick`
+        // MouseEvent через JS обходит это.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, view: window}));\",");
@@ -1991,9 +1975,8 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 1d: right-click → «Загрузить выбранные объекты в дерево». This is the action
-        // the user's screenshot showed in the context menu. After it executes, the object is
-        // loaded into a separate «Единый объект» window which is what we want to detect.
+        // Стратегия 1d: правый клик → «Загрузить выбранные объекты в дерево». После выполнения
+        // объект загружается в отдельное окно «Единый объект», которое мы и хотим обнаружить.
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
         w.writeLine("Thread.sleep(500);");
@@ -2016,7 +1999,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Close any remaining context menu
+        // Закрываем оставшееся контекстное меню
         w.openBlock("try");
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
         w.closeBlock();
@@ -2025,7 +2008,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 2: right-click + «Изменить»/«Открыть»
+        // Стратегия 2: правый клик + «Изменить»/«Открыть»
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
         w.writeLine("Thread.sleep(500);");
@@ -2046,12 +2029,12 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Close context menu if still open
+        // Закрываем контекстное меню, если ещё открыто
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 3: select + click toolbar «Изменить»
+        // Стратегия 3: выделить + кликнуть «Изменить» в тулбаре
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(300);");
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
@@ -2073,7 +2056,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 4: Enter key on selected row — some ExtJS grids open on keyboard activation
+        // Стратегия 4: Enter на выделенной строке — часть ExtJS-гридов открывает запись по клавише
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(200);");
         w.writeLine("firstRow.sendKeys(org.openqa.selenium.Keys.ENTER);");
@@ -2086,9 +2069,9 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 5: robust menu lookup via clickEntityMenuItem (stem-matching). Tries every
-        // localised action verb the stand might use for "open this record": «Изменить»,
-        // «Редактировать», «Открыть», «Просмотр», «Карточка», «Свойства», «Подробнее», «Просмотреть».
+        // Стратегия 5: надёжный поиск по меню через clickEntityMenuItem (подбор по основам слов).
+        // Пробует все варианты действия «открыть запись»: «Изменить», «Редактировать», «Открыть»,
+        // «Просмотр», «Карточка», «Свойства», «Подробнее», «Просмотреть».
         w.openBlock("try");
         w.writeLine("firstRow.click(); Thread.sleep(300);");
         w.writeLine("boolean clicked = clickEntityMenuItem(entityName(), new String[]{");
@@ -2110,7 +2093,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("System.out.println(\"openRecordCard: all five strategies failed (double-click, right-click, toolbar, Enter, robust menu)\");");
-        // Diagnostic: what's on the page?
+        // Диагностика: что на странице?
         w.openBlock("try");
         w.writeLine("List<WebElement> btns = driver.findElements(By.cssSelector(\"button, a.x-btn, input[type='button']\"));");
         w.writeLine("int dumped = 0;");
@@ -2143,7 +2126,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check grid displayed
+        // Хелпер: проверить, отображается ли грид
         w.openBlock("protected boolean isGridDisplayed(String gridName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -2159,23 +2142,22 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Backwards-compat overload — call sites that don't pass a title fall through to title=null.
+        // Перегрузка без title — вызовы без заголовка идут с title=null.
         w.openBlock("protected void fillSearchParam(String paramName, String value)");
         w.writeLine("fillSearchParam(paramName, null, value);");
         w.closeBlock();
         w.writeLine();
 
-        // Helper: fill search parameter, trying multiple locator strategies. Strategy "by label"
-        // uses the *Russian* title from SearchParam.title (e.g. 'Наименование ГСК/ОГСК') which is
-        // what actually appears in the form, NOT the technical name 'GBS_NAME'. Without this the
-        // 3 of 4 fillSearchParam calls in the user run all failed silently and the search executed
-        // with empty params — coverage was theatre.
+        // Хелпер: заполнить параметр поиска, перебирая стратегии локаторов. Стратегия «по подписи»
+        // использует русский title из SearchParam.title (например, «Наименование ГСК/ОГСК»), который
+        // и виден в форме, а не техническое имя «GBS_NAME». Без этого заполнение по техническому
+        // имени тихо проваливается, и поиск идёт с пустыми параметрами.
         w.openBlock("protected void fillSearchParam(String paramName, String title, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
         w.writeLine("WebElement param = null;");
         w.writeLine("String strategy = \"\";");
-        // Strategy 1: direct name/id
+        // Стратегия 1: прямой name/id
         w.openBlock("try");
         w.writeLine("List<WebElement> direct = driver.findElements(By.cssSelector(\"[name='\" + paramName + \"'], [id='\" + paramName + \"']\"));");
         w.openBlock("for (WebElement e : direct)");
@@ -2186,7 +2168,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Strategy 2: id prefix (ExtJS auto-suffix)
+        // Стратегия 2: префикс id (ExtJS добавляет авто-суффикс)
         w.openBlock("if (param == null)");
         w.openBlock("try");
         w.writeLine("List<WebElement> prefix = driver.findElements(By.cssSelector(\"[id^='\" + paramName + \"-']\"));");
@@ -2199,9 +2181,9 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Strategy 3: label-based, trying the Russian title first (what's actually rendered) and
-        // falling back to the technical name. The label could be a <label>, an ExtJS form-item
-        // header, or a column header in a property-grid table.
+        // Стратегия 3: по подписи — сначала русский title (то, что реально отрисовано), затем
+        // откат на техническое имя. Подпись может быть <label>, заголовком form-item ExtJS или
+        // заголовком колонки в таблице property-grid.
         w.openBlock("if (param == null)");
         w.openBlock("try");
         w.writeLine("String[] labelTexts = title == null || title.isBlank()");
@@ -2233,16 +2215,16 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Strategy 4 (E3Core PropertyGrid): the form is a 2-column table «Наименование/Значение»
-        // — fields are NOT real <input>s until you click the value cell, then an inline editor
-        // appears. Try this when the regular input search failed.
+        // Стратегия 4 (PropertyGrid E3Core): форма — таблица из 2 колонок «Наименование/Значение»,
+        // где поля не настоящие <input>, пока не кликнуть ячейку значения (тогда появляется
+        // inline-редактор). Используется, когда обычный поиск по input не сработал.
         w.openBlock("if (param == null)");
         w.writeLine("boolean clicked = fillPropertyGridCell(title != null && !title.isBlank() ? title : paramName, value);");
         w.openBlock("if (clicked)");
         w.writeLine("System.out.println(\"fillSearchParam '\" + paramName + \"' = '\" + value + \"' (via: PropertyGrid cell)\");");
         w.writeLine("return;");
         w.closeBlock();
-        // Strategy 5: ExtJS API. Если ни обычный input, ни PropertyGrid-ячейка не сработали,
+        // Стратегия 5: ExtJS API. Если ни обычный input, ни PropertyGrid-ячейка не сработали,
         // дёргаем поле напрямую через Ext-API по fieldLabel/name. Работает даже когда DOM-инпут
         // для поля не отрисован.
         w.writeLine("String labelToTry = title != null && !title.isBlank() ? title : paramName;");
@@ -2268,8 +2250,8 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("else");
         w.writeLine("System.out.println(\"Could not fill search param: \" + paramName + (title == null ? \"\" : \" (title='\" + title + \"')\") + \" (no input matched name/id/label/PropertyGrid)\");");
-        // Diagnostic dump: list ALL visible inputs / textareas so we can see what's actually on
-        // the page. Without this we keep guessing at selectors blindly.
+        // Диагностический дамп: выводим все видимые input/textarea, чтобы видеть, что реально на
+        // странице, а не подбирать селекторы вслепую.
         w.openBlock("try");
         w.writeLine("List<WebElement> allInputs = driver.findElements(By.cssSelector(\"input:not([type='hidden']), textarea\"));");
         w.writeLine("int shown = 0;");
@@ -2306,16 +2288,16 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check if a column header is present in any table.
-        // Covers ExtJS 3 (.x-grid3-hd*), ExtJS 4/5 (.x-column-header, .x-column-header-text),
-        // and plain HTML (<th>, <td.header>). Normalises whitespace so XML titles with non-breaking
-        // spaces or doubled spaces still match the rendered text.
-        // fillPropertyGridCell: E3Core search and add forms render as a 2-column ExtJS PropertyGrid
-        // («Наименование» / «Значение»). The value cells are NOT real input fields until clicked —
-        // a click promotes them to an inline editor. So:
-        //   1. find the row whose left cell contains the field label (Russian title like
-        //      «Наименование ГСК/ОГСК» or «Кадастровый номер»)
-        //   2. click the right cell (or the row) to spawn the inline editor
+        // Хелпер: проверить наличие заголовка колонки в любой таблице.
+        // Покрывает ExtJS 3 (.x-grid3-hd*), ExtJS 4/5 (.x-column-header, .x-column-header-text) и
+        // обычный HTML (<th>, <td.header>). Нормализует пробелы, чтобы XML-заголовки с неразрывными
+        // или двойными пробелами совпадали с отрисованным текстом.
+        // fillPropertyGridCell: формы поиска и добавления E3Core рисуются как ExtJS PropertyGrid из
+        // 2 колонок («Наименование» / «Значение»). Ячейки значений не настоящие input, пока по ним
+        // не кликнуть — клик превращает их в inline-редактор. Поэтому:
+        //   1. находим строку, чья левая ячейка содержит подпись поля (русский title вроде
+        //      «Наименование ГСК/ОГСК» или «Кадастровый номер»)
+        //   2. кликаем правую ячейку (или строку), чтобы вызвать inline-редактор
         // waitForCardLoaded: «Единый объект» открывается быстро, но данные внутри подгружаются
         // отдельно (видно по индикатору «Загрузка данных...»). Пока данные не пришли, в карточке
         // НЕТ ни кнопки «Редактирование», ни PropertyGrid'а с полями. Этот хелпер ждёт пока:
@@ -2326,20 +2308,20 @@ public class TestGenerator {
         w.openBlock("protected boolean waitForCardLoaded(int seconds)");
         w.writeLine("boolean ok = waitUntil(d -> {");
         w.writeLine("    try {");
-        // Signal A: «Редактирование» button visible — это THE сигнал «карточка готова».
+        // Сигнал A: видна кнопка «Редактирование» — главный признак «карточка готова».
         w.writeLine("        List<WebElement> edit = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
         w.writeLine("        if (edit.stream().anyMatch(WebElement::isDisplayed)) return true;");
-        // Signal B: property-group rows. Требуем ≥2 разных лейбла — иначе случайное вхождение
-        // слова «Сведения» в основном меню даёт false positive.
+        // Сигнал B: строки групп свойств. Требуем минимум 2 разных ярлыка — иначе случайное
+        // вхождение слова «Сведения» в главном меню даёт ложное срабатывание.
         w.writeLine("        List<WebElement> grp = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0421\\u0432\\u0435\\u0434\\u0435\\u043d\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0418\\u0441\\u0442\\u043e\\u0440\\u0438\\u044f')] | //*[contains(normalize-space(.), '\\u0414\\u043e\\u043a\\u0443\\u043c\\u0435\\u043d\\u0442\\u044b')]\"));");
         w.writeLine("        long groupsVisible = grp.stream().filter(WebElement::isDisplayed).count();");
-        // ВАЖНО: требуем все три ярлыка — на главном UI отдельные слова могут встретиться
-        // (например в дереве сущностей), но все три вместе видны только на карточке.
+        // Требуем все три ярлыка — на главном UI отдельные слова могут встретиться (например в
+        // дереве сущностей), но все три вместе видны только на карточке.
         w.writeLine("        if (groupsVisible >= 3) return true;");
-        // Signal C: модальное .x-window с формой
+        // Сигнал C: модальное .x-window с формой
         w.writeLine("        List<WebElement> winForm = driver.findElements(By.cssSelector(\".x-window .x-form-field, .x-window input.x-form-text\"));");
         w.writeLine("        if (winForm.stream().anyMatch(WebElement::isDisplayed)) return true;");
-        // Signal D: индикатор «Загрузка данных...» виден — карточка ещё грузится
+        // Сигнал D: виден индикатор «Загрузка данных...» — карточка ещё грузится
         w.writeLine("        List<WebElement> loading = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u043a\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445')]\"));");
         w.writeLine("        if (loading.stream().anyMatch(WebElement::isDisplayed)) return false;");
         w.writeLine("        return false;");
@@ -2485,7 +2467,7 @@ public class TestGenerator {
         // ВАЖНО: ждём пока карточка полностью прогрузится, иначе кнопка «Редактирование» ещё не отрисована
         w.writeLine("waitForCardLoaded(8);");
         w.openBlock("try");
-        // Find the «Редактирование» button (toolbar button at bottom of card)
+        // Ищем кнопку «Редактирование» (кнопка тулбара внизу карточки)
         w.writeLine("List<WebElement> editBtns = driver.findElements(By.xpath(");
         w.writeLine("    \"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//span[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]]\"));");
@@ -2507,11 +2489,11 @@ public class TestGenerator {
         w.writeLine("dumpCardDiagnostics();");
         w.writeLine("return false;");
         w.closeBlock();
-        // Click the «Редактирование» button via tryClickAllWays
+        // Кликаем кнопку «Редактирование» через tryClickAllWays
         w.writeLine("System.out.println(\"clickEditDropdownAction: clicking 'Редактирование' to open dropdown\");");
         w.writeLine("tryClickAllWays(editBtn);");
         w.writeLine("Thread.sleep(500);");
-        // Now find the action item in the opened dropdown menu
+        // Теперь ищем пункт действия в открывшемся выпадающем меню
         w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
         w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.), '\" + actionName + \"')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\" + actionName + \"')]\"));");
@@ -2528,7 +2510,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         w.writeLine("System.out.println(\"clickEditDropdownAction: action '\" + actionName + \"' not found in dropdown\");");
-        // Dump visible menu items for diagnostics
+        // Для диагностики выводим видимые пункты меню
         w.writeLine("List<WebElement> anyItems = driver.findElements(By.cssSelector(\".x-menu-item-text\"));");
         w.writeLine("int shown = 0;");
         w.openBlock("for (WebElement m : anyItems)");
@@ -2541,7 +2523,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Close dropdown
+        // Закрываем выпадающее меню
         w.openBlock("try");
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
         w.closeBlock();
@@ -2701,17 +2683,16 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        //   3. type the value into the newly-visible input
-        //   4. Tab to commit
-        // Returns true on success.
+        //   3. вводим значение в появившийся input
+        //   4. Tab для фиксации
+        // Возвращает true при успехе.
         w.openBlock("protected boolean fillPropertyGridCell(String rowLabel, String value)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Find rows of the PropertyGrid. ExtJS uses .x-grid3-row in v3 and .x-grid-row in v4+,
-        // each containing two cells (label, value). We match the row whose first cell text
-        // contains the label.
+        // Ищем строки PropertyGrid. В ExtJS 3 это .x-grid3-row, в v4+ — .x-grid-row, каждая с
+        // двумя ячейками (подпись, значение). Берём строку, в первой ячейке которой есть подпись.
         w.writeLine("String labelLc = rowLabel == null ? \"\" : rowLabel.toLowerCase();");
-        // Strip the trailing "*" that PropertyGrid uses to mark required fields.
+        // Убираем хвостовую «*», которой PropertyGrid помечает обязательные поля.
         w.writeLine("String cleanLabel = rowLabel == null ? \"\" : rowLabel.replace(\"*\", \"\").trim();");
         w.writeLine("List<WebElement> rows = driver.findElements(By.cssSelector(\".x-grid3-row, .x-grid-row, table.x-grid-table tr, tr.x-grid-data-row\"));");
         w.writeLine("WebElement targetValueCell = null;");
@@ -2742,15 +2723,15 @@ public class TestGenerator {
         w.openBlock("if (targetValueCell == null)");
         w.writeLine("return false;");
         w.closeBlock();
-        // Click value cell once and again — ExtJS PropertyGrid sometimes needs two clicks
-        // (first selects row, second activates editor).
+        // Кликаем ячейку значения дважды — ExtJS PropertyGrid иногда требует два клика
+        // (первый выделяет строку, второй активирует редактор).
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(targetValueCell).click().pause(150).click().perform();");
         w.writeLine("Thread.sleep(300);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Now there should be an inline editor input visible. Type into it.
+        // Теперь должен быть виден input inline-редактора. Вводим в него.
         w.writeLine("List<WebElement> editors = driver.findElements(By.cssSelector(\".x-grid-editor input, .x-form-text:not(.x-combo-noedit), input.x-form-field\"));");
         w.openBlock("for (WebElement ed : editors)");
         w.openBlock("try");
@@ -2784,7 +2765,7 @@ public class TestGenerator {
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
         w.writeLine("String t = columnTitle == null ? \"\" : columnTitle.trim();");
-        // Strip "_" suffix that some entity-stem matching adds for disambiguation.
+        // Убираем суффикс «_», который подбор по основам добавляет для различения.
         w.writeLine("if (t.endsWith(\"_\")) t = t.substring(0, t.length() - 1);");
         w.writeLine("List<WebElement> headers = driver.findElements(By.xpath(");
         w.writeLine("    \"//th[contains(normalize-space(.), '\" + t + \"')]\"");
@@ -2806,7 +2787,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: check if a button with given text is present
+        // Хелпер: проверить наличие кнопки с заданным текстом
         w.openBlock("protected boolean isButtonPresent(String buttonText)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -2821,7 +2802,7 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
 
-        // Helper: check if an ExtJS dialog window is currently open
+        // Хелпер: проверить, открыто ли окно-диалог ExtJS
         w.openBlock("protected boolean isDialogOpen()");
         w.openBlock("try");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
@@ -2836,29 +2817,28 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // isOnRecordCard: true if we're on the record's detail view. E3Core can present this in
-        // several layouts:
-        //   1. classic modal dialog (.x-window)
-        //   2. ExtJS tab-strip page
-        //   3. "Единый объект" navigated page with PropertyGroup list on the right side
-        //      (list rows for «Сведения», «История», «Документы») and a toolbar at the bottom
-        //      with «Редактирование», «Обновить», «Печать...» — this is what the user stand uses.
-        // Detecting (3) requires checking for the breadcrumb/title text or the bottom toolbar.
+        // isOnRecordCard: true, если мы на странице деталей записи. E3Core показывает её в
+        // нескольких вариантах:
+        //   1. классический модальный диалог (.x-window)
+        //   2. страница с таб-стрипом ExtJS
+        //   3. навигированная страница «Единый объект» со списком групп свойств справа
+        //      (строки «Сведения», «История», «Документы») и тулбаром снизу с «Редактирование»,
+        //      «Обновить», «Печать...» — этот вариант на текущем стенде.
+        // Для (3) проверяем текст заголовка или нижний тулбар.
         w.openBlock("protected boolean isOnRecordCard()");
         w.openBlock("if (isDialogOpen())");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
-        // Signal B: "Единый объект" text — РОВНО для карточки записи. Раньше также проверялся
-        // Signal A (.x-tab-strip-text) но эти табы есть и на странице поиска тоже, что
-        // приводило к false-positive: тест думал карточка открыта, хотя мы всё ещё в списке
-        // результатов. Признаки A удалены.
+        // Сигнал B: текст «Единый объект» — точный признак карточки записи. Таб-стрип
+        // (.x-tab-strip-text) для проверки не используем: он есть и на странице поиска, что давало
+        // ложное срабатывание (карточка считалась открытой, хотя мы ещё в списке результатов).
         w.writeLine("List<WebElement> ed = driver.findElements(By.xpath(\"//*[contains(normalize-space(.), '\\u0415\\u0434\\u0438\\u043d\\u044b\\u0439 \\u043e\\u0431\\u044a\\u0435\\u043a\\u0442')]\"));");
         w.openBlock("if (ed.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("return true;");
         w.closeBlock();
-        // Signal C: card-only toolbar button «Редактирование»
+        // Сигнал C: кнопка тулбара «Редактирование», встречается только в карточке
         w.writeLine("List<WebElement> editBtn = driver.findElements(By.xpath(\"//button[contains(normalize-space(.), '\\u0420\\u0435\\u0434\\u0430\\u043a\\u0442\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435')]\"));");
         w.openBlock("if (editBtn.stream().anyMatch(WebElement::isDisplayed))");
         w.writeLine("return true;");
@@ -2874,7 +2854,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: click element safely, handling intercept by waiting for overlays
+        // Хелпер: безопасный клик с обработкой перехвата оверлеями
         w.openBlock("protected void clickSafely(WebElement element)");
         w.openBlock("try");
         w.writeLine("element.click();");
@@ -2891,7 +2871,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: click button by visible text, with intercept handling
+        // Хелпер: клик по кнопке по видимому тексту, с обработкой перехвата
         w.openBlock("protected boolean clickButtonByText(String buttonText)");
         w.openBlock("try");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));");
@@ -2906,13 +2886,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("masks = driver.findElements(By.cssSelector(\".ext-el-mask, .x-mask\"));");
         w.closeBlock();
-        // ВАЖНО: раньше тут было //button[contains(text(),'Готово')] — это ищет ПРЯМОЙ
-        // дочерний text-node. ExtJS оборачивает label кнопки в <span>, а кнопки часто
-        // <a class="x-btn">, поэтому совпадение не находилось и click тихо возвращал false.
-        // Тест считал что Готово нажат, дальше confirmDialogYes ничего не находил, диалог
-        // оставался открытым → запись не создавалась → testCreate падал как "не найдено в гриде",
-        // вместо реальной причины "не смог нажать Готово". Используем normalize-space(.) как в
-        // isButtonVisible, плюс fallback на ExtJS <a class="x-btn"><span>...</span></a>.
+        // Ищем по normalize-space(.), а не по прямому text-node: ExtJS оборачивает подпись кнопки
+        // в <span>, а сами кнопки часто <a class="x-btn">. Плюс fallback на
+        // <a class="x-btn"><span>...</span></a>.
         w.writeLine("String xp = \"//button[contains(normalize-space(.), '\" + buttonText + \"')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-btn')][.//span[contains(normalize-space(.), '\" + buttonText + \"')]]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-btn')][contains(normalize-space(.), '\" + buttonText + \"')]\"");
@@ -2945,7 +2921,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: is a button with the given visible text currently shown (without clicking it).
+        // Хелпер: видна ли сейчас кнопка с заданным текстом (без клика по ней).
         w.openBlock("protected boolean isButtonVisible(String buttonText)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
@@ -2963,7 +2939,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: take screenshot on failure
+        // Хелпер: сделать скриншот при ошибке
         w.openBlock("protected void takeScreenshot(String testName)");
         w.openBlock("try");
         w.writeLine("File src = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);");
@@ -2979,7 +2955,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // Helper: reset state by closing any open dialogs
+        // Хелпер: сбросить состояние, закрыв открытые диалоги
         w.openBlock("protected void resetState()");
         w.openBlock("try");
         w.writeLine("// Close any open ExtJS dialogs/windows");
@@ -2999,19 +2975,19 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
 
-        // ====== Step-screenshot helpers + assertion utilities (v4) ======
+        // ====== Хелперы пошаговых скриншотов + утилиты проверок ======
 
-        // entityName(): the entity's *Russian* name as it appears in the launcher menu — used by
-        // menuAction/openSearch/openRecordCard. Each generated test subclass overrides this to
-        // return its ENTITY_NAME constant ("ГСК/ОГСК", "Совещание", …). The default falls back to
-        // the transliterated class name so callers don't NPE even if a subclass forgets to override.
+        // entityName(): русское имя сущности, как оно в меню лаунчера — используется
+        // menuAction/openSearch/openRecordCard. Каждый сгенерированный подкласс переопределяет
+        // метод, возвращая свою константу ENTITY_NAME («ГСК/ОГСК», «Совещание», …). По умолчанию
+        // откатывается на транслитерированное имя класса, чтобы не было NPE, если подкласс забыл.
         w.openBlock("protected String entityName()");
         w.writeLine("return shotEntityName();");
         w.closeBlock();
         w.writeLine();
 
-        // shotEntityName(): ASCII-safe transliterated name for screenshot filenames. Independent of
-        // entityName() because we want filenames like "GSKOGSK_testX_*.png" rather than Cyrillic ones.
+        // shotEntityName(): транслитерированное ASCII-имя для имён файлов скриншотов. Отдельно от
+        // entityName(), т.к. нужны имена вида «GSKOGSK_testX_*.png», а не кириллические.
         w.openBlock("protected String shotEntityName()");
         w.writeLine("String n = getClass().getSimpleName();");
         w.openBlock("if (n.endsWith(\"Test\"))");
@@ -3021,9 +2997,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // shot(step): numbered screenshot for the current test. Files land under target/screenshots/
-        // with name <Entity>_<testMethod>_<step#>_<step>_<status>.png so a directory listing reads
-        // like a comic strip of the test run.
+        // shot(step): нумерованный скриншот для текущего теста. Файлы попадают в target/screenshots/
+        // с именем <Entity>_<testMethod>_<step#>_<step>_<status>.png, так что листинг каталога
+        // читается как раскадровка прогона теста.
         w.openBlock("protected void shot(String step)");
         w.writeLine("shot(step, \"OK\");");
         w.closeBlock();
@@ -3046,15 +3022,10 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // gridContainsRow(marker): true if any visible row of the RESULT grid contains marker.
-        // Раньше использовали обычный By.cssSelector(".x-grid3-row, .x-grid-row, tbody tr") —
-        // он матчил ВСЕ tbody/grid-строки на странице, включая параметрический грид формы
-        // поиска. testCreate (Уровень 3) сам вписывает маркер в параметр «Наименование …»,
-        // эта строка тоже tbody tr — и gridContainsRow ВСЕГДА возвращал true, даже когда
-        // result-grid был пуст ("Записи с 1 по 0"). Получался ложный PASS.
-        // Теперь сначала через JS находим САМЫЙ БОЛЬШОЙ грид на странице (та же эвристика,
-        // что в captureFirstResultRowSignature) — это и есть таблица результатов, у формы
-        // поиска параметров обычно 1-3 строки, она отсеивается автоматически.
+        // gridContainsRow(marker): true, если хоть одна видимая строка грида РЕЗУЛЬТАТОВ содержит
+        // marker. Через JS находим самый большой грид на странице (та же эвристика, что в
+        // captureFirstResultRowSignature) — это и есть таблица результатов; параметрический грид
+        // формы поиска обычно из 1-3 строк и отсеивается автоматически, иначе был бы ложный PASS.
         w.openBlock("protected boolean gridContainsRow(String marker)");
         w.openBlock("if (marker == null || marker.isEmpty())");
         w.writeLine("return false;");
@@ -3090,7 +3061,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // getVisibleRowCount(): count visible grid rows. Used by CRUD tests to verify strict deltas.
+        // getVisibleRowCount(): считает видимые строки грида. Нужен CRUD-тестам для проверки дельт.
         w.openBlock("protected int getVisibleRowCount()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(200));");
         w.openBlock("try");
@@ -3151,7 +3122,7 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine("sig.append(t);");
         w.closeBlock();
-        // Trim trailing whitespace.
+        // Убираем хвостовые пробелы.
         w.writeLine("return sig.toString().trim();");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -3235,13 +3206,13 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // matchesMask(value, mask): true if value conforms to an E3Core/ExtJS-style mask.
-        // Mask grammar (must stay in sync with TestDataFactory.generateFromMask):
-        //   digit  : '9', '0', '#'
-        //   letter : 'a', 'A', 'L'
-        //   any    : 'X', 'x', '*', '?'
-        //   other characters are kept as literals.
-        // Example: "99.99.9999" → ^\d{2}\.\d{2}\.\d{4}$
+        // matchesMask(value, mask): true, если value соответствует маске в стиле E3Core/ExtJS.
+        // Грамматика маски (должна совпадать с TestDataFactory.generateFromMask):
+        //   цифра  : '9', '0', '#'
+        //   буква  : 'a', 'A', 'L'
+        //   любой  : 'X', 'x', '*', '?'
+        //   прочие символы — литералы.
+        // Пример: "99.99.9999" → ^\d{2}\.\d{2}\.\d{4}$
         w.openBlock("protected boolean matchesMask(String value, String mask)");
         w.openBlock("if (value == null || mask == null || mask.isEmpty())");
         w.writeLine("return false;");
@@ -3267,9 +3238,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // assertCoverage(found, expected, threshold, missing, ctx): hard-assert that the fraction
-        // of found items meets the threshold, including a diagnostic listing of what's missing.
-        // This is the workhorse for testFieldsPresent and testGrid* — replaces silent println logs.
+        // assertCoverage(found, expected, threshold, missing, ctx): жёстко проверяет, что доля
+        // найденных элементов достигает порога, и выводит, чего не хватает.
+        // Основной инструмент для testFieldsPresent и testGrid* вместо тихих println-логов.
         w.openBlock("protected void assertCoverage(int found, int expected, double threshold, java.util.List<String> missing, String ctx)");
         w.openBlock("if (expected <= 0)");
         w.writeLine("return;");
@@ -3282,8 +3253,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // resetSearchView(): after a destructive test (delete/archive) re-run the empty search so
-        // the result grid reflects current state for the next test in the @Order chain.
+        // refreshGrid(): после деструктивного теста (удаление/архивирование) заново запускает пустой
+        // поиск, чтобы грид результатов отражал текущее состояние для следующего теста в цепочке @Order.
         w.openBlock("protected void refreshGrid()");
         w.openBlock("try");
         w.writeLine("executeSearchIfPresent();");
@@ -3293,12 +3264,11 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // loadRowIntoTree(): right-click first row of the result grid, then click
-        // «Загрузить выбранные объекты в дерево» — the documented E3Core way to open a
-        // record's «Единый объект» card. Returns true if any item was clicked. Caller
-        // should then waitUntil(isOnRecordCard()) to confirm the card actually opened.
-        // We call this at the END of testFieldsPresent so the next testGrid* tests start
-        // with the card already loaded (instead of having to open it from scratch).
+        // loadRowIntoTree(): правый клик по первой строке грида результатов, затем клик
+        // «Загрузить выбранные объекты в дерево» — штатный для E3Core способ открыть карточку
+        // «Единый объект». Возвращает true, если пункт был нажат. Дальше вызывающий код должен
+        // через waitUntil(isOnRecordCard()) убедиться, что карточка открылась. Вызывается в конце
+        // testFieldsPresent, чтобы следующие testGrid* стартовали с уже загруженной карточкой.
         w.openBlock("protected boolean loadRowIntoTree()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -3326,7 +3296,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        // Right-click on first row to open context menu
+        // Правый клик по первой строке для открытия контекстного меню
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(firstRow).contextClick().perform();");
         w.writeLine("Thread.sleep(600);");
@@ -3335,7 +3305,7 @@ public class TestGenerator {
         w.writeLine("System.out.println(\"loadRowIntoTree: contextClick failed: \" + e.getMessage());");
         w.writeLine("return false;");
         w.closeBlock();
-        // Find «Загрузить выбранные объекты в дерево» in the context menu
+        // Ищем «Загрузить выбранные объекты в дерево» в контекстном меню
         w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
         w.writeLine("    \"//span[contains(@class,'x-menu-item-text')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"");
         w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.), '\\u0417\\u0430\\u0433\\u0440\\u0443\\u0437\\u0438\\u0442\\u044c \\u0432\\u044b\\u0431\\u0440\\u0430\\u043d\\u043d\\u044b\\u0435')]\"));");
@@ -3351,8 +3321,8 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
-        // Diagnostic dump: what items WERE in the context menu? Helps when the menu opens but
-        // doesn't have the expected entry.
+        // Диагностический дамп: какие пункты были в контекстном меню? Полезно, когда меню
+        // открылось, но нужного пункта в нём нет.
         w.writeLine("List<WebElement> anyItems = driver.findElements(By.cssSelector(\".x-menu-item-text\"));");
         w.writeLine("int shown = 0;");
         w.openBlock("for (WebElement m : anyItems)");
@@ -3386,10 +3356,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // clickEntityMenuItem: robust replacement for the brittle menuAction. Uses stem-matching
-        // (same as descendMenu) instead of contains(text(), exact). The v6.5 run showed menuAction
-        // failing silently because contains(text(),'ГСК/ОГСК') doesn't match items that ExtJS may
-        // render with extra whitespace, NBSP, or wrapper elements.
+        // clickEntityMenuItem: надёжная замена хрупкому menuAction. Использует подбор по основам
+        // слов (как descendMenu) вместо точного contains(text()). Простой contains(text(),'ГСК/ОГСК')
+        // не совпадает с пунктами, которые ExtJS рисует с лишними пробелами, NBSP или обёртками.
         w.openBlock("protected boolean clickEntityMenuItem(String entityName, String[] actionsToTry)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
@@ -3454,10 +3423,10 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // ====== v5: explicit waits + step timing ======
+        // ====== Явные ожидания + замер времени шагов ======
 
-        // waitUntil: poll a condition until it's true or timeout. On timeout, log and return false
-        // — keeps tests robust without throwing, so a slow ExtJS render doesn't abort the whole test.
+        // waitUntil: опрашивает условие, пока оно не станет true или не истечёт таймаут. По таймауту
+        // логирует и возвращает false (не бросает исключение), чтобы медленный рендер ExtJS не валил тест.
         w.openBlock("protected boolean waitUntil(java.util.function.Function<WebDriver, Boolean> cond, int seconds, String desc)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(100));");
         w.openBlock("try");
@@ -3474,11 +3443,10 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // waitForDialog/waitForDialogClose: replace blind Thread.sleep around modal interactions.
-        // With per-class cache: if the FIRST waitForDialog call in a test class times out, set
-        // addDialogFailed=true and have subsequent calls return false immediately. Saves ~8s per
-        // CRUD test after the first failure (testCreate, testUpdate, testRequiredFieldValidation,
-        // testPartialRequiredFieldValidation, testCreateOnlyRequired, testMaskedFieldInput).
+        // waitForDialog/waitForDialogClose: заменяют слепые Thread.sleep вокруг работы с модалками.
+        // С кэшем на класс: если первый вызов waitForDialog истёк по таймауту, ставим
+        // addDialogFailed=true, и последующие вызовы сразу возвращают false. Экономит ~8с на каждый
+        // CRUD-тест после первого провала.
         w.openBlock("protected boolean waitForDialog()");
         w.openBlock("if (addDialogFailed)");
         w.writeLine("System.out.println(\"waitForDialog: cached miss — skipping 4s wait\");");
@@ -3493,8 +3461,8 @@ public class TestGenerator {
         w.writeLine();
 
         w.openBlock("protected boolean waitForDialogClose()");
-        // 2с достаточно — реальное закрытие диалога ExtJS занимает <500мс. Раньше было 4с
-        // и каждый отказ формы съедал 4с зря на каждый submit (несколько раз за тест).
+        // 2с достаточно — реальное закрытие диалога ExtJS занимает <500мс, а большее ожидание
+        // зря тратит время на каждый submit при отказе формы.
         w.writeLine("return waitUntil(d -> !isDialogOpen(), 2, \"dialog close\");");
         w.closeBlock();
         w.writeLine();
@@ -3509,10 +3477,10 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // waitForGridSettle: wait until visible row count is stable for ~500ms. Used after Create /
-        // Delete / Archive / Search to ensure the result grid reflects the new state.
-        // Don't settle on 0 rows in the first 3s — gives the grid a head start to begin loading
-        // before we accept "stably empty" (legitimately empty result sets pass through quickly).
+        // waitForGridSettle: ждёт, пока число видимых строк не стабилизируется на ~500мс.
+        // Используется после Create/Delete/Archive/Search, чтобы грид отражал новое состояние.
+        // В первые 3с не принимаем 0 строк — даём гриду фору на загрузку, прежде чем признать его
+        // «стабильно пустым» (по-настоящему пустые результаты проходят быстро).
         w.openBlock("protected boolean waitForGridSettle()");
         w.writeLine("final long started = System.currentTimeMillis();");
         w.writeLine("final int[] prev = { Integer.MIN_VALUE };");
@@ -3533,8 +3501,8 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // step: time a chunk of test work and log "[step] name: NNNms". The HTML report parser
-        // pulls these lines back out so each test rendering is a mini gantt of where time went.
+        // step: замеряет кусок работы теста и логирует «[step] name: NNNms». Парсер HTML-отчёта
+        // вытаскивает эти строки, так что каждый тест получает мини-диаграмму распределения времени.
         w.openBlock("protected <T> T step(String name, java.util.function.Supplier<T> body)");
         w.writeLine("long t0 = System.currentTimeMillis();");
         w.openBlock("try");
@@ -3552,9 +3520,9 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // logSearchParams: emit a block the HTML/CSV report can lift out, showing exactly which
-        // values went into the form. Without this the search test is a black box — value passed
-        // was either "Test_<NAME>" or a synthetic mask string, but the user never saw which.
+        // logSearchParams: печатает блок, который HTML/CSV-отчёт может извлечь, показывая, какие
+        // именно значения ушли в форму. Без этого тест поиска — чёрный ящик: непонятно, какое
+        // значение было передано.
         w.openBlock("protected void logSearchParams(String searchName, java.util.LinkedHashMap<String, String> params)");
         w.writeLine("System.out.println(\"=== Search params for '\" + searchName + \"' ===\");");
         w.openBlock("for (java.util.Map.Entry<String, String> e : params.entrySet())");
@@ -3589,39 +3557,4 @@ public class TestGenerator {
         w.writeToFile(dir, "TestData.java");
     }
 
-    private void generateSubsystemsSmokeTest(Path srcDir, String basePackage) throws IOException {
-        String packageName = basePackage + ".test";
-        Path dir = srcDir.resolve(packageName.replace('.', '/'));
-        JavaFileWriter w = new JavaFileWriter();
-
-        w.writeLine("package " + packageName + ";");
-        w.writeLine();
-        w.writeLine("import org.junit.jupiter.api.DynamicTest;");
-        w.writeLine("import org.junit.jupiter.api.TestFactory;");
-        w.writeLine("import org.junit.jupiter.api.TestInstance;");
-        w.writeLine("import " + basePackage + ".SharedDriver;");
-        w.writeLine("import " + basePackage + ".SharedDriver.SmokeResult;");
-        w.writeLine("import java.util.stream.Stream;");
-        w.writeLine("import static org.junit.jupiter.api.Assertions.assertTrue;");
-        w.writeLine();
-        w.writeLine("/**");
-        w.writeLine(" * Smoke check: opens each discovered subsystem and reports each as a dynamic test.");
-        w.writeLine(" * Results are produced during SharedDriver.initialize() and read here.");
-        w.writeLine(" */");
-        w.writeLine("@TestInstance(TestInstance.Lifecycle.PER_CLASS)");
-        w.openBlock("public class SubsystemsSmokeTest");
-        w.writeLine();
-        w.writeLine("@TestFactory");
-        w.openBlock("Stream<DynamicTest> smokeAllSubsystems()");
-        w.writeLine("// Trigger SharedDriver initialization (login + smoke) if not yet done.");
-        w.writeLine("SharedDriver.getDriver();");
-        w.writeLine("return SharedDriver.getSmokeResults().stream()");
-        w.writeLine("    .map(r -> DynamicTest.dynamicTest(");
-        w.writeLine("        \"\\u041f\\u043e\\u0434\\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u0430: \" + r.name,");
-        w.writeLine("        () -> assertTrue(r.ok, r.error)));");
-        w.closeBlock();
-        w.closeBlock();
-
-        w.writeToFile(dir, "SubsystemsSmokeTest.java");
-    }
 }

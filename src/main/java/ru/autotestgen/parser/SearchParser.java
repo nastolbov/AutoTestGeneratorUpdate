@@ -16,8 +16,8 @@ import static ru.autotestgen.parser.StaxUtils.parseInt;
 import static ru.autotestgen.parser.XmlNamespaces.NS_E3;
 
 /**
- * Parses the {@code <Searches>} XML block into a list of {@link Search} objects,
- * including their parameters and result-grid descriptors.
+ * Разбирает XML-блок {@code <Searches>} в список объектов {@link Search}
+ * вместе с их параметрами и описанием грида результатов.
  */
 public class SearchParser {
 
