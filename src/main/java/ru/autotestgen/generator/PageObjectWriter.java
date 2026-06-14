@@ -173,7 +173,25 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(150);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+clear+sendKeys+ENTER)\");");
+        // ENTER коммитит ячейку, НО в ExtJS PropertyGrid keynav сразу открывает редактор
+        // СЛЕДУЮЩЕЙ строки → после ввода остаётся «лишний» открытый редактор (запись «дёргается»,
+        // выглядит как от TAB). При create этот пустой редактор потом коммитился поверх
+        // обязательного поля → «Готово» слал неполные данные → запись не сохранялась. Поэтому
+        // сразу гасим любой активный редактор гридов/propertygrid (stopEditing(false) коммитит
+        // ТЕКУЩЕЕ значение и закрывает) + blur, чтобы соседний редактор НЕ оставался открытым.
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { if (typeof Ext==='undefined') return;\"");
+        w.writeLine("    + \" var gs=[]; if (Ext.ComponentQuery && Ext.ComponentQuery.query) gs=Ext.ComponentQuery.query('propertygrid,editorgrid,grid');\"");
+        w.writeLine("    + \" else if (Ext.ComponentMgr && Ext.ComponentMgr.all){ var a=Ext.ComponentMgr.all.items||[]; for(var i=0;i<a.length;i++){var c=a[i]; if(c&&c.stopEditing) gs.push(c);} }\"");
+        w.writeLine("    + \" for (var i=0;i<gs.length;i++){ try{ if(gs[i].stopEditing) gs[i].stopEditing(false); }catch(e){} }\"");
+        w.writeLine("    + \" try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}\"");
+        w.writeLine("    + \"} catch(e){}\");");
+        w.writeLine("Thread.sleep(120);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+clear+sendKeys+ENTER+stopEditing)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();

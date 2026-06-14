@@ -1014,22 +1014,16 @@ public class TestClassWriter {
         w.writeLine("hitVia = \"marker(ExtJS store)\";");
         w.closeBlock();
         w.writeLine();
-        // Уровень 4 (последний): любое из заполненных значений видно
-        w.openBlock("if (!markerInGrid && !filledSnapshot.isEmpty())");
-        w.openBlock("for (java.util.Map.Entry<String,String> e : filledSnapshot.entrySet())");
-        w.writeLine("String v = e.getValue();");
-        w.openBlock("if (v != null && !v.isEmpty() && gridContainsRow(v))");
-        w.writeLine("markerInGrid = true;");
-        w.writeLine("hitVia = \"field '\" + e.getKey() + \"' = '\" + v + \"'(DOM)\";");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.closeBlock();
-        w.closeBlock();
+        // НЕТ Уровня 4 (any-value fallback). Раньше тут было: «любое из заполненных значений
+        // видно в гриде → зачёт». Это давало ЛОЖНЫЙ ЗЕЛЁНЫЙ — НЕуникальные значения (тип/дропдаун,
+        // напр. «ГСК») встречаются в уже существующих строках, и тест проходил, хотя НАША запись
+        // (с уникальным маркером AT…) на самом деле НЕ сохранилась. Признаём create успешным
+        // ТОЛЬКО по уникальному маркеру (Уровни 1-3). Если маркера нет — честный красный.
         w.writeLine("System.out.println(\"testCreate: markerInGrid=\" + markerInGrid + (hitVia.isEmpty() ? \"\" : \" via \" + hitVia) + \" rowsAfter=\" + rowsAfter);");
         w.writeLine("shot(markerInGrid ? \"marker_in_grid\" : \"final_grid\");");
         if (markerField != null) {
             w.writeLine("assertTrue(markerInGrid,");
-            w.writeLine("    \"Create test: ни маркер '\" + createdMarker + \"', ни одно из заполненных значений \" + filledSnapshot.values() + \" не найдено в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась. Popup после Готово='\" + createPopupText + \"'.\");");
+            w.writeLine("    \"Create test: уникальный маркер '\" + createdMarker + \"' НЕ найден в гриде после ре-поиска (rowsBefore=\" + rowsBefore + \", rowsAfter=\" + rowsAfter + \"). Запись не сохранилась. Заполняли: \" + filledSnapshot.values() + \". Popup после Готово='\" + createPopupText + \"'.\");");
         } else {
             w.writeLine("assertTrue(rowsAfter >= rowsBefore,");
             w.writeLine("    \"Table should have same or more records after creation (\" + rowsBefore + \" -> \" + rowsAfter + \")\");");
@@ -1133,7 +1127,12 @@ public class TestClassWriter {
         w.writeLine("    + \"  try { var all=Ext.ComponentMgr.all; var arr=all.items||(all.getRange?all.getRange():[]);\"");
         w.writeLine("    + \"    for (var i=0;i<arr.length;i++){ var c=arr[i]; if (c && (c.stopEditing || c.activeEditor || c.editingPlugin)) cmps.push(c); } } catch(e) {}\"");
         w.writeLine("    + \"}\"");
+        // ВАЖНО: сперва ОТМЕНЯЕМ активный редактор, если он ПУСТОЙ (keynav открыл соседнюю ячейку
+        // после ENTER в fill) — иначе completeEdit закоммитит пусто поверх уже заполненного
+        // обязательного поля → «Готово» отправит неполные данные → запись не сохранится. Только
+        // потом stopEditing(false) фиксирует уже введённые (закоммиченные) значения.
         w.writeLine("    + \"for (var i=0;i<cmps.length;i++){ var c=cmps[i];\"");
+        w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.field) { var f=c.activeEditor.field; var v=f.getValue?f.getValue():(f.getRawValue?f.getRawValue():''); if (v==null || (''+v).trim()==='') { if (c.activeEditor.cancelEdit) c.activeEditor.cancelEdit(); else if (c.stopEditing) c.stopEditing(true); } } } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.stopEditing) c.stopEditing(false); } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.activeEditor && c.activeEditor.completeEdit) c.activeEditor.completeEdit(); } catch(e){}\"");
         w.writeLine("    + \"  try { if (c.editingPlugin && c.editingPlugin.completeEdit) c.editingPlugin.completeEdit(); } catch(e){}\"");
