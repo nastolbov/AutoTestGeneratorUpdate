@@ -11,7 +11,7 @@ public class TestConfig {
     private String basePackage = "generated";
     private String siteType = "e3core"; // "e3core", "generic", "custom"
     private String subsystemName = ""; // E3Core: name of subsystem to select after login
-    private String testLevel = "basic"; // "smoke", "basic", "full"
+    private String testLevel = "full"; // уровень всегда максимальный (FULL); выбор убран из UI
     private boolean smokeAllSubsystems = false; // SubsystemsSmokeTest не генерируется (не нужен; флакал на 1-й попытке)
 
     public String getBaseUrl() { return baseUrl; }

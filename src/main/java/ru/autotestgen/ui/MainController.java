@@ -38,7 +38,6 @@ public class MainController {
     @FXML private PasswordField passwordField;
     @FXML private TextField outputDirField;
 
-    @FXML private ComboBox<String> testLevelCombo;
     @FXML private CheckBox fastModeCheck;
 
     private final ComboBox<String> siteTypeCombo = new ComboBox<>();
@@ -105,9 +104,7 @@ public class MainController {
         btnRunSelected.setDisable(true);
         progressBar.setVisible(false);
 
-        // Test level selector
-        testLevelCombo.getItems().addAll("SMOKE", "BASIC", "FULL");
-        testLevelCombo.getSelectionModel().select(1); // BASIC by default
+        // Уровень тестов всегда FULL (максимальный) — выбор уровня убран из UI.
 
         // Site type selector
         siteTypeCombo.getItems().addAll("E3Core (ExtJS)", "Обычный HTML-сайт", "Свой (Custom)");
@@ -320,9 +317,8 @@ public class MainController {
             int siteIdx = siteTypeCombo.getSelectionModel().getSelectedIndex();
             config.setSiteType(siteIdx == 0 ? "e3core" : siteIdx == 1 ? "generic" : "custom");
             config.setSubsystemName(subsystemField.getText());
-            // Test level from ComboBox
-            String selectedLevel = testLevelCombo.getSelectionModel().getSelectedItem();
-            config.setTestLevel(selectedLevel != null ? selectedLevel.toLowerCase() : "basic");
+            // Уровень тестов всегда максимальный (FULL) — выбора больше нет.
+            config.setTestLevel("full");
             // SubsystemsSmokeTest не нужен — оставляем default (false), отдельного UI-тумблера нет.
 
             TestGenerator generator = new TestGenerator(config);
