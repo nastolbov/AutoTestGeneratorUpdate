@@ -190,6 +190,19 @@ public class TestClassWriter {
             // Для них стандартный testCreate/testUpdate (через wizard-модалку) не работает.
             boolean inlineTable = entity.isInlineTableEntity();
 
+            // Маркер-поле (строковое, не системное/FK) — им штампуем уникальное значение, чтобы
+            // потом найти/проверить запись. Нужно и для create, и для seed-then-delete/archive.
+            Property markerField = findMarkerField(displayProperties);
+            // canSeed: можем РЕАЛЬНО создать свою запись (есть INSERT, модальная форма, маркер-поле)
+            // и затем удалить/архивировать именно её — без риска для чужих данных и без заглушек.
+            boolean canSeed = !inlineTable && hasCrud
+                    && hasModifier(crudOperation, ModifyType.INSERT) && markerField != null;
+            boolean needSeedHelper = canSeed && (hasModifier(crudOperation, ModifyType.DELETE)
+                    || hasModifier(crudOperation, ModifyType.ARCHIVE));
+            if (needSeedHelper) {
+                writeSeedHelper(w, markerField);
+            }
+
             // Test 3: Create (Insert)
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT)) {
                 if (inlineTable) {
@@ -208,9 +221,9 @@ public class TestClassWriter {
                 }
             }
 
-            // Test 5: Delete
+            // Test 5: Delete — реальный seed-then-delete (создаём свою запись и удаляем её).
             if (hasCrud && hasModifier(crudOperation, ModifyType.DELETE)) {
-                writeDeleteTest(w);
+                writeDeleteTest(w, canSeed, markerField);
             }
 
             // Test 6: Logical Edit
@@ -218,9 +231,9 @@ public class TestClassWriter {
                 writeLogicalEditTest(w);
             }
 
-            // Test 7: Archive
+            // Test 7: Archive — реальный seed-then-archive.
             if (hasCrud && hasModifier(crudOperation, ModifyType.ARCHIVE)) {
-                writeArchiveTest(w);
+                writeArchiveTest(w, canSeed, markerField);
             }
 
             // Test: Partial validation (fill only first required field)
@@ -294,26 +307,8 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine();
 
-        // @BeforeEach: navigate to parent → open card → switch to child tab
-        w.writeLine("@BeforeEach");
-        w.openBlock("void setUp()");
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(PARENT_ENTITY_NAME, PARENT_FEATURE_NAME);");
-        w.writeLine("assumeNavigated();");
-        w.writeLine("boolean cardOpened = selectAndOpenRecord();");
-        w.writeLine("Assumptions.assumeTrue(cardOpened, \"Could not open parent '\" + PARENT_ENTITY_NAME + \"' record card\");");
-        w.writeLine("waitForCardLoaded(10);");
-        w.writeLine("shot(\"parent_card\");");
-        w.writeLine("boolean tabOpened = openTab(TAB_NAME);");
-        w.writeLine("Assumptions.assumeTrue(tabOpened, \"Tab '\" + TAB_NAME + \"' not found in parent card\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"child_tab\");");
-        w.writeLine("page = new " + pageClassName + "(driver);");
-        w.closeBlock();
-        w.writeLine();
+        // @BeforeEach: navigate to parent → open card → switch to child tab (надёжно, с ретраем)
+        writeRobustChildSetUp(w, pageClassName, "TAB_NAME", "вкладка");
 
         w.writeLine("@AfterEach");
         w.openBlock("void captureFinalShot(TestInfo testInfo)");
@@ -393,26 +388,8 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine();
 
-        // @BeforeEach: navigate to parent → open card → expand tree node
-        w.writeLine("@BeforeEach");
-        w.openBlock("void setUp()");
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(PARENT_ENTITY_NAME, PARENT_FEATURE_NAME);");
-        w.writeLine("assumeNavigated();");
-        w.writeLine("boolean cardOpened = selectAndOpenRecord();");
-        w.writeLine("Assumptions.assumeTrue(cardOpened, \"Could not open parent '\" + PARENT_ENTITY_NAME + \"' record card\");");
-        w.writeLine("waitForCardLoaded(10);");
-        w.writeLine("shot(\"parent_card\");");
-        w.writeLine("boolean nodeOpened = openTab(NODE_NAME);");
-        w.writeLine("Assumptions.assumeTrue(nodeOpened, \"Tree node '\" + NODE_NAME + \"' not found in parent card\");");
-        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"tree_node\");");
-        w.writeLine("page = new " + pageClassName + "(driver);");
-        w.closeBlock();
-        w.writeLine();
+        // @BeforeEach: navigate to parent → open card → expand tree node (надёжно, с ретраем)
+        writeRobustChildSetUp(w, pageClassName, "NODE_NAME", "узел дерева");
 
         w.writeLine("@AfterEach");
         w.openBlock("void captureFinalShot(TestInfo testInfo)");
@@ -463,12 +440,81 @@ public class TestClassWriter {
         w.writeLine();
     }
 
+    /**
+     * Эмитит надёжный @BeforeEach для дочерней сущности: до 3 попыток
+     * navigateToEntity(родитель) → проверка что грид не пуст → selectAndOpenRecord → openTab/openTreeNode.
+     * При окончательной неудаче — НЕ тихий skip (он прятал дефект), а честный fail со скрином и
+     * диагностикой, чтобы реальная проблема навигации была видна. {@code tabConst} — имя константы
+     * (TAB_NAME / NODE_NAME), {@code kindLabel} — «вкладка»/«узел дерева» для сообщения.
+     */
+    private void writeRobustChildSetUp(JavaFileWriter w, String pageClassName, String tabConst, String kindLabel) {
+        w.writeLine("@BeforeEach");
+        w.openBlock("void setUp()");
+        w.writeLine("boolean ready = false;");
+        w.writeLine("String failReason = \"навигация не начиналась\";");
+        w.openBlock("for (int attempt = 1; attempt <= 3 && !ready; attempt++)");
+        w.openBlock("try");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(PARENT_ENTITY_NAME, PARENT_FEATURE_NAME);");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("int parentRows = getVisibleRowCount();");
+        w.writeLine("System.out.println(\"child setUp: attempt=\" + attempt + \" parent='\" + PARENT_ENTITY_NAME + \"' gridRows=\" + parentRows);");
+        // Грид родителя пуст → нет записи, чтобы открыть карточку. Ещё раз дернём поиск и повторим.
+        w.openBlock("if (parentRows <= 0)");
+        w.writeLine("failReason = \"родитель '\" + PARENT_ENTITY_NAME + \"': грид пуст (нет записи для открытия карточки)\";");
+        w.writeLine("executeSearchIfPresent();");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("parentRows = getVisibleRowCount();");
+        w.openBlock("if (parentRows <= 0)");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("boolean cardOpened = selectAndOpenRecord();");
+        w.openBlock("if (!cardOpened)");
+        w.writeLine("failReason = \"родитель '\" + PARENT_ENTITY_NAME + \"': карточка записи не открылась\";");
+        w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("waitForCardLoaded(10);");
+        w.writeLine("shot(\"parent_card\");");
+        w.writeLine("boolean tabOpened = openTab(" + tabConst + ");");
+        w.openBlock("if (!tabOpened)");
+        w.writeLine("failReason = \"" + kindLabel + " '\" + " + tabConst + " + \"' не найден(а) в карточке родителя\";");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("ready = true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("failReason = \"исключение: \" + e.getMessage();");
+        w.writeLine("System.out.println(\"child setUp attempt=\" + attempt + \" threw: \" + e.getMessage());");
+        w.closeBlock();
+        w.closeBlock();
+        // Честная реальность вместо тихого skip: если контекст не подготовлен — падаем с диагностикой.
+        w.openBlock("if (!ready)");
+        w.writeLine("dumpCardDiagnostics();");
+        w.writeLine("shot(\"child_setup_failed\");");
+        w.writeLine("fail(\"Child '\" + ENTITY_NAME + \"': не удалось подготовить контекст за 3 попытки — \" + failReason");
+        w.writeLine("    + \". (Сценарий: родитель → карточка → \" + " + tabConst + " + \"). Это реальная проблема навигации, не заглушка.\");");
+        w.closeBlock();
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"child_tab\");");
+        w.writeLine("page = new " + pageClassName + "(driver);");
+        w.closeBlock();
+        w.writeLine();
+    }
+
     private void writeChildGridColumnsTest(JavaFileWriter w, List<Property> gridColumns, String tabName) {
         w.writeLine("@Test");
         w.writeLine("@Order(1)");
         w.writeLine("@DisplayName(\"Grid columns: " + tabName.replace("\"", "\\\"") + "\")");
         w.openBlock("void testGridColumns()");
         w.writeLine("shot(\"grid_view\");");
+        w.writeLine("int rows = getVisibleRowCount();");
+        w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "' rows: \" + rows);");
         if (!gridColumns.isEmpty()) {
             w.writeLine("int colsFound = 0;");
             w.writeLine("java.util.List<String> missingCols = new java.util.ArrayList<>();");
@@ -485,13 +531,17 @@ public class TestClassWriter {
             w.writeLine("System.out.println(\"  missing: \" + String.join(\", \", missingCols));");
             w.closeBlock();
             w.writeLine("shot(\"columns_checked\");");
-            w.writeLine("Assumptions.assumeTrue(colsFound >= 1,");
-            w.writeLine("    \"Grid '" + tabName.replace("\"", "\\\"") + "': 0 of " + gridColumns.size() + " columns found — selectors don't match this build. Missing: \" + String.join(\", \", missingCols));");
+            // РЕАЛЬНАЯ проверка (не skip): грид вкладки должен отрисоваться — либо нашли колонки,
+            // либо в гриде есть строки. Если 0 колонок И 0 строк — это реальная проблема (грид не
+            // открылся / селекторы не подходят), честный красный с диагностикой.
+            w.openBlock("if (colsFound == 0 && rows <= 0)");
+            w.writeLine("dumpCardDiagnostics();");
+            w.closeBlock();
+            w.writeLine("assertTrue(colsFound >= 1 || rows > 0,");
+            w.writeLine("    \"Grid '" + tabName.replace("\"", "\\\"") + "': грид вкладки не отрисован — 0 of " + gridColumns.size() + " колонок найдено И 0 строк. Missing: \" + String.join(\", \", missingCols));");
         } else {
             w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "': no columns defined in model\");");
         }
-        w.writeLine("int rows = getVisibleRowCount();");
-        w.writeLine("System.out.println(\"Grid '" + tabName.replace("\"", "\\\"") + "' rows: \" + rows);");
         w.closeBlock();
         w.writeLine();
     }
@@ -1721,75 +1771,143 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeDeleteTest(JavaFileWriter w) {
+    /** Первое строковое не-системное, не-FK поле — им штампуем уникальный маркер. */
+    private Property findMarkerField(List<Property> displayProperties) {
+        return displayProperties.stream()
+                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Эмитит per-class helper {@code createRecordReturningMarker()} — создаёт РЕАЛЬНУЮ запись
+     * через главное меню (как testCreate) и возвращает её уникальный маркер (или "" при неудаче).
+     * Используется delete/archive, чтобы удалять/архивировать СВОЮ запись, не трогая чужие данные
+     * и без заглушек.
+     */
+    private void writeSeedHelper(JavaFileWriter w, Property markerField) {
+        String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+        String mfDisplay = markerField.getName().replace("\\", "\\\\").replace("\"", "\\\"");
+        w.writeLine("/** Создаёт реальную запись и возвращает её уникальный маркер (или \"\" при неудаче). */");
+        w.openBlock("private String createRecordReturningMarker()");
+        w.writeLine("if (!addViaMenu(ENTITY_NAME)) { System.out.println(\"seed: '\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c' не открылось\"); return \"\"; }");
+        w.writeLine("if (!waitForAddForm()) { System.out.println(\"seed: форма добавления не открылась\"); return \"\"; }");
+        w.writeLine("step(\"seed: fill all fields\", () -> page.fillAllFieldsExcept(\"" + mfDisplay + "\"));");
+        w.writeLine("String marker = \"AT\" + System.nanoTime();");
+        w.writeLine("step(\"seed: stamp marker\", () -> page." + fillMethod + "(marker));");
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        writeCommitAllEditorsScript(w);
+        w.writeLine("boolean ok = clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\");");
+        w.writeLine("if (!ok) ok = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("if (!ok) ok = clickButtonByText(\"OK\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForDialogClose();");
+        w.writeLine("try { Thread.sleep(2500); } catch (InterruptedException ignored) {}");
+        w.openBlock("if (isDialogOpen() || isButtonVisible(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"))");
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(500);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("System.out.println(\"seed: создана запись marker='\" + marker + \"' (saveClicked=\" + ok + \")\");");
+        w.writeLine("return ok ? marker : \"\";");
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /** Эмитит фильтрованный поиск по маркеру (вписать в поле-маркер + выполнить поиск). */
+    private void writeFilterByMarker(JavaFileWriter w, String fillMethod) {
+        w.openBlock("try");
+        w.writeLine("page." + fillMethod + "(marker);");
+        w.writeLine("executeSearchIfPresent();");
+        w.writeLine("waitForGridSettle();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+    }
+
+    private void writeDeleteTest(JavaFileWriter w, boolean canSeed, Property markerField) {
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
         w.writeLine("@DisplayName(\"Delete record\")");
         w.openBlock("void testDelete()");
-        w.writeLine("shot(\"initial_grid\");");
-        w.writeLine("int rowsBefore = page.getTableRowCount();");
-        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: захватываем подпись удаляемой записи ДО открытия карточки.
-        // Раньше захват шёл ПОСЛЕ selectAndOpenRecord() — карточка уже на экране,
-        // .x-grid3-row-selected находит селекцию в чужом гриде/таблице, а лидирующая
-        // ячейка «номер строки» (1) делает маркер несамоидентифицирующим — после удаления
-        // на ту же позицию встаёт следующая запись и markerGone всегда был false.
-        // captureFirstResultRowSignature() берёт первую строку самого большого видимого
-        // грида и срезает ведущую цифровую ячейку.
-        w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
-        w.writeLine("System.out.println(\"testDelete: маркер удаляемой записи (ДО открытия карточки) = '\" + deletedMarker + \"'\");");
-        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("shot(\"row_selected\");");
-        w.openBlock("try");
-        w.writeLine("step(\"click Удалить in card toolbar\", () -> clickEditDropdownAction(\"Удалить\"));");
-        w.closeBlock();
-        w.openBlock("catch (Exception e)");
-        w.writeLine("driver.findElement(By.xpath(\"//button[contains(text(), 'Удалить')] | //button[contains(text(), 'Готово')]\")).click();");
-        w.closeBlock();
-        w.writeLine("shot(\"delete_clicked\");");
-        w.writeLine("acceptAlertIfPresent();");
-        // Захватываем popup ПЕРЕД и ПОСЛЕ confirm — если сервер отверг удаление
-        // (FK references, системная запись и т.п.), увидим причину.
-        w.writeLine("String deletePopupText = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
-        w.writeLine("System.out.println(\"testDelete: popup после Удалить = '\" + deletePopupText + \"'\");");
-        // E3Core открывает ExtJS-confirm «Да/Нет» — без клика на «Да» удаление не применяется.
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("shot(\"after_confirm\");");
-        w.writeLine("String deletePopupAfter = capturePopupText(\"after-confirm\");");
-        w.openBlock("if (!deletePopupAfter.isEmpty() && !deletePopupAfter.equals(deletePopupText))");
-        w.writeLine("System.out.println(\"testDelete: popup после confirm = '\" + deletePopupAfter + \"'\");");
-        w.writeLine("deletePopupText = deletePopupAfter;");
-        w.closeBlock();
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_delete\");");
-        w.writeLine();
-        w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after deleting a record\");");
-        w.writeLine();
-        // ВАЖНО: после удаления текущий грид — это либо карточка, либо child-грид внутри
-        // карточки, либо вообще тот же экран с одной строкой про удалённый объект. Считать
-        // строки и искать маркер ТАМ бессмысленно. Возвращаемся к таблице результатов
-        // (закрываем карточку → ре-навигируем → ре-выполняем поиск) и только потом сравниваем.
-        w.writeLine("resetState();");
-        w.writeLine("navigationAttempted = false;");
-        w.writeLine("cardOpenAttempted = false;");
-        w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_renavigate\");");
-        w.writeLine();
-        w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("boolean markerGone = deletedMarker.isEmpty() ? false : !gridContainsRow(deletedMarker);");
-        w.writeLine("System.out.println(\"testDelete: rows \" + rowsBefore + \" -> \" + rowsAfter + \", markerGone=\" + markerGone);");
-        // Маркер — единственный надёжный сигнал. Row count шумит из-за чужих гридов.
-        w.openBlock("if (deletedMarker.isEmpty())");
-        w.writeLine("Assumptions.assumeTrue(false, \"Delete: не удалось захватить маркер удаляемой записи — пропускаем\");");
-        w.closeBlock();
-        w.openBlock("else");
-        w.writeLine("assertTrue(markerGone,");
-        w.writeLine("    \"Delete: после ре-навигации к таблице результатов rows \" + rowsBefore + \" -> \" + rowsAfter");
-        w.writeLine("    + \" AND маркер '\" + deletedMarker + \"' всё ещё в гриде — запись не удалилась.\"");
-        w.writeLine("    + \" Popup сервера='\" + deletePopupText + \"' (типичная причина: запись используется как FK в других таблицах или удаление справочника запрещено).\");");
-        w.closeBlock();
+        w.writeLine("shot(\"start\");");
+        if (canSeed) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            // 1) Создаём СВОЮ запись (реально, через меню) — её и будем удалять.
+            w.writeLine("String marker = createRecordReturningMarker();");
+            w.writeLine("assertTrue(!marker.isEmpty(),");
+            w.writeLine("    \"testDelete: не удалось СОЗДАТЬ запись для удаления (seed) — нечего удалять. См. seed-логи выше.\");");
+            // 2) Ре-навигация + фильтрованный поиск своей записи.
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            writeFilterByMarker(w, fillMethod);
+            w.writeLine("shot(\"found_for_delete\");");
+            w.writeLine("boolean present = gridContainsRow(marker) || gridStoreContainsText(marker);");
+            w.writeLine("assertTrue(present, \"testDelete: созданная запись '\" + marker + \"' не найдена в гриде для удаления\");");
+            // 3) Открываем нашу запись и удаляем.
+            w.writeLine("boolean opened = selectAndOpenRecord();");
+            w.writeLine("assertTrue(opened, \"testDelete: не удалось открыть созданную запись '\" + marker + \"'\");");
+            w.writeLine("waitForCardLoaded(8);");
+            w.writeLine("shot(\"record_opened\");");
+            w.openBlock("try");
+            w.writeLine("step(\"Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.writeLine("acceptAlertIfPresent();");
+            w.writeLine("String delPopup = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_delete\");");
+            w.writeLine("assertFalse(isErrorPresent(), \"testDelete: ошибка после удаления\");");
+            // 4) Ре-навигация + фильтрованный поиск → запись должна ИСЧЕЗНУТЬ.
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            writeFilterByMarker(w, fillMethod);
+            w.writeLine("shot(\"after_renavigate\");");
+            w.writeLine("boolean gone = !gridContainsRow(marker) && !gridStoreContainsText(marker);");
+            w.writeLine("System.out.println(\"testDelete: marker='\" + marker + \"' gone=\" + gone);");
+            w.writeLine("assertTrue(gone, \"testDelete: запись '\" + marker + \"' всё ещё в гриде после удаления.\"");
+            w.writeLine("    + \" Popup сервера='\" + delPopup + \"' (возможна FK-зависимость или защита от удаления).\");");
+        } else {
+            // Нет INSERT/строкового поля → нельзя безопасно создать свою запись. Удаляем существующую,
+            // но БЕЗ заглушки-false: если запись не определить — честный fail с диагностикой.
+            w.writeLine("int rowsBefore = page.getTableRowCount();");
+            w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
+            w.writeLine("System.out.println(\"testDelete (no-seed): маркер = '\" + deletedMarker + \"'\");");
+            w.openBlock("if (deletedMarker.isEmpty())");
+            w.writeLine("dumpCardDiagnostics();");
+            w.writeLine("fail(\"testDelete: у сущности нет INSERT/строкового поля для seed, и не удалось определить существующую запись для удаления (грид пуст?). rowsBefore=\" + rowsBefore);");
+            w.closeBlock();
+            w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
+            w.writeLine("shot(\"row_selected\");");
+            w.openBlock("try");
+            w.writeLine("step(\"Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.writeLine("acceptAlertIfPresent();");
+            w.writeLine("String delPopup = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("assertFalse(isErrorPresent(), \"testDelete: ошибка после удаления\");");
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_renavigate\");");
+            w.writeLine("boolean gone = !gridContainsRow(deletedMarker);");
+            w.writeLine("assertTrue(gone, \"testDelete: запись '\" + deletedMarker + \"' всё ещё в гриде после удаления. Popup='\" + delPopup + \"'.\");");
+        }
         w.closeBlock();
         w.writeLine();
     }
@@ -1820,43 +1938,78 @@ public class TestClassWriter {
         w.writeLine();
     }
 
-    private void writeArchiveTest(JavaFileWriter w) {
+    private void writeArchiveTest(JavaFileWriter w, boolean canSeed, Property markerField) {
         w.writeLine("@Test");
         w.writeLine("@Order(7)");
         w.writeLine("@DisplayName(\"Archive record\")");
         w.openBlock("void testArchive()");
-        w.writeLine("shot(\"initial_grid\");");
-        w.writeLine("int rowsBefore = page.getTableRowCount();");
-        // Захватываем подпись архивируемой записи ДО открытия карточки (см. testDelete).
-        w.writeLine("String archivedMarker = captureFirstResultRowSignature();");
-        w.writeLine("System.out.println(\"testArchive: маркер архивируемой записи (ДО открытия карточки) = '\" + archivedMarker + \"'\");");
-        w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
-        w.writeLine("shot(\"row_selected\");");
-        w.writeLine("step(\"click в Архив in card toolbar\", () -> clickEditDropdownAction(\"в Архив\"));");
-        w.writeLine("shot(\"archive_clicked\");");
-        w.writeLine("acceptAlertIfPresent();");
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("shot(\"after_confirm\");");
-        w.writeLine("waitForGridSettle();");
-        w.writeLine("shot(\"after_archive\");");
-        w.writeLine("assertFalse(isErrorPresent(), \"No errors should be present after archiving\");");
-        w.writeLine();
-        w.writeLine("int rowsAfter = page.getTableRowCount();");
-        w.writeLine("boolean markerGone = archivedMarker.isEmpty() ? false : !gridContainsRow(archivedMarker);");
-        // Если строк стало значительно больше — мы попали на дочерний грид внутри карточки
-        // (например, история объекта). Сравнение rowsBefore/rowsAfter теряет смысл — SKIP.
-        w.openBlock("if (rowsAfter > rowsBefore + 5)");
-        w.writeLine("Assumptions.assumeTrue(false, \"Archive: row count grew from \" + rowsBefore + \" to \" + rowsAfter");
-        w.writeLine("    + \" — we likely opened a different (child) grid; cannot compare archive result\");");
-        w.closeBlock();
-        w.openBlock("if (archivedMarker.isEmpty())");
-        w.writeLine("Assumptions.assumeTrue(rowsAfter < rowsBefore,");
-        w.writeLine("    \"Archive: could not capture marker AND row count unchanged (\" + rowsBefore + \" -> \" + rowsAfter + \") — archive may not be reachable on this build\");");
-        w.closeBlock();
-        w.openBlock("else");
-        w.writeLine("assertTrue(rowsAfter < rowsBefore || markerGone,");
-        w.writeLine("    \"Archive: rows \" + rowsBefore + \" -> \" + rowsAfter + \" AND archived row '\" + archivedMarker + \"' still in active grid\");");
-        w.closeBlock();
+        w.writeLine("shot(\"start\");");
+        if (canSeed) {
+            String fillMethod = "fill" + Transliterator.toClassName(markerField.getAttrName());
+            // 1) Создаём свою запись и архивируем именно её (без заглушек, не трогая чужие данные).
+            w.writeLine("String marker = createRecordReturningMarker();");
+            w.writeLine("assertTrue(!marker.isEmpty(),");
+            w.writeLine("    \"testArchive: не удалось СОЗДАТЬ запись для архивации (seed). См. seed-логи выше.\");");
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            writeFilterByMarker(w, fillMethod);
+            w.writeLine("shot(\"found_for_archive\");");
+            w.writeLine("assertTrue(gridContainsRow(marker) || gridStoreContainsText(marker),");
+            w.writeLine("    \"testArchive: созданная запись '\" + marker + \"' не найдена для архивации\");");
+            w.writeLine("boolean opened = selectAndOpenRecord();");
+            w.writeLine("assertTrue(opened, \"testArchive: не удалось открыть созданную запись '\" + marker + \"'\");");
+            w.writeLine("waitForCardLoaded(8);");
+            w.openBlock("try");
+            w.writeLine("step(\"в Архив\", () -> clickEditDropdownAction(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\"));");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.writeLine("acceptAlertIfPresent();");
+            w.writeLine("String arcPopup = capturePopupText(\"after-\\u0410\\u0440\\u0445\\u0438\\u0432\");");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("shot(\"after_archive\");");
+            w.writeLine("assertFalse(isErrorPresent(), \"testArchive: ошибка после архивации\");");
+            // 2) Ре-навигация + фильтрованный поиск → запись должна уйти из активного грида.
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            writeFilterByMarker(w, fillMethod);
+            w.writeLine("shot(\"after_renavigate\");");
+            w.writeLine("boolean gone = !gridContainsRow(marker) && !gridStoreContainsText(marker);");
+            w.writeLine("System.out.println(\"testArchive: marker='\" + marker + \"' goneFromActive=\" + gone);");
+            w.writeLine("assertTrue(gone, \"testArchive: запись '\" + marker + \"' всё ещё в активном гриде после архивации.\"");
+            w.writeLine("    + \" Popup сервера='\" + arcPopup + \"'.\");");
+        } else {
+            // Нет seed — архивируем существующую, но без заглушки-false: не определили запись → честный fail.
+            w.writeLine("int rowsBefore = page.getTableRowCount();");
+            w.writeLine("String archivedMarker = captureFirstResultRowSignature();");
+            w.writeLine("System.out.println(\"testArchive (no-seed): маркер = '\" + archivedMarker + \"'\");");
+            w.openBlock("if (archivedMarker.isEmpty())");
+            w.writeLine("dumpCardDiagnostics();");
+            w.writeLine("fail(\"testArchive: нет INSERT/строкового поля для seed и не удалось определить запись для архивации. rowsBefore=\" + rowsBefore);");
+            w.closeBlock();
+            w.writeLine("step(\"select + open record\", () -> selectAndOpenRecord());");
+            w.openBlock("try");
+            w.writeLine("step(\"в Архив\", () -> clickEditDropdownAction(\"\\u0432 \\u0410\\u0440\\u0445\\u0438\\u0432\"));");
+            w.closeBlock();
+            w.openBlock("catch (Exception ignored)");
+            w.closeBlock();
+            w.writeLine("acceptAlertIfPresent();");
+            w.writeLine("confirmDialogYes();");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("assertFalse(isErrorPresent(), \"testArchive: ошибка после архивации\");");
+            w.writeLine("resetState();");
+            w.writeLine("navigationAttempted = false; cardOpenAttempted = false; addDialogFailed = false;");
+            w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME);");
+            w.writeLine("waitForGridSettle();");
+            w.writeLine("boolean gone = !gridContainsRow(archivedMarker);");
+            w.writeLine("assertTrue(gone, \"testArchive: запись '\" + archivedMarker + \"' всё ещё в активном гриде после архивации\");");
+        }
         w.closeBlock();
         w.writeLine();
     }
