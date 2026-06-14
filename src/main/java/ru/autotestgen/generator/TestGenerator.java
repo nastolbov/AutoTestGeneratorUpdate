@@ -1036,12 +1036,20 @@ public class TestGenerator {
         w.writeLine("captureNavScreenshot(entityName, \"after-action\");");
         w.writeLine("return true;");
         w.closeBlock();
+        // Direct-click по пункту меню допустим ТОЛЬКО для навигации (Найти/Открыть) — клик по
+        // самому пункту открывает поиск сущности. Для «Добавить»/«Удалить» такой клик откроет НЕ
+        // ту форму (поиск вместо добавления), поэтому пункт без нужного подменю ПРОПУСКАЕМ и
+        // пробуем следующий совпавший пункт / подменю (например singular «Должностное лицо» с
+        // «Добавить», когда первым совпал plural «Должностные лица» без него).
+        w.openBlock("if (\"\\u041d\\u0430\\u0439\\u0442\\u0438\".equals(actionName) || \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\".equals(actionName))");
         w.writeLine("System.out.println(\"descendMenu: no 'Найти'/'Открыть' submenu — clicking item directly for '\" + entityName + \"'\");");
         w.writeLine("tryClickAllWays(item);");
         w.writeLine("Thread.sleep(500);");
         w.writeLine("captureNavScreenshot(entityName, \"after-direct\");");
         w.writeLine("return true;");
         w.closeBlock();
+        w.writeLine("System.out.println(\"descendMenu: пункт '\" + entityName + \"' без подменю '\" + actionName + \"' — пробуем следующий совпавший пункт/подменю\");");
+        w.closeBlock(); // end try (for-item)
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.closeBlock();
