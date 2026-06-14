@@ -1478,6 +1478,48 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // openResultRowByText: открывает ИМЕННО ту запись грида результатов, чья строка содержит
+        // marker (а не «самую большую группу строк», которой после фильтр-поиска часто оказывается
+        // property-grid уже открытой карточки). Игнорирует строки внутри property-grid. Физический
+        // double-click по data-ячейке строки → карточка записи открывается. Возвращает true/false.
+        w.openBlock("protected boolean openResultRowByText(String marker)");
+        w.openBlock("if (marker == null || marker.isEmpty())");
+        w.writeLine("return false;");
+        w.closeBlock();
+        // Сначала закрываем возможную открытую карточку, чтобы грид результатов был на переднем плане.
+        w.openBlock("try");
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(300);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.openBlock("try");
+        w.writeLine("WebElement cell = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var m=arguments[0]; var rows=document.querySelectorAll('.x-grid3-row, .x-grid-row');\"");
+        w.writeLine("    + \"for (var i=0;i<rows.length;i++){ var r=rows[i]; if (r.offsetHeight<=0||r.offsetWidth<=0) continue;\"");
+        // пропускаем строки property-grid (карточка), нам нужен грид результатов
+        w.writeLine("    + \"  var pg=r.closest?r.closest('.x-property-grid, .x-grid-property'):null; if (pg) continue;\"");
+        w.writeLine("    + \"  var t=(r.innerText||r.textContent||''); if (t.indexOf(m)<0) continue;\"");
+        w.writeLine("    + \"  var cells=r.querySelectorAll('.x-grid3-cell, .x-grid-cell, td');\"");
+        w.writeLine("    + \"  for (var c=0;c<cells.length;c++){ var ce=cells[c]; if (ce.offsetHeight<=0) continue; var ct=(ce.innerText||'').trim(); if (ct.length>2 && !/^\\\\d+$/.test(ct)) { try{ce.scrollIntoView(true);}catch(e){} return ce; } }\"");
+        w.writeLine("    + \"  return r; }\"");
+        w.writeLine("    + \"return null;\", marker);");
+        w.openBlock("if (cell == null)");
+        w.writeLine("System.out.println(\"openResultRowByText: строка с '\" + marker + \"' не найдена в гриде результатов\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("new org.openqa.selenium.interactions.Actions(driver).moveToElement(cell).doubleClick().perform();");
+        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("System.out.println(\"openResultRowByText: открыли запись с '\" + marker + \"'\");");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"openResultRowByText failed: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // Helper: accept alert
         w.openBlock("protected void acceptAlertIfPresent()");
         w.openBlock("try");

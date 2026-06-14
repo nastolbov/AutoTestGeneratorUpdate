@@ -568,6 +568,7 @@ public class TestClassWriter {
         writeLocateEditableGridScript(w, "colCount", false);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"child create: не нашли editable grid во вкладке '\" + TAB_NAME + \"' (код=\" + colCount + \")\");");
         writeGridDiagLog(w, "child testCreate");
+        writeEnsureRowAddedScript(w, "child testCreate");
         w.writeLine("Long newRowL = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"try { var s=window.__t2grid.getStore(); var mod=s.getModifiedRecords?s.getModifiedRecords():[]; var idx=-1;\"");
         w.writeLine("    + \" for (var i=0;i<mod.length;i++){ var r=mod[i]; if (r.phantom || r.newRecord){ var x=s.indexOf(r); if (x>idx) idx=x; } }\"");
@@ -646,8 +647,18 @@ public class TestClassWriter {
         writeLocateEditableGridScript(w, "colCount", true, true);
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"child delete: грид вкладки '\" + TAB_NAME + \"' пуст или не найден (код=\" + colCount + \")\");");
         writeReadGridCount(w, "countBefore");
-        w.writeLine("String deletedMarker = captureFirstResultRowSignature();");
+        // Маркер берём из ПЕРВОЙ строки ИМЕННО located-грида (window.__t2grid), а не через
+        // captureFirstResultRowSignature (она на пустом гриде хватала chrome вроде 'Сведения…').
+        w.writeLine("String deletedMarker = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { var s=window.__t2grid.getStore(); if(!s||s.getCount()<=0) return ''; var r=s.getAt(0); var d=r.data||{};\"");
+        w.writeLine("    + \" for (var k in d){ var v=d[k]; if(v!=null && (''+v).trim().length>1 && !/^\\\\d+$/.test(''+v)) return ''+v; } return ''; } catch(e){ return ''; }\");");
         w.writeLine("System.out.println(\"child testDelete: marker='\" + deletedMarker + \"' countBefore=\" + countBefore);");
+        // Если дочерний грид реально пуст — честно сообщаем (это состояние данных: у выбранной
+        // родительской записи нет дочерних строк), без бутафорского маркера.
+        w.openBlock("if (deletedMarker == null || deletedMarker.isEmpty())");
+        w.writeLine("dumpCardDiagnostics();");
+        w.writeLine("fail(\"child delete: дочерний грид вкладки '\" + TAB_NAME + \"' пуст — нет строки для удаления (у выбранной родительской записи нет дочерних данных). countBefore=\" + countBefore);");
+        w.closeBlock();
         w.writeLine("int editRow = 0;");
         writeSelectGridRowScript(w, "editRow");
         w.writeLine("shot(\"row_selected\");");
@@ -1233,6 +1244,27 @@ public class TestClassWriter {
      * КОЛОНКИ и пропускаются ещё ДО открытия редактора (иначе редактор даты залипает). Так
      * гарантированно заполняются обязательные поля (Нименование + НДЗ).
      */
+    /**
+     * Робастность для ПУСТОГО грида: после «Добавить» проверяем, что в window.__t2grid реально
+     * появилась строка. Если строк нет (на пустой сущности «Добавить» иногда не создаёт phantom
+     * с первого раза), повторяем «Добавить» + ждём маску. Без этого create на пустой сущности
+     * заполнял «пустоту» и запись не сохранялась.
+     */
+    private void writeEnsureRowAddedScript(JavaFileWriter w, String label) {
+        w.writeLine("Long __rows0 = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { return window.__t2grid ? window.__t2grid.getStore().getCount() : -1; } catch(e){ return -1; }\");");
+        w.writeLine("System.out.println(\"" + label + ": строк в редактируемом гриде после 'Добавить' = \" + __rows0);");
+        w.openBlock("if (__rows0 != null && __rows0 <= 0)");
+        w.writeLine("System.out.println(\"" + label + ": строка не создалась (пустая сущность) — повтор 'Добавить'\");");
+        w.writeLine("clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("try { Thread.sleep(700); } catch (InterruptedException ignored) {}");
+        w.writeLine("Long __rows1 = (Long) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try { return window.__t2grid ? window.__t2grid.getStore().getCount() : -1; } catch(e){ return -1; }\");");
+        w.writeLine("System.out.println(\"" + label + ": строк после повторного 'Добавить' = \" + __rows1);");
+        w.closeBlock();
+    }
+
     private void writeFillEditableCells(JavaFileWriter w, String label, String marker, String rowExpr, boolean singleTextField) {
         // 0. Разовый дамп column model выбранной строки — видно в логе, какие колонки реально
         //    редактируемы, где дата (по xtype/format редактора) и какая маска. Это и есть «живая»
@@ -1375,6 +1407,7 @@ public class TestClassWriter {
         w.writeLine("assertTrue(colCount != null && colCount > 0, \"testCreate (inline): не нашли editable grid (код=\" + colCount + \"). Возможно «Добавить» не создал строку или грид не редактируемый.\");");
         w.writeLine("System.out.println(\"testCreate (inline): grid found, columns=\" + colCount);");
         writeGridDiagLog(w, "testCreate (inline)");
+        writeEnsureRowAddedScript(w, "testCreate (inline)");
         // 3. Новая пустая строка появляется ПОСЛЕДНЕЙ ((n+1)-я). Берём phantom-запись с
         //    НАИБОЛЬШИМ индексом (самую новую), иначе попадём в старую мусорную phantom-строку
         //    сверху. Фолбэк — последняя строка стора.
@@ -1796,8 +1829,11 @@ public class TestClassWriter {
             w.writeLine("boolean present = gridContainsRow(marker) || gridStoreContainsText(marker);");
             w.writeLine("assertTrue(present, \"testDelete: созданная запись '\" + marker + \"' не найдена в гриде для удаления\");");
             // 3) Открываем нашу запись и удаляем.
-            w.writeLine("boolean opened = selectAndOpenRecord();");
-            w.writeLine("assertTrue(opened, \"testDelete: не удалось открыть созданную запись '\" + marker + \"'\");");
+            // Открываем ИМЕННО нашу запись (по маркеру) из грида результатов, а не «самую большую
+            // группу строк» (ею после фильтр-поиска оказывался property-grid карточки → «не зашли»).
+            w.writeLine("boolean opened = openResultRowByText(marker);");
+            w.writeLine("if (!opened) opened = selectAndOpenRecord();");
+            w.writeLine("assertTrue(opened, \"testDelete: не удалось открыть созданную запись '\" + marker + \"' для удаления\");");
             w.writeLine("waitForCardLoaded(8);");
             w.writeLine("shot(\"record_opened\");");
             // Сверяем, что открыли ИМЕННО нашу запись (а не чужую row 0) — иначе удалим не то.
@@ -1914,8 +1950,9 @@ public class TestClassWriter {
             w.writeLine("shot(\"found_for_archive\");");
             w.writeLine("assertTrue(gridContainsRow(marker) || gridStoreContainsText(marker),");
             w.writeLine("    \"testArchive: созданная запись '\" + marker + \"' не найдена для архивации\");");
-            w.writeLine("boolean opened = selectAndOpenRecord();");
-            w.writeLine("assertTrue(opened, \"testArchive: не удалось открыть созданную запись '\" + marker + \"'\");");
+            w.writeLine("boolean opened = openResultRowByText(marker);");
+            w.writeLine("if (!opened) opened = selectAndOpenRecord();");
+            w.writeLine("assertTrue(opened, \"testArchive: не удалось открыть созданную запись '\" + marker + \"' для архивации\");");
             w.writeLine("waitForCardLoaded(8);");
             w.writeLine("Object openedCell = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"return window.__lastSelectedCellText || '';\");");
             w.writeLine("System.out.println(\"testArchive: открыта запись, ячейка='\" + openedCell + \"', ожидаем marker='\" + marker + \"'\");");

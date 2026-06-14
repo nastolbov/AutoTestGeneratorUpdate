@@ -155,13 +155,17 @@ public class PageObjectWriter {
         w.writeLine("    \"return document.activeElement;\");");
         w.openBlock("if (startedEditor != null)");
         w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' editor через startEditing: id=\" + startedEditor.getAttribute(\"id\") + \" class=\" + startedEditor.getAttribute(\"class\"));");
-        // ЧИСТАЯ КЛАВИАТУРА (заказчик: «заполнять с клавы, а не вставкой»). Раньше тут была
-        // JS-инъекция editor.value='' — из-за неё запись оставалась «чёрной» (значение
-        // обходило штатный commit поля). Ctrl+A выделяет старое, sendKeys перетирает →
-        // маркер-склейка ('AT...Test_...') не возникает, а поле коммитится по-человечески.
+        // СНАЧАЛА ЧИСТИМ ПОЛЕ, ПОТОМ ЗАПОЛНЯЕМ (требование заказчика для update — иначе старое
+        // значение НЕ удаляется и новое накладывается). Очистка через JS value=''+input — это
+        // ОЧИСТКА, а НЕ вставка значения; само значение вводится С КЛАВЫ (sendKeys ниже).
+        // Одиночный Ctrl+A на этом ExtJS-редакторе не выделял текст → оставляем Ctrl+A как
+        // дополнительную страховку ПОСЛЕ JS-очистки.
         w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", startedEditor);");
+        w.writeLine("Thread.sleep(60);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
-        w.writeLine("Thread.sleep(80);");
+        w.writeLine("Thread.sleep(60);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
@@ -169,7 +173,7 @@ public class PageObjectWriter {
         w.writeLine("Thread.sleep(150);");
         w.writeLine("startedEditor.sendKeys(org.openqa.selenium.Keys.ENTER);");
         w.writeLine("Thread.sleep(300);");
-        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+Ctrl+A+sendKeys+ENTER)\");");
+        w.writeLine("System.out.println(\"  [fill] '\" + fieldName + \"' = OK ('\" + value + \"' via startEditing+clear+sendKeys+ENTER)\");");
         w.writeLine("driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));");
         w.writeLine("return;");
         w.closeBlock();
@@ -302,6 +306,14 @@ public class PageObjectWriter {
         // после DELETE редактор ExtJS закрывался, sendKeys(value) уходил в body вместо
         // ячейки → ячейка оставалась ПУСТОЙ (как пользователь и видел после marker stamp).
         w.openBlock("try");
+        // Сначала очистка (JS value=''+input), затем ввод с клавы — без наложения старого значения.
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));\", editor);");
+        w.writeLine("Thread.sleep(60);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.writeLine("editor.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, \"a\"));");
         w.writeLine("Thread.sleep(100);");
         w.writeLine("editor.sendKeys(value);");
