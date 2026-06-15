@@ -107,11 +107,12 @@ def dedup_rels(rels):
 
 
 # уточнённая/детальная: типизированные связи (обобщение ▷, агрегация ◇, композиция ◆).
-# Вложенность (nest) и ассоциация — простой направленной стрелкой (без «кружка»).
+# Агрегация/композиция: РОМБ на стороне целого (tail), на стороне части наконечника НЕТ
+# (обычная линия). Вложенность/ассоциация — простой направленной стрелкой (без «кружка»).
 EDGE = {
     "gen":  'dir=forward, arrowhead=empty, arrowtail=none, style=solid',
-    "agg":  'dir=both, arrowhead=vee, arrowtail=odiamond, style=solid',
-    "comp": 'dir=both, arrowhead=vee, arrowtail=diamond, style=solid',
+    "agg":  'dir=back, arrowhead=none, arrowtail=odiamond, style=solid',
+    "comp": 'dir=back, arrowhead=none, arrowtail=diamond, style=solid',
     "nest": 'dir=forward, arrowhead=vee, arrowtail=none, style=solid',
     "assoc": 'dir=forward, arrowhead=vee, arrowtail=none, style=solid',
 }
