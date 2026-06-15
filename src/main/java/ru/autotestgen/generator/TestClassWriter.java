@@ -152,11 +152,27 @@ public class TestClassWriter {
                 writeSearchTest(w, entitySearches.get(i), i);
             }
 
-            // Тесты гридов (с проверкой колонок и кнопок)
+            // Тесты гридов (с проверкой колонок и кнопок). Грид, у которого есть отдельный
+            // дочерний тест-класс (CHILD с parentGrid), здесь НЕ дублируем: повторное открытие
+            // карточки+таба внутри родителя обычно не удаётся и тест лишь скипается. Полноценное
+            // покрытие даёт сам дочерний класс (например IstoriyaGSKOGSKTest).
             List<PropertyGroup> grids = entity.getPropertyGroups().stream()
                     .filter(PropertyGroup::isGridView)
                     .toList();
             for (PropertyGroup grid : grids) {
+                boolean coveredByChildClass = model.getEntities().stream().anyMatch(e -> {
+                    EntityClassifier.Classification c = EntityClassifier.classify(e, model);
+                    return c.parentEntity != null && c.parentGrid != null
+                            && entity.getGuid() != null
+                            && entity.getGuid().equals(c.parentEntity.getGuid())
+                            && grid.getName() != null
+                            && grid.getName().equals(c.parentGrid.getName());
+                });
+                if (coveredByChildClass) {
+                    w.writeLine("// Грид '" + grid.getName().replace("\\", "\\\\").replace("\"", "\\\"")
+                            + "' покрыт отдельным дочерним тест-классом — здесь не дублируем (иначе лишний skip).");
+                    continue;
+                }
                 writeGridTest(w, grid, entity);
             }
         }
