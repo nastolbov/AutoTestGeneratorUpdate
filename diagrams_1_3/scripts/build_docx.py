@@ -50,14 +50,14 @@ def subpara(text):
 def body(text, first_indent=True):
     p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     if first_indent:
-        p.paragraph_format.first_line_indent = Cm(1.25)
+        p.paragraph_format.first_line_indent = Cm(0.75)
     _f(p.add_run(text), 14); return p
 
 
 def bullets(items):
     for it in items:
         p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p.paragraph_format.left_indent = Cm(1.25); p.paragraph_format.first_line_indent = Cm(-0.5)
+        p.paragraph_format.left_indent = Cm(0.75); p.paragraph_format.first_line_indent = Cm(-0.5)
         _f(p.add_run("– " + it), 14)
 
 
@@ -73,7 +73,7 @@ def figure(fname, caption, width_cm=USABLE_CM):
     p.add_run().add_picture(path, width=Cm(disp_w))
     cap = doc.add_paragraph(); cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     cap.paragraph_format.space_after = Pt(10)
-    _f(cap.add_run(f"Рисунок {fig_no} – {caption}"), 13)
+    _f(cap.add_run(f"Рисунок {fig_no} – {caption}"), 14)
     return fig_no
 
 
@@ -113,7 +113,7 @@ def _shade(cell, hexc):
 
 def _ct(cell, text, bold=False, size=12, align=None):
     cell.text = ""; p = cell.paragraphs[0]
-    if align: p.alignment = align
+    if align is not None: p.alignment = align
     p.paragraph_format.line_spacing = 1.0; p.paragraph_format.space_after = Pt(0)
     _f(p.add_run(text), size, bold=bold)
 
@@ -130,10 +130,10 @@ def grid_table(headers, rows, widths=None):
     t = doc.add_table(rows=1 + len(rows), cols=len(headers)); t.style = "Table Grid"
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
     for j, h in enumerate(headers):
-        _ct(t.rows[0].cells[j], h, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER); _shade(t.rows[0].cells[j], "D9D9D9")
+        _ct(t.rows[0].cells[j], h, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT); _shade(t.rows[0].cells[j], "D9D9D9")
     for i, row in enumerate(rows, start=1):
         for j, val in enumerate(row):
-            _ct(t.rows[i].cells[j], val)
+            _ct(t.rows[i].cells[j], val, align=WD_ALIGN_PARAGRAPH.LEFT)
     if widths:
         for i in range(len(rows) + 1):
             for j, wd in enumerate(widths):
