@@ -27,8 +27,8 @@ USABLE_W = 16.5
 MAX_H = 21.5
 
 api = M.load_api(); idx = M.build_index(api)
-PKG_TITLE = {"ui": "UI", "parser": "Parser", "model": "Model", "generator": "Generator",
-             "data": "Data", "common": "Common"}
+PKG_TITLE = {"ui": "ui", "parser": "parser", "model": "model", "generator": "generator",
+             "data": "data", "common": "common"}
 
 doc = Document()
 st = doc.styles["Normal"]

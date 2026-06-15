@@ -122,6 +122,9 @@ EDGE_PLAIN = 'dir=forward, arrowhead=vee, arrowtail=none, style=solid'
 
 # число столбцов сетки для детальной диаграммы (баланс ширины/высоты)
 COLS = {"ui": 3, "parser": 3, "model": 5, "generator": 4, "data": 3, "common": 3}
+# пакеты, у которых детальная диаграмма строится по связям (дерево композиций),
+# а не сеткой — чтобы связи не путались (model: богатая иерархия)
+TREE_DETAILED = {"model"}
 
 
 def ext_label(lbl):
@@ -145,7 +148,8 @@ def build(pkg, api, idx, kind):
     for lbl in ext_labels:
         nodes.append(f'  {extid(lbl)} [label={ext_label(lbl)}];')
 
-    cons = ", constraint=false" if detailed else ""
+    tree = detailed and pkg in TREE_DETAILED   # раскладка по связям (без сетки)
+    cons = ", constraint=false" if (detailed and not tree) else ""
     edges, present = [], set()
     for k, s, d, sm, dm in rels:
         s2, d2 = s.replace(".", "_"), d.replace(".", "_")
@@ -163,7 +167,7 @@ def build(pkg, api, idx, kind):
             edges.append(f'  {a} -> {b} [{style}{cons}];')
 
     grid = []
-    if detailed:
+    if detailed and not tree:
         all_ids = [r["name"].replace(".", "_") for r in types] + [extid(l) for l in ext_labels]
         K = COLS.get(pkg, 4)
         rows = [all_ids[i:i + K] for i in range(0, len(all_ids), K)]
@@ -174,9 +178,12 @@ def build(pkg, api, idx, kind):
         for r0, r1 in zip(rows, rows[1:]):
             grid.append(f"  {r0[0]} -> {r1[0]} [style=invis];")
 
+    rankdir = "TB"
+    nodesep = "0.4" if tree else "0.6"
+    ranksep = "0.7" if tree else "0.8"
     dot = f'''digraph {pkg}_{kind} {{
-  bgcolor=white; rankdir=TB; nodesep=0.6; ranksep=0.8;
-  fontname="{FONT}";
+  bgcolor=white; rankdir={rankdir}; nodesep={nodesep}; ranksep={ranksep};
+  fontname="{FONT}"; splines=spline;
   node [shape=plaintext, fontname="{FONT}", fontsize=12, fontcolor=black];
   edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, labeldistance=1.5, labelfontsize=9];
 {chr(10).join(nodes)}
