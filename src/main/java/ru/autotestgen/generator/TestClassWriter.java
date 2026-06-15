@@ -136,6 +136,12 @@ public class TestClassWriter {
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
         w.writeLine("addDialogFailed = false;");
+        if (twinOfInlineTable) {
+            // Предыдущий inline-тест мог оставить грид с несохранёнными правками → на экране висит
+            // модалка «Закрытие группы свойств: несохранённые данные. Закрыть?». Она перехватывает
+            // клики по меню и ломает навигацию. Жмём «Да» (закрыть/сбросить), прежде чем навигировать.
+            w.writeLine("confirmDialogYes();");
+        }
         w.writeLine("navigateToEntity(\"" + entity.getName() + "\", \"" + entity.getFeatureName() + "\", " + hasOwnSearchForm + ");");
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");
@@ -231,9 +237,14 @@ public class TestClassWriter {
                 }
             }
 
-            // Тест 5: удаление — открыть карточку первой записи рабочего грида и удалить.
+            // Тест 5: удаление. Для inline-таблиц (и карточек-двойников) — способ 2:
+            // выбор строки в гриде → Редактирование→Удалить. Иначе — карточка первой записи.
             if (hasCrud && hasModifier(crudOperation, ModifyType.DELETE)) {
-                writeDeleteTest(w);
+                if (inlineTable) {
+                    writeInlineTableDeleteTest(w, twinOfInlineTable);
+                } else {
+                    writeDeleteTest(w);
+                }
             }
 
             // Тест 6: логическое изменение
@@ -1515,7 +1526,11 @@ public class TestClassWriter {
     private void writeReopenViaOpenMenu(JavaFileWriter w, boolean reopenViaOpenMenu) {
         if (!reopenViaOpenMenu) return;
         w.writeLine("System.out.println(\"inline: переоткрываем '\" + ENTITY_NAME + \"' через меню «Открыть» (редактируемая таблица типа 2)\");");
+        // На случай висящей модалки «несохранённые данные» от предыдущего шага — сначала «Да».
+        w.writeLine("confirmDialogYes();");
         w.writeLine("clickEntityMenuItem(ENTITY_NAME, new String[]{ \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\" });");
+        // Открытие новой группы тоже может спросить «Закрыть текущую группу?» — подтверждаем.
+        w.writeLine("confirmDialogYes();");
         w.writeLine("waitForGridSettle();");
         w.writeLine("shot(\"opened_via_otkryt\");");
     }
@@ -1665,6 +1680,57 @@ public class TestClassWriter {
         w.writeLine("fail(\"testUpdate (inline): число записей изменилось (\" + countBefore + \" -> \" + countAfter + \") — update не должен добавлять/удалять записи\");");
         w.closeBlock();
         w.writeLine("assertTrue(inView, \"testUpdate (inline): новое значение '\" + updatedValue + \"' НЕ найдено в свежем списке после обновления — изменение не сохранилось на сервере (вероятна серверная ошибка SP trunc(date))\");");
+        w.closeBlock();
+        w.writeLine();
+    }
+
+    /** Type 2 (inline-table): delete — выбрать строку 0 в гриде, Редактирование→Удалить, подтвердить. */
+    private void writeInlineTableDeleteTest(JavaFileWriter w, boolean reopenViaOpenMenu) {
+        w.writeLine("@Test");
+        w.writeLine("@Order(5)");
+        w.writeLine("@DisplayName(\"Delete row inline (Type 2 entity)\")");
+        w.openBlock("void testDelete()");
+        w.writeLine("shot(\"start\");");
+        writeReopenViaOpenMenu(w, reopenViaOpenMenu);
+        // 1. Редактируемый грид, непустой.
+        writeLocateEditableGridScript(w, "colCount", true, true);
+        w.writeLine("assertTrue(colCount != null && colCount > 0, \"testDelete (inline): список пуст или не найден (код=\" + colCount + \")\");");
+        writeGridDiagLog(w, "testDelete (inline)");
+        writeReadGridCount(w, "countBefore");
+        w.writeLine("System.out.println(\"testDelete (inline): записей ДО удаления = \" + countBefore);");
+        w.openBlock("if (countBefore != null && countBefore == 0)");
+        w.writeLine("fail(\"testDelete (inline): грид пуст — нет строки для удаления\");");
+        w.closeBlock();
+        // 2. Выбираем первую строку и удаляем через «Редактирование → Удалить».
+        w.writeLine("int delRow = 0;");
+        writeSelectGridRowScript(w, "delRow");
+        w.writeLine("shot(\"row_selected\");");
+        w.writeLine("boolean delClicked = step(\"Редактирование → Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
+        w.writeLine("if (!delClicked) delClicked = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(delClicked, \"testDelete (inline): не удалось нажать 'Удалить' в гриде\");");
+        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("String delPopup = capturePopupText(\"after-\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        // Подтверждаем удаление, затем сохраняем изменения (в Type 2 удаление строки тоже коммитится
+        // через «Сохранить Изменения»), и снова подтверждаем возможный диалог.
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        w.writeLine("System.out.println(\"testDelete (inline): сохранение удаления запущено=\" + saved);");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_delete\");");
+        writeServerErrorCheck(w, "testDelete (inline)");
+        // 3. Перечитываем с сервера и проверяем: записей стало меньше. Для двойника — заново «Открыть»
+        //    (свежий стор), для обычной inline-таблицы — refresh грида.
+        w.writeLine("clickGridRefresh();");
+        writeReopenViaOpenMenu(w, reopenViaOpenMenu);
+        writeLocateEditableGridScript(w, "freshCols", true, true);
+        w.writeLine("assertTrue(freshCols != null && freshCols > 0, \"testDelete (inline): после удаления не удалось перечитать список\");");
+        w.writeLine("shot(\"after_reopen\");");
+        writeReadGridCount(w, "countAfter");
+        w.writeLine("System.out.println(\"testDelete (inline): записей ПОСЛЕ удаления = \" + countAfter + \" (было \" + countBefore + \") popup='\" + delPopup + \"'\");");
+        w.writeLine("assertTrue(countBefore != null && countAfter != null && countAfter < countBefore, \"testDelete (inline): число записей не уменьшилось (\" + countBefore + \" -> \" + countAfter + \") — удаление не сохранилось. popup='\" + delPopup + \"'\");");
         w.closeBlock();
         w.writeLine();
     }
