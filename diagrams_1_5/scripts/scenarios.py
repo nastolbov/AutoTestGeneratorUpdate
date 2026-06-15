@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 """Сценарии взаимодействия по пакетам (нормальный ход / прерывание пользователем /
-прерывание системой). Управление входит из края («EDGE») — актёра «Пользователь»
-на диаграммах нет (методичка Рис.7.8б). Межпакетные объекты помечены «Пакет::Класс».
+прерывание системой). Управление и межпакетные вызовы идут через КРАЙ (EDGE) —
+актёра «Пользователь» и внешних объектов на диаграммах нет. Исключение — пакет
+common: ему разрешён внешний класс-потребитель (generator::PageObjectWriter),
+помеченный «Пакет::Класс».
 
 Сообщение: (откуда, куда, подпись, вид), вид ∈ call|ret|create|self.
-И диаграммы последовательности, и кооперация строятся из этих данных -> наборы
-объектов совпадают.
+Сценарии СБАЛАНСИРОВАНЫ: каждый call/create имеет парный ret -> все активации
+закрываются возвратной стрелкой.
 """
 
 EDGE = "EDGE"
 
 SC = {
     "ui": {
-        "objects": [
-            ("Launcher", "Launcher"), ("App", "App"), ("ctrl", ":MainController"),
-            ("node", ":EntityNode"), ("row", ":TestCaseRow"),
-            ("xmlp", "parser::XmlModelParser"), ("runner", "generator::TestRunner"),
-            ("exc", "common::ParserException"),
-        ],
+        "objects": [("Launcher", "Launcher"), ("App", "App"), ("ctrl", ":MainController"),
+                    ("node", ":EntityNode"), ("row", ":TestCaseRow")],
         "flows": {
             "normal": [
                 (EDGE, "Launcher", "main(args)", "call"),
@@ -27,14 +25,14 @@ SC = {
                 ("App", "Launcher", "окно показано", "ret"),
                 ("Launcher", EDGE, "приложение запущено", "ret"),
                 (EDGE, "ctrl", "onParse()", "call"),
-                ("ctrl", "xmlp", "parse(файл)", "call"),
-                ("xmlp", "ctrl", "модель AppModel", "ret"),
+                ("ctrl", EDGE, "разобрать метаданные: подсистема Parser", "call"),
+                (EDGE, "ctrl", "модель метаданных", "ret"),
                 ("ctrl", "node", "создать узлы дерева", "create"),
                 ("node", "ctrl", "узлы готовы", "ret"),
                 ("ctrl", EDGE, "дерево сущностей показано", "ret"),
                 (EDGE, "ctrl", "onRunTests()", "call"),
-                ("ctrl", "runner", "run(конфиг, фильтр)", "call"),
-                ("runner", "ctrl", "результат прогона", "ret"),
+                ("ctrl", EDGE, "генерация и прогон: подсистемы Generator, Data", "call"),
+                (EDGE, "ctrl", "результат прогона", "ret"),
                 ("ctrl", "row", "создать строки результатов", "create"),
                 ("row", "ctrl", "строки готовы", "ret"),
                 ("ctrl", EDGE, "таблица результатов показана", "ret"),
@@ -46,61 +44,58 @@ SC = {
             ],
             "system": [
                 (EDGE, "ctrl", "onParse()", "call"),
-                ("ctrl", "xmlp", "parse(файл)", "call"),
-                ("xmlp", "exc", "создать исключение разбора", "create"),
-                ("exc", "xmlp", "ParserException", "ret"),
-                ("xmlp", "ctrl", "проброс ParserException", "ret"),
+                ("ctrl", EDGE, "разобрать метаданные: подсистема Parser", "call"),
+                (EDGE, "ctrl", "ошибка разбора (исключение)", "ret"),
                 ("ctrl", "ctrl", "showAlert(сообщение об ошибке)", "self"),
                 ("ctrl", EDGE, "сообщение об ошибке показано", "ret"),
             ],
         },
     },
     "parser": {
-        "objects": [
-            ("xmlp", ":XmlModelParser"), ("ep", ":EntityParser"), ("pgp", ":PropertyGroupParser"),
-            ("sp", ":SearchParser"), ("stax", ":StaxUtils"), ("ns", ":XmlNamespaces"),
-            ("model", "model::AppModel"), ("exc", "common::ParserException"),
-        ],
+        "objects": [("xmlp", ":XmlModelParser"), ("ep", ":EntityParser"),
+                    ("pgp", ":PropertyGroupParser"), ("sp", ":SearchParser"),
+                    ("stax", ":StaxUtils"), ("ns", ":XmlNamespaces")],
         "flows": {
             "normal": [
                 (EDGE, "xmlp", "parse(файл)", "call"),
-                ("xmlp", "model", "создать пустую модель", "create"),
                 ("xmlp", "ep", "parseObject(reader)", "call"),
-                ("ep", "ns", "NS_E3 (сверка namespace)", "call"),
+                ("ep", "ns", "сверка namespace (NS_E3)", "call"),
+                ("ns", "ep", "пространство имён", "ret"),
                 ("ep", "stax", "attr(reader, имя)", "call"),
                 ("stax", "ep", "значение атрибута", "ret"),
                 ("ep", "pgp", "parsePropertyGroup(reader)", "call"),
                 ("pgp", "stax", "attr(reader, имя), parseInt(...)", "call"),
+                ("stax", "pgp", "значения атрибутов", "ret"),
                 ("pgp", "ep", "группа свойств", "ret"),
-                ("ep", "xmlp", "EntityObject", "ret"),
+                ("ep", "xmlp", "объект сущности", "ret"),
                 ("xmlp", "sp", "parseSearches(reader)", "call"),
                 ("sp", "xmlp", "список поисков", "ret"),
-                ("xmlp", EDGE, "модель AppModel", "ret"),
+                ("xmlp", EDGE, "модель метаданных: подсистема Model", "ret"),
             ],
             "user": [
                 (EDGE, "xmlp", "parse(файл)", "call"),
                 ("xmlp", "ep", "parseObject(reader)", "call"),
-                (EDGE, "xmlp", "Прервать", "call"),
+                ("ep", "xmlp", "разбор прерван", "ret"),
                 ("xmlp", EDGE, "разбор прерван", "ret"),
             ],
             "system": [
                 (EDGE, "xmlp", "parse(файл)", "call"),
                 ("xmlp", "ep", "parseObject(reader)", "call"),
                 ("ep", "stax", "attr(reader, имя)", "call"),
-                ("ep", "exc", "некорректная структура XML", "create"),
-                ("ep", "xmlp", "ParserException", "ret"),
+                ("stax", "ep", "некорректная структура XML", "ret"),
+                ("ep", "xmlp", "исключение разбора (ParserException)", "ret"),
                 ("xmlp", EDGE, "завершение с ошибкой", "ret"),
             ],
         },
     },
     "model": {
-        "objects": [
-            ("clf", ":EntityClassifier"), ("ent", ":EntityObject"), ("pg", ":PropertyGroup"),
-            ("model", ":AppModel"), ("cls", ":Classification"),
-        ],
-        "note": "Большинство классов пакета Model — пассивные классы-данные (геттеры/сеттеры) и в обмене "
-                "сообщениями не участвуют; на диаграммах взаимодействия показан сценарий классификации сущности, "
-                "затрагивающий активные классы EntityClassifier, AppModel, EntityObject, PropertyGroup и Classification.",
+        "objects": [("clf", ":EntityClassifier"), ("ent", ":EntityObject"),
+                    ("pg", ":PropertyGroup"), ("model", ":AppModel"), ("cls", ":Classification")],
+        "note": "Большинство классов пакета Model — пассивные классы-данные (свойства с геттерами/сеттерами) и "
+                "в обмене сообщениями не участвуют; на диаграммах взаимодействия показан сценарий классификации "
+                "сущности, затрагивающий активные классы EntityClassifier, AppModel, EntityObject, PropertyGroup "
+                "и Classification. Третий сценарий — вырожденный случай (сущность без свойств распознаётся как "
+                "справочник).",
         "flows": {
             "normal": [
                 (EDGE, "clf", "classify(сущность, модель)", "call"),
@@ -111,12 +106,13 @@ SC = {
                 ("clf", "model", "поиск родительской сущности", "call"),
                 ("model", "clf", "сущность-родитель", "ret"),
                 ("clf", "cls", "создать результат (вид, причина, родитель)", "create"),
-                ("clf", EDGE, "Classification", "ret"),
+                ("cls", "clf", "результат готов", "ret"),
+                ("clf", EDGE, "результат классификации", "ret"),
             ],
             "user": [
                 (EDGE, "clf", "classify(сущность, модель)", "call"),
                 ("clf", "ent", "getPropertyGroups()", "call"),
-                (EDGE, "clf", "Прервать", "call"),
+                ("ent", "clf", "группы свойств", "ret"),
                 ("clf", EDGE, "классификация прервана", "ret"),
             ],
             "system": [
@@ -124,16 +120,15 @@ SC = {
                 ("clf", "ent", "getPropertyGroups()", "call"),
                 ("ent", "clf", "пустой список свойств", "ret"),
                 ("clf", "cls", "тривиальный результат (справочник)", "create"),
-                ("clf", EDGE, "Classification (REFERENCE_DICTIONARY)", "ret"),
+                ("cls", "clf", "результат готов", "ret"),
+                ("clf", EDGE, "результат: справочник", "ret"),
             ],
         },
     },
     "generator": {
-        "objects": [
-            ("gen", ":TestGenerator"), ("cfg", ":TestConfig"), ("pow", ":PageObjectWriter"),
-            ("tcw", ":TestClassWriter"), ("tdf", ":TestDataFactory"), ("runner", ":TestRunner"),
-            ("rrw", ":RunReportWriter"),
-        ],
+        "objects": [("gen", ":TestGenerator"), ("cfg", ":TestConfig"), ("pow", ":PageObjectWriter"),
+                    ("tcw", ":TestClassWriter"), ("tdf", ":TestDataFactory"),
+                    ("runner", ":TestRunner"), ("rrw", ":RunReportWriter")],
         "flows": {
             "normal": [
                 (EDGE, "gen", "generate(модель)", "call"),
@@ -149,6 +144,7 @@ SC = {
                 ("tcw", "gen", "тест-класс готов", "ret"),
                 ("gen", EDGE, "проект сгенерирован", "ret"),
                 (EDGE, "runner", "run(каталог, фильтр)", "call"),
+                ("runner", "runner", "запуск Maven (mvn test)", "self"),
                 ("runner", "rrw", "write(результат прогона)", "call"),
                 ("rrw", "runner", "отчёты HTML и CSV", "ret"),
                 ("runner", EDGE, "результат прогона", "ret"),
@@ -156,7 +152,7 @@ SC = {
             "user": [
                 (EDGE, "gen", "generate(модель)", "call"),
                 ("gen", "pow", "write(сущность)", "call"),
-                (EDGE, "gen", "Прервать", "call"),
+                ("pow", "gen", "генерация прервана", "ret"),
                 ("gen", EDGE, "генерация прервана", "ret"),
             ],
             "system": [
@@ -168,12 +164,10 @@ SC = {
         },
     },
     "data": {
-        "objects": [
-            ("dao", ":ReportDao"), ("schema", ":SchemaInitializer"), ("conn", ":DatabaseConnection"),
-            ("trd", ":TestRunDao"), ("tcd", ":TestCaseDao"),
-        ],
-        "note": "Класс-данные RunRow используется как строка списка прогонов и в обмене сообщениями не участвует; "
-                "на диаграммах взаимодействия показаны активные классы пакета Data.",
+        "objects": [("dao", ":ReportDao"), ("schema", ":SchemaInitializer"),
+                    ("conn", ":DatabaseConnection"), ("trd", ":TestRunDao"), ("tcd", ":TestCaseDao")],
+        "note": "Класс-данные RunRow используется как строка списка прогонов и в обмене сообщениями не "
+                "участвует; на диаграммах взаимодействия показаны активные классы пакета Data.",
         "flows": {
             "normal": [
                 (EDGE, "dao", "saveRun(результат)", "call"),
@@ -192,7 +186,7 @@ SC = {
             "user": [
                 (EDGE, "dao", "saveRun(результат)", "call"),
                 ("dao", "conn", "open()", "call"),
-                (EDGE, "dao", "Прервать", "call"),
+                ("conn", "dao", "Connection", "ret"),
                 ("dao", EDGE, "сохранение прервано", "ret"),
             ],
             "system": [
@@ -206,13 +200,12 @@ SC = {
         },
     },
     "common": {
-        "objects": [
-            ("pow", "generator::PageObjectWriter"), ("tr", ":Transliterator"),
-            ("jfw", ":JavaFileWriter"), ("exc", ":ParserException"),
-        ],
+        "objects": [("pow", "generator::PageObjectWriter"), ("tr", ":Transliterator"),
+                    ("jfw", ":JavaFileWriter"), ("exc", ":ParserException")],
         "note": "Классы пакета Common — независимые вспомогательные утилиты; они не вызывают друг друга, а "
                 "используются классами других пакетов. Для иллюстрации показан класс-потребитель "
-                "generator::PageObjectWriter (с указанием пакета), обращающийся к утилитам Common.",
+                "generator::PageObjectWriter (с указанием пакета), обращающийся к утилитам Common; на диаграммах "
+                "классов он показан без состава (его поля и методы описаны в пакете Generator).",
         "flows": {
             "normal": [
                 (EDGE, "pow", "генерация класса", "call"),
@@ -220,20 +213,23 @@ SC = {
                 ("tr", "pow", "имя класса (латиница)", "ret"),
                 ("pow", "jfw", "writeLine(строка)", "call"),
                 ("jfw", "jfw", "openBlock()/closeBlock() — отступы", "self"),
+                ("jfw", "pow", "строка добавлена", "ret"),
                 ("pow", "jfw", "writeToFile(путь)", "call"),
                 ("jfw", "pow", "файл записан", "ret"),
+                ("pow", EDGE, "класс сгенерирован", "ret"),
             ],
             "user": [
                 (EDGE, "pow", "генерация класса", "call"),
                 ("pow", "jfw", "writeLine(строка)", "call"),
-                (EDGE, "pow", "Прервать", "call"),
+                ("jfw", "pow", "запись прервана", "ret"),
                 ("pow", EDGE, "генерация прервана", "ret"),
             ],
             "system": [
                 (EDGE, "pow", "генерация класса", "call"),
                 ("pow", "jfw", "writeToFile(путь)", "call"),
-                ("jfw", "exc", "IOException → создать исключение", "create"),
-                ("jfw", "pow", "ParserException", "ret"),
+                ("jfw", "exc", "создать исключение (IOException)", "create"),
+                ("exc", "jfw", "ParserException", "ret"),
+                ("jfw", "pow", "проброс исключения", "ret"),
                 ("pow", EDGE, "завершение с ошибкой", "ret"),
             ],
         },
@@ -245,7 +241,7 @@ FLOW_NUM_PREFIX = {"normal": "", "user": "п", "system": "с"}
 
 
 def used_object_keys(pkg):
-    """Ключи объектов, реально участвующих хотя бы в одном сообщении (в порядке objects)."""
+    """Ключи объектов, участвующих хотя бы в одном сообщении (в порядке objects)."""
     used = set()
     for flow in SC[pkg]["flows"].values():
         for frm, to, _, _ in flow:
@@ -261,3 +257,16 @@ def label_of(pkg, key):
         if k == key:
             return lbl
     return key
+
+
+def external_labels(pkg):
+    """Метки внешних классов («Пакет::Класс»), участвующих в сценариях пакета."""
+    seen = []
+    for flow in SC[pkg]["flows"].values():
+        for frm, to, _, _ in flow:
+            for k in (frm, to):
+                if k != EDGE:
+                    lbl = label_of(pkg, k)
+                    if "::" in lbl and lbl not in seen:
+                        seen.append(lbl)
+    return seen
