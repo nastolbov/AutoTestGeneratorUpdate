@@ -2616,7 +2616,10 @@ public class TestGenerator {
         // а не любую .x-tbar-loading на странице — на некоторых сборках doRefresh недоступен.
         w.openBlock("try");
         w.writeLine("WebElement rbtn = (WebElement) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var d=window.__t2dom||document; var b=d.querySelector('.x-tbar-loading, .x-tbar-page-refresh'); return b||null; } catch(e){ return null; }\");");
+        w.writeLine("    \"try { var d=window.__t2dom||document; var b=d.querySelector('.x-tbar-loading, .x-tbar-page-refresh');\"");
+        // Если стандартных классов нет — ищем кнопку по подсказке «Обновить» (data-qtip/title) в панели.
+        w.writeLine("    + \" if(!b){ var cand=d.querySelectorAll('button, .x-btn, .x-tbar-page-refresh, [data-qtip], [title]'); for(var i=0;i<cand.length;i++){ var c=cand[i]; var tip=(c.getAttribute&&(c.getAttribute('data-qtip')||c.getAttribute('title')||c.getAttribute('aria-label')))||''; if(tip.indexOf('\\u041e\\u0431\\u043d\\u043e\\u0432')>=0){ b=c; break; } } }\"");
+        w.writeLine("    + \" return b||null; } catch(e){ return null; }\");");
         w.openBlock("if (rbtn != null && rbtn.isDisplayed())");
         w.writeLine("tryClickAllWays(rbtn);");
         w.closeBlock();
