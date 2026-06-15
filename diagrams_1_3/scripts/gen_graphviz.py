@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
-"""Ч/Б схемы алгоритмов для раздела 1.3 (анализ процесса обработки информации,
-методы и алгоритмы). Все диаграммы построены по фактическому коду программы
-AutoTestGenerator (пакеты ru.autotestgen.*) и описывают ЛОГИКУ обработки данных,
-без привязки к конкретным классам и методам исходного кода."""
+"""Схемы для раздела 1.3, выполненные по ГОСТ 19.701-90 (ИСО 5807-85)
+«Схемы алгоритмов, программ, данных и систем».
+
+Применяемые условные обозначения:
+  • терминатор (овал) — начало/конец схемы («Начало», «Конец»);
+  • процесс — прямоугольник;
+  • решение — ромб;
+  • предопределённый процесс (подпрограмма) — прямоугольник с двумя
+    вертикальными линиями по краям;
+  • данные (ввод-вывод) — параллелограмм;
+  • линии потока — сверху вниз и слева направо, со стрелками.
+
+Все схемы чёрно-белые. Содержание выверено по коду программы (ru.autotestgen.*)."""
 import subprocess, os
+from PIL import Image, ImageDraw, ImageFont
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 FONT = "DejaVu Sans"
+MONO_TTF = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+
 
 def render(dot, name):
     path = f"/tmp/{name}.dot"
@@ -14,30 +26,57 @@ def render(dot, name):
     subprocess.run(["dot", "-Tpng", "-Gdpi=150", path, "-o", f"{OUT}/{name}.png"], check=True)
     print("OK", name)
 
-# ============ Рис. 1 — Общая схема процесса обработки информации (конвейер) ============
+
+def predef(nid, text):
+    """Узел «предопределённый процесс» (подпрограмма) по ГОСТ — прямоугольник
+    с двумя вертикальными линиями по краям (через HTML-таблицу graphviz)."""
+    html = text.replace("\\n", "<BR/>")
+    return (f'{nid} [shape=none, margin=0, label=<'
+            f'<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="8">'
+            f'<TR><TD WIDTH="7" HEIGHT="1" BORDER="1" SIDES="R"></TD>'
+            f'<TD>{html}</TD>'
+            f'<TD WIDTH="7" BORDER="1" SIDES="L"></TD></TR></TABLE>>];')
+
+
+# Общие стили узлов по ГОСТ (вставляются в начало каждого графа)
+GOST_HEAD = f'''
+  bgcolor=white; fontname="{FONT}"; fontsize=12;
+  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=normal];
+'''
+TERM = 'node [shape=ellipse, style=filled, fillcolor=white, width=1.3, height=0.5];'   # терминатор
+PROC = 'node [shape=box, style=filled, fillcolor=white];'                              # процесс
+DEC  = 'node [shape=diamond, style=filled, fillcolor=white, height=1.0, width=2.0];'   # решение
+DATA = 'node [shape=parallelogram, style=filled, fillcolor=white];'                    # данные
+
+# Узлы «предопределённый процесс» (вынесены в переменные: f-строка Python не допускает
+# обратный слэш внутри выражений {...}).
+SUB_OBJ   = predef("obj",   "Разобрать сущность")
+SUB_SEA   = predef("sea",   "Разобрать блок поисков")
+SUB_PRIM  = predef("prim",  "Создать объект страницы\\nи тестовый класс")
+SUB_CHILD = predef("child", "Создать тест\\nв составе родителя")
+
+# ============ Рис. 1 — Схема процесса обработки информации (конвейер) ============
 pipeline = f'''
 digraph Pipeline {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   nodesep=0.45; ranksep=0.40;
 
-  node [shape=parallelogram, style=filled, fillcolor=white];
+  {DATA}
   in1  [label="XML-модель метаданных E3Core"];
   d1   [label="Модель метаданных"];
   d2   [label="Тестовый проект (Page Object + тесты)"];
   d3   [label="Отчёты Surefire (XML)"];
   out  [label="Сводка и отчёты (HTML, CSV)"];
+  par  [label="Параметры запуска:\\nадрес сайта, учётные\\nданные, каталог"];
 
-  node [shape=box, style="filled", fillcolor=white];
+  {PROC}
   p1 [label="1. Разбор XML (потоковый, StAX)"];
   p2 [label="2. Классификация сущностей"];
   p3 [label="3. Генерация тестового проекта"];
   p4 [label="4. Запуск тестов (Maven Surefire)"];
   p5 [label="5. Анализ результатов"];
 
-  node [shape=note, style=filled, fillcolor=white];
-  par [label="Параметры запуска:\\nадрес сайта,\\nучётные данные,\\nкаталог"];
   node [shape=cylinder, style=filled, fillcolor=white];
   db  [label="База отчётов\\n(SQLite)"];
 
@@ -88,34 +127,36 @@ digraph XmlTree {{
 '''
 render(xmltree, "ris_2_xml_structure")
 
-# ============ Рис. 3 — Алгоритм потокового разбора XML (StAX) ============
+# ============ Рис. 4 — Алгоритм потокового разбора XML (StAX), ГОСТ 19.701-90 ============
 stax = f'''
 digraph Stax {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   ranksep=0.40; nodesep=0.45;
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
-  fin   [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.22];
+  {TERM}
+  beg [label="Начало"];
+  end [label="Конец"];
 
-  node [shape=box, style="rounded,filled", fillcolor=white];
+  {DATA}
   open  [label="Открыть поток XML"];
-  read  [label="Прочитать следующее\\nсобытие (токен)"];
-  cat   [label="Сохранить подсистему\\nи идентификатор"];
-  obj   [label="Разобрать сущность\\n(делегировать парсеру Object)"];
-  sea   [label="Разобрать блок поисков"];
-  skip  [label="Перемотать до\\nзакрывающего тега"];
   ret   [label="Вернуть модель\\nметаданных"];
 
-  node [shape=diamond, style=filled, fillcolor=white, height=0.9, width=1.9];
+  {PROC}
+  read  [label="Прочитать следующее\\nсобытие (токен)"];
+  cat   [label="Сохранить подсистему\\nи идентификатор"];
+  skip  [label="Перемотать до\\nзакрывающего тега"];
+
+  {SUB_OBJ}
+  {SUB_SEA}
+
+  {DEC}
   dEnd  [label="Конец\\nдокумента?"];
   dStart[label="Начало\\nэлемента?"];
   dWhich[label="Какой\\nэлемент?"];
 
-  start -> open -> read -> dEnd;
+  beg -> open -> read -> dEnd;
   dEnd -> ret [label="да"];
-  ret  -> fin;
+  ret  -> end;
   dEnd -> dStart [label="нет"];
   dStart -> read [label="нет"];
   dStart -> dWhich [label="да"];
@@ -129,32 +170,32 @@ digraph Stax {{
   skip -> read;
 }}
 '''
-render(stax, "ris_3_stax_parse")
+render(stax, "ris_4_stax_parse")
 
-# ============ Рис. 4 — Алгоритм классификации сущностей ============
+# ============ Рис. 5 — Алгоритм классификации сущностей, ГОСТ 19.701-90 ============
 classify = f'''
 digraph Classify {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   ranksep=0.38; nodesep=0.40;
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
+  {TERM}
+  beg [label="Начало"];
+  end [label="Конец"];
 
-  node [shape=diamond, style=filled, fillcolor=white, height=1.0, width=2.1];
+  {DEC}
   d1 [label="Совпадает с grid-\\nвкладкой родителя?"];
   d2 [label="Узел дерева\\n(addFromTree=1)\\nсо своим CRUD?"];
   d3 [label="featureName\\nначинается с V_S_?"];
   d4 [label="Все поиски без\\nпараметров (pick-one)?"];
   d5 [label="Только цель\\nFK-пикера?"];
 
-  node [shape=box, style="filled", fillcolor=white];
-  child1 [label="CHILD —\\nдочерняя (таб-грид)"];
+  {PROC}
+  child1 [label="CHILD —\\nдочерняя (вкладка-грид)"];
   child2 [label="CHILD —\\nузел дерева"];
   ref    [label="REFERENCE_DICTIONARY —\\nсправочник"];
   prim   [label="PRIMARY —\\nосновная сущность"];
 
-  start -> d1;
+  beg -> d1;
   d1 -> child1 [label="да"];
   d1 -> d2 [label="нет"];
   d2 -> child2 [label="да"];
@@ -165,16 +206,17 @@ digraph Classify {{
   d4 -> d5 [label="нет"];
   d5 -> ref [label="да"];
   d5 -> prim [label="нет"];
+  child1 -> end; child2 -> end; ref -> end; prim -> end;
 }}
 '''
-render(classify, "ris_4_classification")
+render(classify, "ris_5_classification")
 
-# ============ Рис. 5 — Паттерн Page Object ============
+# ============ Рис. 6 — Паттерн Page Object (схема взаимодействия) ============
 pageobj = f'''
 digraph PageObject {{
   rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
   node [shape=box, style="filled", fillcolor=white, fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=normal];
   nodesep=0.5; ranksep=0.55;
 
   test [label="Тестовый класс (сценарий проверки):\\nналичие полей, валидация, создание,\\nизменение, удаление, поиск"];
@@ -194,33 +236,33 @@ digraph PageObject {{
   {{ rank=same; po; note; }}
 }}
 '''
-render(pageobj, "ris_5_page_object")
+render(pageobj, "ris_6_page_object")
 
-# ============ Рис. 6 — Алгоритм генерации тестового проекта ============
+# ============ Рис. 7 — Алгоритм генерации тестового проекта, ГОСТ 19.701-90 ============
 gen = f'''
 digraph Generate {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   ranksep=0.40; nodesep=0.45;
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
-  fin   [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.22];
+  {TERM}
+  beg [label="Начало"];
+  end [label="Конец"];
 
-  node [shape=box, style="rounded,filled", fillcolor=white];
+  {PROC}
   a1 [label="Создать структуру проекта\\n(файл сборки, конфигурация запуска)"];
   a2 [label="Сгенерировать инфраструктуру\\n(общий драйвер браузера,\\nбазовый класс, тестовые данные)"];
   a3 [label="Взять очередную сущность"];
-  prim  [label="Создать объект страницы\\nи тестовый класс"];
-  child [label="Создать тест\\nв составе родителя"];
-  skip  [label="Пропустить\\n(справочник)"];
+  skip  [label="Пропустить (справочник)"];
   rep   [label="Сохранить отчёт\\nо классификации"];
 
-  node [shape=diamond, style=filled, fillcolor=white, height=0.95, width=1.9];
+  {SUB_PRIM}
+  {SUB_CHILD}
+
+  {DEC}
   dk [label="Тип\\nсущности?"];
   dm [label="Остались\\nсущности?"];
 
-  start -> a1 -> a2 -> a3 -> dk;
+  beg -> a1 -> a2 -> a3 -> dk;
   dk -> prim  [label="основная"];
   dk -> child [label="дочерняя"];
   dk -> skip  [label="справочник"];
@@ -229,37 +271,40 @@ digraph Generate {{
   skip  -> dm;
   dm -> a3 [label="да  *для каждой сущности"];
   dm -> rep [label="нет"];
-  rep -> fin;
+  rep -> end;
 }}
 '''
-render(gen, "ris_6_generation")
+render(gen, "ris_7_generation")
 
-# ============ Рис. 7 — Алгоритм подбора тестовых данных по типу и маске ============
+# ============ Рис. 8 — Алгоритм подбора тестовых данных, ГОСТ 19.701-90 ============
 data = f'''
 digraph TestData {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   ranksep=0.38; nodesep=0.40;
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
+  {TERM}
+  beg [label="Начало"];
+  end [label="Конец"];
 
-  node [shape=diamond, style=filled, fillcolor=white, height=0.95, width=2.0];
+  {DATA}
+  inp  [label="Свойство (атрибут)"];
+  pick [label="Выбор из выпадающего\\nсписка (значение не задаётся)"];
+  dt   [label="Текущая дата / время"];
+  s_str[label="Строка: «Test_<атрибут>»\\n(+ суффикс уникальности)"];
+  s_num[label="Число: случайное 100–999"];
+  s_dat[label="Дата: сегодня"];
+  s_dtm[label="Дата-время: now − 10 мин"];
+
+  {PROC}
+  bymask [label="Сформировать по маске\\n(цифры, буквы, разделители)"];
+
+  {DEC}
   d1 [label="Справочник/ссылка\\n(Directory/Ref)?"];
   d2 [label="Задана\\nмаска?"];
   d3 [label="Маска похожа\\nна дату/время?"];
   d4 [label="Тип\\nзначения?"];
 
-  node [shape=box, style="filled", fillcolor=white];
-  pick [label="Значение не задаётся —\\nвыбор из выпадающего\\nсписка (пикер)"];
-  bymask [label="Сформировать по маске\\n(цифры, буквы, разделители)"];
-  dt   [label="Текущая дата / время"];
-  s_str[label="Строка: «Test_<атрибут>»\\n(+ суффикс уникальности\\nдля обязательных)"];
-  s_num[label="Число: случайное\\n100–999"];
-  s_dat[label="Дата: сегодня"];
-  s_dtm[label="Дата-время: now − 10 мин"];
-
-  start -> d1;
+  beg -> inp -> d1;
   d1 -> pick [label="да"];
   d1 -> d2 [label="нет"];
   d2 -> d3 [label="да"];
@@ -270,33 +315,91 @@ digraph TestData {{
   d4 -> s_num [label="число"];
   d4 -> s_dat [label="дата"];
   d4 -> s_dtm [label="дата-время"];
+  pick -> end; dt -> end; bymask -> end;
+  s_str -> end; s_num -> end; s_dat -> end; s_dtm -> end;
 }}
 '''
-render(data, "ris_7_test_data")
+render(data, "ris_8_test_data")
 
-# ============ Рис. 8 — Алгоритм запуска тестов и анализа результатов ============
+# ============ Рис. 9 — Алгоритм запуска тестов и анализа результатов, ГОСТ 19.701-90 ============
 run = f'''
 digraph Run {{
-  rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=vee];
+  rankdir=TB; {GOST_HEAD}
   ranksep=0.40; nodesep=0.45;
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
-  fin   [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.22];
+  {TERM}
+  beg [label="Начало"];
+  end [label="Конец"];
 
-  node [shape=box, style="rounded,filled", fillcolor=white];
+  {PROC}
   r1 [label="Запустить сборку\\n(фаза test, Surefire)"];
   r2 [label="Выполнить тесты\\nв браузере (Selenium)"];
-  r3 [label="Сформировать XML-отчёты\\n(каталог surefire-reports)"];
   r4 [label="Разобрать отчёты:\\nстатусы, сообщения, время"];
   r5 [label="Связать скриншоты\\nс тест-кейсами"];
   r6 [label="Сформировать сводку\\n(всего / успешно / провалено)"];
-  r7 [label="Сохранить в базе отчётов\\nи выгрузить HTML, CSV"];
 
-  start -> r1 -> r2 -> r3 -> r4 -> r5 -> r6 -> r7 -> fin;
+  {DATA}
+  r3 [label="XML-отчёты Surefire\\n(каталог surefire-reports)"];
+  r7 [label="Сводка, отчёты HTML, CSV"];
+
+  node [shape=cylinder, style=filled, fillcolor=white];
+  db [label="База отчётов"];
+
+  beg -> r1 -> r2 -> r3 -> r4 -> r5 -> r6 -> r7 -> end;
+  r6 -> db [label="сохранение", fontsize=9, constraint=false];
 }}
 '''
-render(run, "ris_8_run_analyze")
+render(run, "ris_9_run_analyze")
 
-print("Готово: 8 схем для раздела 1.3")
+# ============ Рис. 3 — Фрагмент входной XML-модели (оформлен как рисунок) ============
+def render_xml_fragment(lines, name, size=22, pad=20):
+    font = ImageFont.truetype(MONO_TTF, size)
+    asc, desc = font.getmetrics()
+    lh = asc + desc + 4
+    tmp = Image.new("RGB", (10, 10))
+    dd = ImageDraw.Draw(tmp)
+    maxw = max(dd.textlength(ln, font=font) for ln in lines)
+    W = int(maxw) + 2 * pad
+    H = lh * len(lines) + 2 * pad
+    img = Image.new("RGB", (W, H), "white")
+    d = ImageDraw.Draw(img)
+    d.rectangle([1, 1, W - 2, H - 2], outline=(120, 120, 120), width=2)
+    y = pad
+    for ln in lines:
+        d.text((pad, y), ln, font=font, fill=(0, 0, 0))
+        y += lh
+    img.save(f"{OUT}/{name}.png")
+    print("OK", name, f"{W}x{H}")
+
+xml_lines = [
+    '<e3:Category CategoryName="...::Гаражно-строительные кооперативы" GUID="5EA196000083">',
+    ' <e:Object name="ГСК/ОГСК" keyName="KEY_GB_SOCIETY" featureName="V_GSK_GB_SOCIETY">',
+    '  <e:Properties stereoType="" name="Сведения ГСК/ОГСК" type_link="P">   <!-- карточка -->',
+    '   <e:Property name="Наименование ГСК/ОГСК" attrName="GBS_NAME"',
+    '             attrType="string" necessarily="1" flag_display="1" mask=""/>',
+    '   <e:Property name="Тип ГСК/ОГСК" attrName="KEY_TYPE_SOCIETY" stereoType="Directory"',
+    '             dmodule="dropDownObjectList" attrType="decimal" necessarily="1"/>',
+    '   <e:Property name="НДЗ" attrName="DATE_BEGIN" attrType="date"',
+    '             necessarily="1" mask="99.99.9999"/>',
+    '   <e3:Operation operationMethod="SP_GB_SOCIETY">',
+    '     <e3:Modifier title="Добавить"            modifyType="I"/>',
+    '     <e3:Modifier title="Сохранить Изменения" modifyType="U"/>',
+    '     <e3:Modifier title="Удалить"             modifyType="D"/>',
+    '   </e3:Operation>',
+    '  </e:Properties>',
+    '  <e:Properties stereoType="Grid" name="История ГСК/ОГСК"> ... </e:Properties>',
+    ' </e:Object>',
+    '</e3:Category>',
+    '<e3:Searches>',
+    ' <e3:Search name="по параметрам" searchObjectGUID="5EB3B333010E">',
+    '   <e3:SearchParam name="LAST_NAME" title="Фамилия" valueType="string"/>',
+    '   <e3:SearchParam name="DATE_BEGIN_OT" title="НДЗ от" valueType="date" mask="99.99.9999"/>',
+    '   <e3:SearchResult>',
+    '     <e3:SearchResultProperty name="SearchName" title="Наименование" visible="true"/>',
+    '   </e3:SearchResult>',
+    ' </e3:Search>',
+    '</e3:Searches>',
+]
+render_xml_fragment(xml_lines, "ris_3_xml_fragment")
+
+print("Готово: схемы 1.3 по ГОСТ 19.701-90 + фрагмент XML как рисунок")
