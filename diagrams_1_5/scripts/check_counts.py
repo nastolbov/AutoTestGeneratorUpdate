@@ -58,8 +58,8 @@ for ch in d.element.body.iterchildren():
     tg = ch.tag.split("}")[-1]
     if tg == "p":
         t = Paragraph(ch, d).text.strip()
-        if t.startswith("Таблица"):
-            last = t
+        if t:
+            last = t   # название таблицы — отдельный абзац перед таблицей
     elif tg == "tbl":
         nd = len(Table(ch, d).rows) - 1
         m = re.search(r"Поля класса (\S+)", last)

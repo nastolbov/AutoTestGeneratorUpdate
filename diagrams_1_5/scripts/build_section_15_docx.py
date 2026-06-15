@@ -48,10 +48,11 @@ def _f(run, size=14, bold=False, italic=False, name=FONT):
 
 
 def heading(text, size=14):
+    # заголовки разделов — как обычный текст: 14 pt, без жирного, интервал 1.5
     p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(12)
     p.paragraph_format.space_after = Pt(6); p.paragraph_format.keep_with_next = True
-    p.paragraph_format.first_line_indent = Cm(0)
-    _f(p.add_run(text), size, bold=True); return p
+    p.paragraph_format.first_line_indent = Cm(0); p.paragraph_format.line_spacing = 1.5
+    _f(p.add_run(text), 14, bold=False); return p
 
 
 def body(text):
@@ -110,15 +111,20 @@ def _fixed(t):
 
 
 def table(num, caption, headers, rows, widths):
-    cap = doc.add_paragraph(); cap.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    cap.paragraph_format.first_line_indent = Cm(0); cap.paragraph_format.line_spacing = 1.0
-    cap.paragraph_format.space_before = Pt(6)
-    _f(cap.add_run(f"Таблица {num} – {caption}"), 14)
+    # подпись: «Таблица N» — отдельная строка по правому краю; название — по центру
+    p1 = doc.add_paragraph(); p1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    p1.paragraph_format.first_line_indent = Cm(0); p1.paragraph_format.line_spacing = 1.0
+    p1.paragraph_format.space_before = Pt(6)
+    _f(p1.add_run(f"Таблица {num}"), 14)
+    p2 = doc.add_paragraph(); p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.paragraph_format.first_line_indent = Cm(0); p2.paragraph_format.line_spacing = 1.0
+    p2.paragraph_format.space_after = Pt(2)
+    _f(p2.add_run(caption), 14)
     t = doc.add_table(rows=1 + len(rows), cols=len(headers))
     t.style = "Table Grid"; t.alignment = WD_TABLE_ALIGNMENT.LEFT; t.autofit = False
     _fixed(t)
     for j, h in enumerate(headers):
-        _ct(t.rows[0].cells[j], h, bold=True); _shade(t.rows[0].cells[j], "D9D9D9")
+        _ct(t.rows[0].cells[j], h, bold=False); _shade(t.rows[0].cells[j], "D9D9D9")
     trPr = t.rows[0]._tr.get_or_add_trPr(); th = OxmlElement("w:tblHeader"); th.set(qn("w:val"), "true"); trPr.append(th)
     for i, row in enumerate(rows, start=1):
         for j, val in enumerate(row):
@@ -130,6 +136,8 @@ def table(num, caption, headers, rows, widths):
 
 
 ROMAN = {"ui": 1, "parser": 2, "model": 3, "generator": 4, "data": 5, "common": 6}
+FLOW_FIG = {"normal": "при нормальном ходе событий", "user": "при прерывании пользователем",
+            "system": "при прерывании системой"}
 
 MAINCONTROLLER_NOTE = (
     "Почти все методы класса MainController имеют закрытую видимость (-). Это объясняется тем, что "
@@ -177,7 +185,8 @@ def package_section(pkg, X):
     if note:
         body(note)
     for fk, num in intro_nums:
-        figure(f"seq_{pkg}_{fk}.png", num, f"Диаграмма последовательности пакета «{title}»: {S.FLOW_TITLE[fk]}")
+        figure(f"seq_{pkg}_{fk}.png", num,
+               f"Диаграмма последовательности взаимодействия объектов классов пакета «{title}» {FLOW_FIG[fk]}")
 
     # .3 кооперация
     heading(f"1.5.2.{X}.3 Разработка диаграммы кооперации пакета «{title}»", 13)
@@ -257,7 +266,7 @@ fpkg = next_fig()
 body(f"Программная система разделена на шесть пакетов единого назначения, сгруппированных по слоям. Всего "
      f"система содержит {total} классов (включая вложенные). Структура пакетов и зависимости между ними по "
      f"направлению вызовов приведены на рисунке {fpkg}.")
-figure("pkg_diagram.png", fpkg, "Диаграмма пакетов программной системы")
+figure("pkg_diagram.png", fpkg, "Диаграмма пакетов информационной системы")
 tpkg = next_tbl()
 body(f"Назначение пакетов, их принадлежность слоям и число классов приведены в таблице {tpkg}.")
 rows = []
