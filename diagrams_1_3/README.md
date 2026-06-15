@@ -44,8 +44,14 @@ XML-метамодели · сравнение DOM/SAX/StAX · категори�
 
 ## Воспроизведение
 
+Схемы с условиями (StAX, классификация, генерация, подбор данных) перерисованы
+вручную (PIL) с ровной ортогональной разводкой стрелок — `gen_flowcharts.py`.
+Эти файлы перекрывают graphviz-версии, поэтому `gen_flowcharts.py` запускается
+после `gen_graphviz.py`.
+
 ```bash
 cd scripts
-python3 gen_graphviz.py   # все png-схемы (ГОСТ) + фрагмент XML + браузер + домен
+python3 gen_graphviz.py   # png-схемы (ГОСТ) + фрагмент XML + браузер + домен
+python3 gen_flowcharts.py # чистые ортогональные ris_4/5/7/8 (перекрывают graphviz)
 python3 build_docx.py     # Раздел_1.3_исправленный.docx
 ```
