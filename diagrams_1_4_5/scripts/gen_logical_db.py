@@ -45,3 +45,28 @@ path = "/tmp/ris_logical_db.dot"
 open(path, "w").write(dot)
 subprocess.run(["dot", "-Tpng", "-Gdpi=150", path, "-o", f"{OUT}/ris_logical_db.png"], check=True)
 print("OK ris_logical_db.png")
+
+# ===================== Физическая модель (Рис. 11) =====================
+runp = entity("RUN", "test_run", ["id : INTEGER  (PK)"],
+              ["run_date : TEXT  NN", "xml_file : TEXT  NN", "base_url : TEXT  NN",
+               "total : INTEGER  NN", "passed : INTEGER  NN", "failed : INTEGER  NN",
+               "skipped : INTEGER  NN", "duration_ms : INTEGER  NN"])
+casep = entity("CASE", "test_case", ["id : INTEGER  (PK)"],
+               ["run_id : INTEGER  (FK) NN", "class_name : TEXT  NN", "method_name : TEXT  NN",
+                "passed : INTEGER  NN", "failure_msg : TEXT", "duration_ms : INTEGER  NN"])
+dot_phys = f'''
+digraph PhysicalDB {{
+  rankdir=LR; bgcolor=white; fontname="{FONT}";
+  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  edge [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  nodesep=0.6; ranksep=1.4;
+
+  {runp}
+  {casep}
+
+  RUN -> CASE [label="run_id → id  (1:N)", arrowhead=vee];
+}}
+'''
+open("/tmp/ris_physical_db.dot", "w").write(dot_phys)
+subprocess.run(["dot", "-Tpng", "-Gdpi=150", "/tmp/ris_physical_db.dot", "-o", f"{OUT}/ris_physical_db.png"], check=True)
+print("OK ris_physical_db.png")
