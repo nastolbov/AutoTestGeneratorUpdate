@@ -16,14 +16,14 @@ import subprocess, os
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-FONT = "DejaVu Sans"
+FONT = "Liberation Serif"
 MONO_TTF = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
 
 def render(dot, name):
     path = f"/tmp/{name}.dot"
     open(path, "w").write(dot)
-    subprocess.run(["dot", "-Tpng", "-Gdpi=150", path, "-o", f"{OUT}/{name}.png"], check=True)
+    subprocess.run(["dot", "-Tpng", "-Gdpi=200", path, "-o", f"{OUT}/{name}.png"], check=True)
     print("OK", name)
 
 
@@ -40,9 +40,9 @@ def predef(nid, text):
 
 # Общие стили узлов по ГОСТ (вставляются в начало каждого графа)
 GOST_HEAD = f'''
-  bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=normal];
+  bgcolor=white; fontname="{FONT}"; fontsize=13;
+  node [fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2, margin="0.20,0.11"];
+  edge [fontname="{FONT}", fontsize=11, color=black, fontcolor=black, arrowhead=normal, penwidth=1.1];
 '''
 TERM = 'node [shape=ellipse, style=filled, fillcolor=white, width=1.3, height=0.5];'   # терминатор
 PROC = 'node [shape=box, style=filled, fillcolor=white];'                              # процесс
@@ -94,8 +94,8 @@ render(pipeline, "ris_1_pipeline")
 xmltree = f'''
 digraph XmlTree {{
   rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [shape=box, style="filled", fillcolor=white, fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [color=black, arrowhead=none];
+  node [shape=box, style="filled", fillcolor=white, fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2, margin="0.20,0.11"];
+  edge [color=black, arrowhead=none, penwidth=1.2];
   nodesep=0.30; ranksep=0.45;
 
   E3   [label="E3 (корень модели)"];
@@ -215,8 +215,8 @@ render(classify, "ris_5_classification")
 pageobj = f'''
 digraph PageObject {{
   rankdir=TB; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [shape=box, style="filled", fillcolor=white, fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowhead=normal];
+  node [shape=box, style="filled", fillcolor=white, fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2, margin="0.20,0.11"];
+  edge [fontname="{FONT}", fontsize=11, color=black, fontcolor=black, arrowhead=normal, penwidth=1.1];
   nodesep=0.5; ranksep=0.55;
 
   test [label="Тестовый класс (сценарий проверки):\\nналичие полей, валидация, создание,\\nизменение, удаление, поиск"];
@@ -396,7 +396,7 @@ render_xml_fragment(xml_lines, "ris_3_xml_fragment")
 # ============ Трёхпанельный браузер объектов E3Core (схема рабочего пространства) ============
 browser = f'''
 digraph Browser {{
-  bgcolor=white; fontname="{FONT}"; node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  bgcolor=white; fontname="{FONT}"; node [fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2];
   br [shape=none, margin=0, label=<
     <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10">
       <TR><TD COLSPAN="2" BGCOLOR="#EEEEEE">Главное меню подсистемы (НСИ, пункты ППС, Сервис) и панель инструментов</TD></TR>
@@ -417,8 +417,8 @@ render(browser, "ris_browser")
 domain = f'''
 digraph Domain {{
   rankdir=LR; bgcolor=white; fontname="{FONT}"; fontsize=12;
-  node [shape=box, style=filled, fillcolor=white, fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=9, color=black, fontcolor=black];
+  node [shape=box, style=filled, fillcolor=white, fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2, margin="0.18,0.10"];
+  edge [fontname="{FONT}", fontsize=11, color=black, fontcolor=black, penwidth=1.1];
   nodesep=0.25; ranksep=1.1;
 
   GSK  [label="ГСК/ОГСК", penwidth=2];
