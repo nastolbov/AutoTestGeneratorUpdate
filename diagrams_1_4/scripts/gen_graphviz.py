@@ -72,44 +72,44 @@ render(sysops, "ris_9_system_ops")
 activity = f'''
 digraph Activity {{
   bgcolor=white; fontname="{FONT}"; fontsize=12;
+  splines=ortho; rankdir=TB; nodesep=0.55; ranksep=0.55;
   node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
-  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black];
-  ranksep=0.42; nodesep=0.45;
+  edge [fontname="{FONT}", fontsize=10, color=black, fontcolor=black, arrowsize=0.8];
 
-  start [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
-  fin   [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.22];
+  start [shape=circle, style=filled, fillcolor=black, label="", width=0.26];
+  fin   [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.24];
 
-  node [shape=box, style="rounded,filled", fillcolor=white];
+  node [shape=box, style="rounded,filled", fillcolor=white, width=2.3, fixedsize=false];
   a_check [label="Проверить наличие модели\\nи каталога генерации"];
-  a_struct[label="Создать структуру\\nMaven-проекта (pom.xml, конфигурация)"];
-  a_infra [label="Сгенерировать инфраструктуру\\n(общий драйвер, базовый тест, тестовые данные)"];
+  a_struct[label="Создать структуру\\nMaven-проекта"];
+  a_infra [label="Сгенерировать инфраструктуру\\n(драйвер, базовый тест, данные)"];
   a_class [label="Классифицировать\\nочередную сущность"];
   a_prim  [label="Создать Page Object\\nи тестовый класс"];
   a_child [label="Создать тест\\nв составе родителя"];
   a_report[label="Сохранить отчёт\\nо классификации"];
   a_sum   [label="Сформировать сводку\\nо генерации"];
+  err     [label="Вывести сообщение\\nоб ошибке"];
 
-  node [shape=diamond, style=filled, fillcolor=white, height=0.9, width=1.7];
+  node [shape=diamond, style=filled, fillcolor=white, height=1.0, width=1.9, fixedsize=true];
   d_param [label="Параметры\\nкорректны?"];
   d_kind  [label="Тип\\nсущности?"];
   d_more  [label="Остались\\nсущности?"];
 
-  node [shape=box, style="filled", fillcolor=white];
-  err [label="Вывести сообщение\\nоб ошибке"];
+  m1 [shape=point, width=0.03];
 
-  start -> a_check;
-  a_check -> d_param;
+  start -> a_check -> d_param;
+  d_param -> a_struct [label="да"];
   d_param -> err [label="нет"];
   err -> fin;
-  d_param -> a_struct [label="да"];
   a_struct -> a_infra -> a_class -> d_kind;
   d_kind -> a_prim  [label="основная"];
   d_kind -> a_child [label="дочерняя"];
-  d_kind -> d_more  [label="справочник\\n(пропуск)"];
-  a_prim  -> d_more;
-  a_child -> d_more;
-  d_more -> a_class [label="да  *для каждой сущности"];
+  d_kind -> m1 [label="справочник", arrowhead=none];
+  a_prim -> m1 [arrowhead=none];
+  a_child -> m1 [arrowhead=none];
+  m1 -> d_more;
   d_more -> a_report [label="нет"];
+  d_more -> a_class [label="да (*для каждой сущности)"];
   a_report -> a_sum -> fin;
 }}
 '''
