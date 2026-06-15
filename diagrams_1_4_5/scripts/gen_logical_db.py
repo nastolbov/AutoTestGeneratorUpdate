@@ -23,12 +23,10 @@ def entity(nid, title, pk, attrs):
     return f'{nid} [shape=none, margin=0, label=<{tbl}>];'
 
 
-run = entity("RUN", "Прогон тестов", ["ИД прогона  (PK)"],
-             ["Дата и время прогона", "Файл метамодели", "Адрес тестируемого сайта",
-              "Всего тестов", "Успешно", "Провалено", "Пропущено", "Длительность, мс"])
-case = entity("CASE", "Результат теста", ["ИД результата  (PK)"],
-              ["ИД прогона  (FK)", "Класс теста", "Метод теста", "Успешность (да/нет)",
-               "Сообщение об ошибке", "Длительность, мс"])
+run = entity("RUN", "test_run", ["id  (PK)"],
+             ["run_date", "xml_file", "base_url", "total", "passed", "failed", "skipped", "duration_ms"])
+case = entity("CASE", "test_case", ["id  (PK)"],
+              ["run_id  (FK)", "class_name", "method_name", "passed", "failure_msg", "duration_ms"])
 
 dot = f'''
 digraph LogicalDB {{
