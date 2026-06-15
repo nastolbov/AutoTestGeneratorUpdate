@@ -45,7 +45,6 @@ digraph UseCase {{
     UC2 [label="Разобрать\\nметаданные"];
     UC3 [label="Сгенерировать\\nавтотесты"];
     UC4 [label="Запустить\\nавтотесты"];
-    UC4a[label="Запустить\\nвыбранные тесты"];
     UC5 [label="Сохранить\\nрезультаты прогона"];
     UC6 [label="Просмотреть\\nисторию прогонов"];
   }}
@@ -55,7 +54,6 @@ digraph UseCase {{
 
   edge [dir=forward, style=dashed, arrowhead=vee];
   UC4  -> UC5  [label="«include»"];
-  UC4a -> UC4  [label="«extend»"];
 }}
 '''
 render(usecase, "ris_1_usecase")
@@ -65,10 +63,10 @@ sysops = f'''
 digraph SystemOps {{
   bgcolor=white; fontname="{FONT}";
   node [shape=record, fontname="{FONT}", fontsize=12, style=filled, fillcolor=white, color=black, fontcolor=black];
-  System [label="{{System|+ указатьФайлМетаданных(путь)\\l+ указатьКаталогГенерации(путь)\\l+ указатьАдресСайта(URL)\\l+ указатьУчётныеДанные(логин, пароль)\\l+ выбратьТипСайта(тип)\\l+ указатьПодсистему(имя)\\l+ разобратьМетаданные(файлXML)\\l+ сгенерироватьАвтотесты(модель, каталог)\\l+ запуститьАвтотесты(фильтрТестов)\\l+ запуститьВыбранныеТесты(сущности, видыТестов)\\l+ сохранитьРезультаты(прогон)\\l+ просмотретьИсториюПрогонов()\\l}}"];
+  System [label="{{System|+ указатьФайлМетаданных(путь)\\l+ указатьКаталогГенерации(путь)\\l+ указатьАдресСайта(URL)\\l+ указатьУчётныеДанные(логин, пароль)\\l+ выбратьТипСайта(тип)\\l+ указатьПодсистему(имя)\\l+ разобратьМетаданные(файлXML)\\l+ сгенерироватьАвтотесты(модель, каталог)\\l+ запуститьАвтотесты(фильтрТестов)\\l+ сохранитьРезультаты(прогон)\\l+ просмотретьИсториюПрогонов()\\l}}"];
 }}
 '''
-render(sysops, "ris_10_system_ops")
+render(sysops, "ris_9_system_ops")
 
 # ========== 1.4.4 — Диаграмма деятельности «Сгенерировать автотесты» (Ч/Б) ==========
 activity = f'''
@@ -115,5 +113,5 @@ digraph Activity {{
   a_report -> a_sum -> fin;
 }}
 '''
-render(activity, "ris_11_activity_generate")
+render(activity, "ris_10_activity_generate")
 print("graphviz done")
