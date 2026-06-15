@@ -1011,19 +1011,19 @@ public class TestGenerator {
         w.closeBlock();
         w.closeBlock();
         // Fallback: у части сущностей (например «Должностное лицо») в главном меню НЕТ подпункта
-        // «Добавить» — он живёт на тулбаре грида результатов, который уже открыт после навигации в
-        // setUp (Найти → грид). Закрываем меню (ESC) и жмём «Добавить» там: «Редактирование →
-        // Добавить», иначе кнопку «Добавить» тулбара напрямую. Это тот же «способ 1» (открывает
-        // модальную форму с «Готово»), просто точка входа — грид, а не меню.
+        // «Добавить» — там только «Открыть»/«Найти». Создание идёт способом 1 через кнопку
+        // «Добавить» на тулбаре грида результатов (уже открыт после «Найти» в setUp): она открывает
+        // модальную форму «Сведения …» с «Готово». Сначала пробуем прямую кнопку «Добавить»
+        // (модалка, способ 1), и лишь затем «Редактирование → Добавить» (на случай иной разметки).
         w.openBlock("try");
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
         w.writeLine("Thread.sleep(200);");
-        w.writeLine("boolean viaGrid = clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.writeLine("boolean viaGrid = clickButtonByText(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
         w.openBlock("if (!viaGrid)");
-        w.writeLine("viaGrid = clickButtonByText(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.writeLine("viaGrid = clickEditDropdownAction(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
         w.closeBlock();
         w.openBlock("if (viaGrid)");
-        w.writeLine("System.out.println(\"addViaMenu: '\" + entityName + \"' — 'Добавить' нет в меню, открыли через тулбар грида\");");
+        w.writeLine("System.out.println(\"addViaMenu: '\" + entityName + \"' — 'Добавить' нет в меню, открыли через кнопку грида (способ 1)\");");
         w.writeLine("return true;");
         w.closeBlock();
         w.closeBlock();
