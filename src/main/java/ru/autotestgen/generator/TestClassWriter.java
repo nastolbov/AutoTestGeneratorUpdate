@@ -71,6 +71,17 @@ public class TestClassWriter {
         EntityObject modalTwin = entity.isInlineTableEntity()
                 ? EntityClassifier.findModalTwin(entity, model) : null;
 
+        // Карточка-двойник inline-таблицы (например «Должностное лицо» при списке «Должностные лица»):
+        // в меню у неё нет «Добавить», только «Открыть»/«Найти». Редактируемая таблица открывается
+        // через «Открыть», и CRUD делается способом 2 (Редактирование→Добавить в гриде), а не модалкой.
+        boolean twinOfInlineTable = !entity.isInlineTableEntity()
+                && model.getEntities().stream().anyMatch(e -> {
+                    if (!e.isInlineTableEntity()) return false;
+                    EntityObject twin = EntityClassifier.findModalTwin(e, model);
+                    return twin != null && entity.getGuid() != null
+                            && entity.getGuid().equals(twin.getGuid());
+                });
+
         // Поиски, связанные с этой сущностью. Пропускаем FK-only поиски (без параметров,
         // результат только SearchKey/SearchName) — их нет в дереве поисков этой сущности,
         // они вызываются из других сущностей через FK-пикеры. testSearch для них дал бы ложный PASS.
@@ -188,20 +199,24 @@ public class TestClassWriter {
         }
         if (isFull() && modalTwin == null) {
 
-            // Тест 2: валидация обязательных полей (пустая отправка)
-            if (!requiredProperties.isEmpty() && hasCrud) {
-                writeRequiredFieldValidationTest(w, requiredProperties);
+            // Сущности без отдельной модалки FormView и карточки-двойники inline-таблиц используют
+            // способ 2 (Редактирование→Добавить / Сохранить Изменения), а не модалку с «Готово».
+            boolean inlineTable = entity.isInlineTableEntity() || twinOfInlineTable;
+            if (twinOfInlineTable) {
+                w.writeLine("// Эта сущность — карточка-двойник inline-таблицы: CRUD через способ 2"
+                        + " (Редактирование→Добавить в гриде), модальные create/валидация не генерируются.");
             }
 
-            // Сущности без отдельной модалки FormView (typeLink="P") используют inline-table flow
-            // (Редактирование -> Добавить / Сохранить Изменения). Стандартный testCreate/testUpdate
-            // через wizard-модалку для них не работает.
-            boolean inlineTable = entity.isInlineTableEntity();
+            // Тест 2: валидация обязательных полей (пустая отправка) — только для модального (способ 1)
+            // создания. Для inline-таблиц форма открывается иначе, отдельной модалки с «Готово» нет.
+            if (!requiredProperties.isEmpty() && hasCrud && !inlineTable) {
+                writeRequiredFieldValidationTest(w, requiredProperties);
+            }
 
             // Тест 3: создание (Insert)
             if (hasCrud && hasModifier(crudOperation, ModifyType.INSERT)) {
                 if (inlineTable) {
-                    writeInlineTableCreateTest(w);
+                    writeInlineTableCreateTest(w, twinOfInlineTable);
                 } else {
                     writeCreateTest(w, displayProperties);
                 }
@@ -210,7 +225,7 @@ public class TestClassWriter {
             // Тест 4: обновление
             if (hasCrud && hasModifier(crudOperation, ModifyType.UPDATE)) {
                 if (inlineTable) {
-                    writeInlineTableUpdateTest(w);
+                    writeInlineTableUpdateTest(w, twinOfInlineTable);
                 } else {
                     writeUpdateTest(w, displayProperties);
                 }
@@ -231,8 +246,9 @@ public class TestClassWriter {
                 writeArchiveTest(w);
             }
 
-            // Тест: частичная валидация (заполнено только первое обязательное поле)
-            if (requiredProperties.size() >= 2 && hasCrud) {
+            // Тест: частичная валидация (заполнено только первое обязательное поле) — тоже только
+            // для модального способа 1.
+            if (requiredProperties.size() >= 2 && hasCrud && !inlineTable) {
                 writePartialValidationTest(w, requiredProperties);
             }
         }
@@ -1491,12 +1507,26 @@ public class TestClassWriter {
     }
 
     /** Type 2 (inline-table): create через «Редактирование, Добавить», выбор новой строки, заполнение ячеек, сохранение. */
-    private void writeInlineTableCreateTest(JavaFileWriter w) {
+    /**
+     * Для карточки-двойника inline-таблицы: setUp навигирует «Найти» (нужно для testFieldsPresent
+     * и testSearch), но редактируемая таблица типа 2 («Редактирование→Добавить») открывается через
+     * меню «Открыть». Поэтому в начале inline create/update переоткрываем сущность через «Открыть».
+     */
+    private void writeReopenViaOpenMenu(JavaFileWriter w, boolean reopenViaOpenMenu) {
+        if (!reopenViaOpenMenu) return;
+        w.writeLine("System.out.println(\"inline: переоткрываем '\" + ENTITY_NAME + \"' через меню «Открыть» (редактируемая таблица типа 2)\");");
+        w.writeLine("clickEntityMenuItem(ENTITY_NAME, new String[]{ \"\\u041e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c\" });");
+        w.writeLine("waitForGridSettle();");
+        w.writeLine("shot(\"opened_via_otkryt\");");
+    }
+
+    private void writeInlineTableCreateTest(JavaFileWriter w, boolean reopenViaOpenMenu) {
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
         w.writeLine("@DisplayName(\"Create row inline (Type 2 entity)\")");
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"start\");");
+        writeReopenViaOpenMenu(w, reopenViaOpenMenu);
         w.writeLine("String createdMarker = \"AT\" + System.nanoTime();");
         // 0. Счётчик записей до добавления (для проверки create: должно стать +1).
         writeReadGridCount(w, "countBefore");
@@ -1574,12 +1604,13 @@ public class TestClassWriter {
     }
 
     /** Type 2 (inline-table): update — выбрать строку 0, startEditing, уникальное значение, Сохранить. */
-    private void writeInlineTableUpdateTest(JavaFileWriter w) {
+    private void writeInlineTableUpdateTest(JavaFileWriter w, boolean reopenViaOpenMenu) {
         w.writeLine("@Test");
         w.writeLine("@Order(4)");
         w.writeLine("@DisplayName(\"Update row inline (Type 2 entity)\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
+        writeReopenViaOpenMenu(w, reopenViaOpenMenu);
         // Уникальное значение для update — чтобы потом найти его в гриде.
         w.writeLine("String updatedValue = \"Upd\" + System.nanoTime();");
         // 1. Грид-список справочника (без property-grid), непустой.
