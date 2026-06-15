@@ -1721,14 +1721,26 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_delete\");");
         writeServerErrorCheck(w, "testDelete (inline)");
-        // 3. Перечитываем с сервера и проверяем: записей стало меньше. Для двойника — заново «Открыть»
-        //    (свежий стор), для обычной inline-таблицы — refresh грида.
-        w.writeLine("clickGridRefresh();");
+        // 3. Перечитываем с сервера и проверяем: записей стало меньше. Сначала перезаходим в таблицу
+        //    (двойник — заново «Открыть»; свежий запрос к серверу), затем в цикле обновляем грид и
+        //    перечитываем «Всего записей», пока счётчик не уменьшится — store.reload() асинхронный,
+        //    и сразу после него «Всего записей» ещё показывает старое значение.
         writeReopenViaOpenMenu(w, reopenViaOpenMenu);
         writeLocateEditableGridScript(w, "freshCols", true, true);
         w.writeLine("assertTrue(freshCols != null && freshCols > 0, \"testDelete (inline): после удаления не удалось перечитать список\");");
         w.writeLine("shot(\"after_reopen\");");
-        writeReadGridCount(w, "countAfter");
+        w.writeLine("Long countAfter = countBefore;");
+        w.writeLine("long delDeadline = System.currentTimeMillis() + 15000;");
+        w.openBlock("while (System.currentTimeMillis() < delDeadline)");
+        w.writeLine("clickGridRefresh();");
+        w.writeLine("waitForLoadMask(8);");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        writeReadGridCount(w, "countAfter", false);
+        w.writeLine("System.out.println(\"testDelete (inline): перечитываем «Всего записей» = \" + countAfter + \" (было \" + countBefore + \")\");");
+        w.openBlock("if (countBefore != null && countAfter != null && countAfter >= 0 && !countAfter.equals(countBefore))");
+        w.writeLine("break;");
+        w.closeBlock();
+        w.closeBlock();
         w.writeLine("System.out.println(\"testDelete (inline): записей ПОСЛЕ удаления = \" + countAfter + \" (было \" + countBefore + \") popup='\" + delPopup + \"'\");");
         w.writeLine("assertTrue(countBefore != null && countAfter != null && countAfter < countBefore, \"testDelete (inline): число записей не уменьшилось (\" + countBefore + \" -> \" + countAfter + \") — удаление не сохранилось. popup='\" + delPopup + \"'\");");
         w.closeBlock();
