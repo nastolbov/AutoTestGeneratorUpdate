@@ -7,9 +7,31 @@
 import subprocess, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import apimodel as M
+import scenarios as S
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 FONT = "Liberation Serif"
+
+
+def scen_class(pkg, key):
+    """Имя класса пакета по ключу объекта сценария (внешние/край -> None)."""
+    if key == S.EDGE:
+        return None
+    lbl = S.label_of(pkg, key)
+    if "::" in lbl:
+        return None
+    return lbl.lstrip(":")
+
+
+def scenario_assoc(pkg):
+    """Внутрипакетные направленные пары из сценариев взаимодействия (ассоциации)."""
+    pairs, seen = [], set()
+    for flow in S.SC.get(pkg, {}).get("flows", {}).values():
+        for frm, to, _, _ in flow:
+            a, b = scen_class(pkg, frm), scen_class(pkg, to)
+            if a and b and a != b and (a, b) not in seen:
+                seen.add((a, b)); pairs.append((a, b))
+    return pairs
 
 
 def render(dot, name):
@@ -61,38 +83,36 @@ def class_label(r, idx, pkg, detailed):
     rows = [f'<TR><TD ALIGN="CENTER">{head}</TD></TR>']
     if detailed:
         rows.append(compartment([fld_line(f, idx, pkg) for f in r["fields"]]))
-        rows.append(compartment([mth_line(m, idx, pkg) for m in r["methods"]]))
+        rows.append(compartment([mth_line(m, idx, pkg) for m in M.visible_methods(r)]))
     else:
-        # исходная/уточнённая — имя + по одному ключевому атрибуту (если есть)
-        key = r["fields"][0]["name"] if r["fields"] else " "
-        rows.append(f'<TR><TD ALIGN="LEFT" BALIGN="LEFT"> {esc(key)} </TD></TR>')
+        # исходная/уточнённая — имя + ДВА пустых компартмента (атрибуты, операции)
+        rows.append(compartment([]))
+        rows.append(compartment([]))
     table = ('<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
              + "".join(rows) + "</TABLE>>")
     return table
 
 
 def dedup_rels(rels):
-    nested = {(s, d) for k, s, d, _ in rels if k == "nest"}
+    nested = {(s, d) for k, s, d, sm, dm in rels if k == "nest"}
     out = []
-    for k, s, d, mult in rels:
+    for k, s, d, sm, dm in rels:
         if k == "comp" and (s, d) in nested:
             continue  # вложенность важнее композиции-дубля
-        out.append((k, s, d, mult))
+        out.append((k, s, d, sm, dm))
     return out
 
 
+# уточнённая/детальная: типизированные связи (обобщение ▷, агрегация ◇, композиция ◆, вложенность)
 EDGE = {
     "gen":  'dir=forward, arrowhead=empty, arrowtail=none, style=solid',
     "agg":  'dir=both, arrowhead=vee, arrowtail=odiamond, style=solid',
     "comp": 'dir=both, arrowhead=vee, arrowtail=diamond, style=solid',
     "nest": 'dir=back, arrowhead=none, arrowtail=odot, style=solid',
+    "assoc": 'dir=forward, arrowhead=vee, arrowtail=none, style=solid',
 }
-EDGE_SRC = {  # исходная: связи без ромбов
-    "gen":  'dir=forward, arrowhead=empty, style=solid',
-    "agg":  'dir=none, style=solid',
-    "comp": 'dir=none, style=solid',
-    "nest": 'dir=back, arrowhead=none, arrowtail=odot, style=solid',
-}
+# исходная: только простые направленные линии (без ромбов/треугольников, без кратностей)
+EDGE_PLAIN = 'dir=forward, arrowhead=vee, arrowtail=none, style=solid'
 
 
 # число столбцов сетки для детальной диаграммы (баланс ширины/высоты)
@@ -103,20 +123,29 @@ def build(pkg, api, idx, kind):
     """kind: 'source' | 'refined' | 'detailed'."""
     types = api[pkg]
     detailed = (kind == "detailed")
-    edgemap = EDGE if kind != "source" else EDGE_SRC
     rels = dedup_rels(M.relations(pkg, api, idx))
+    # добавить ассоциации из сценариев взаимодействия (связи, которых нет по полям)
+    existing = {(s, d) for _, s, d, _, _ in rels} | {(d, s) for _, s, d, _, _ in rels}
+    for a, b in scenario_assoc(pkg):
+        if (a, b) not in existing and (b, a) not in existing:
+            rels.append(("assoc", a, b, "", "")); existing.add((a, b))
     nodes = []
     for r in types:
         nm = r["name"].replace(".", "_")
         nodes.append(f'  {nm} [label={class_label(r, idx, pkg, detailed)}];')
     edges = []
-    for k, s, d, mult in rels:
+    for k, s, d, sm, dm in rels:
         s2, d2 = s.replace(".", "_"), d.replace(".", "_")
-        attrs = edgemap[k]
-        lbl = f', headlabel="{mult}"' if (mult and kind != "source") else (f', label="{mult}"' if mult else "")
-        # в детальной сетке связи не влияют на ранжирование
         cons = ", constraint=false" if detailed else ""
-        edges.append(f'  {s2} -> {d2} [{attrs}{lbl}{cons}];')
+        if kind == "source":
+            edges.append(f'  {s2} -> {d2} [{EDGE_PLAIN}{cons}];')
+        else:
+            lbl = ""
+            if sm:
+                lbl += f', taillabel="{sm}"'
+            if dm:
+                lbl += f', headlabel="{dm}"'
+            edges.append(f'  {s2} -> {d2} [{EDGE[k]}{lbl}{cons}];')
     grid = []
     if detailed:
         K = COLS.get(pkg, 4)

@@ -102,9 +102,31 @@ FIELD_RU = {
     "operations": "список операций", "modifiers": "список модификаторов",
     "roleA": "роль A ассоциации", "roleB": "роль B ассоциации", "reason": "причина классификации",
     "parentEntity": "родительская сущность", "parentGrid": "родительская таблица",
-    "status": "статус", "error": "сообщение об ошибке", "steps": "шаги теста",
+    "status": "статус выполнения теста", "error": "сообщение об ошибке", "steps": "шаги теста",
+    "text": "текст узла дерева", "style": "стиль оформления узла", "tooltip": "всплывающая подсказка узла",
     "value": "значение", "login": "логин", "password": "пароль", "siteType": "тип сайта",
     "stepName": "имя шага", "feature": "подсистема",
+    # ui
+    "xmlPathField": "Поле пути к файлу метаданных", "urlField": "Поле адреса тестируемого сайта",
+    "loginField": "Поле логина пользователя", "passwordField": "Поле пароля пользователя",
+    "outputDirField": "Поле каталога генерации", "fastModeCheck": "Флажок быстрого режима",
+    "siteTypeCombo": "Список выбора типа сайта", "subsystemField": "Поле имени подсистемы",
+    "btnSelectXml": "Кнопка выбора файла модели", "btnSelectOutputDir": "Кнопка выбора каталога генерации",
+    "btnParse": "Кнопка разбора метаданных", "btnGenerate": "Кнопка генерации автотестов",
+    "btnRunTests": "Кнопка запуска всех тестов", "btnRunSelected": "Кнопка запуска выбранных тестов",
+    "btnShowHistory": "Кнопка показа истории прогонов", "TEST_CATEGORIES": "Список категорий тестов",
+    "entityTreeView": "Дерево сущностей модели", "resultsTable": "Таблица результатов тестов",
+    "colClass": "Столбец имени класса", "colMethod": "Столбец имени метода",
+    "colStatus": "Столбец статуса теста", "colDuration": "Столбец длительности теста",
+    "colMessage": "Столбец сообщения теста", "statusLabel": "Надпись статуса операции",
+    "progressBar": "Индикатор хода выполнения", "logArea": "Область журнала сообщений",
+    "totalLabel": "Надпись общего числа тестов", "passedLabel": "Надпись числа успешных тестов",
+    "failedLabel": "Надпись числа проваленных тестов", "currentModel": "Текущая модель метаданных",
+    "reportDao": "Объект доступа к базе отчётов", "STYLE_GROUP": "Стиль узла группы свойств",
+    "STYLE_PRIMARY": "Стиль основной сущности", "STYLE_CHILD": "Стиль дочерней сущности",
+    "STYLE_SKIP": "Стиль пропускаемого узла", "className": "Имя тестового класса",
+    "methodName": "Имя тестового метода", "duration": "Длительность теста",
+    "message": "Сообщение о результате", "entity": "Сущность модели", "checked": "Признак выбора узла",
 }
 
 METHOD_RU = {
@@ -112,6 +134,28 @@ METHOD_RU = {
     "generator.TestGenerator#generate": "Генерирует тест-проект: инфраструктуру, Page Object и тест-классы.",
     "generator.TestRunner#run": "Запускает автотесты и возвращает результат прогона.",
     "common.Transliterator#transliterate": "Транслитерирует русский текст в латиницу.",
+    # ui
+    "ui.App#main": "Точка входа приложения",
+    "ui.App#start": "Запускает главное окно JavaFX",
+    "ui.Launcher#main": "Точка входа без модульного запуска JavaFX",
+    "ui.MainController#initialize": "Инициализирует контроллер и элементы окна",
+    "ui.MainController#onSelectXml": "Обрабатывает выбор файла модели",
+    "ui.MainController#onSelectOutputDir": "Обрабатывает выбор каталога генерации",
+    "ui.MainController#onParse": "Обрабатывает разбор метаданных",
+    "ui.MainController#onGenerate": "Обрабатывает генерацию автотестов",
+    "ui.MainController#onRunTests": "Обрабатывает запуск всех тестов",
+    "ui.MainController#onRunSelected": "Обрабатывает запуск выбранных тестов",
+    "ui.MainController#onShowHistory": "Обрабатывает показ истории прогонов",
+    "ui.MainController#buildEntityTree": "Строит дерево сущностей модели",
+    "ui.MainController#label": "Формирует подпись узла дерева",
+    "ui.MainController#buildTestFilter": "Формирует фильтр выбранных тестов",
+    "ui.MainController#launchRun": "Запускает прогон тестов в фоне",
+    "ui.MainController#displayResults": "Отображает результаты прогона",
+    "ui.MainController#getXmlFileName": "Возвращает имя файла модели",
+    "ui.MainController#log": "Выводит сообщение в журнал",
+    "ui.MainController#showAlert": "Показывает диалоговое сообщение",
+    "ui.MainController.EntityNode#EntityNode": "Создаёт узел дерева сущностей",
+    "ui.MainController.TestCaseRow#TestCaseRow": "Создаёт строку результата теста",
 }
 
 VERB = {
@@ -193,10 +237,20 @@ def describe_field(f):
     return d[:1].upper() + d[1:]
 
 
+COMMON_METHODS = {
+    "toString": "Строковое представление объекта",
+    "equals": "Сравнение объектов на равенство",
+    "hashCode": "Хеш-код объекта",
+    "compareTo": "Сравнение объектов для упорядочивания",
+}
+
+
 def describe_method(pkg_qual, m):
     key = pkg_qual + "#" + m["name"]
     if key in METHOD_RU:
         return METHOD_RU[key]
+    if m["name"] in COMMON_METHODS:
+        return COMMON_METHODS[m["name"]]
     if m.get("doc"):
         return m["doc"]
     if m["ctor"]:
@@ -246,37 +300,49 @@ def xref(typename, idx, cur_pkg):
 
 
 def relations(pkg, api, idx):
-    """Связи ВНУТРИ пакета: ('gen'|'agg'|'comp'|'nest', src, dst, mult)."""
+    """Связи ВНУТРИ пакета: ('gen'|'agg'|'comp'|'nest', src, dst, src_mult, dst_mult)."""
     types = api[pkg]
     own = {r["name"] for r in types}
     rels = []
     for r in types:
         src = r["name"]
-        # наследование/реализация (только к своим классам пакета)
         for base in ([r["extends"]] if r["extends"] else []) + (r["implements"] or []):
             for tok in type_refs(base):
                 if tok in own and tok != src:
-                    rels.append(("gen", src, tok, ""))
-        # вложенность
+                    rels.append(("gen", src, tok, "", ""))
         if "." in r["qualified"]:
             outer = r["qualified"].split(".")[0]
             if outer in own:
-                rels.append(("nest", outer, src, ""))
-        # агрегация/композиция по полям
+                rels.append(("nest", outer, src, "", ""))
         for f in r["fields"]:
             coll = is_collection(f["type"])
             for tok in type_refs(f["type"]):
                 if tok in own and tok != src:
-                    kind = "agg" if coll else "comp"
-                    mult = "*" if coll else "1"
-                    rels.append((kind, src, tok, mult))
+                    if coll:
+                        rels.append(("agg", src, tok, "1", "0..*"))
+                    else:
+                        rels.append(("comp", src, tok, "1", "1"))
                     break
-    # уникализировать
     seen = set(); out = []
     for x in rels:
         if x not in seen:
             seen.add(x); out.append(x)
     return out
+
+
+def is_trivial_accessor(r, m):
+    """Тривиальный геттер/сеттер, привязанный к полю класса (get/set/is/has + поле)."""
+    if m["ctor"]:
+        return False
+    fn = accessor_field(m["name"])
+    if fn is None:
+        return False
+    return fn in {f["name"] for f in r["fields"]}
+
+
+def visible_methods(r):
+    """Методы без тривиальных геттеров/сеттеров (для детальных диаграмм и таблиц)."""
+    return [m for m in r["methods"] if not is_trivial_accessor(r, m)]
 
 
 if __name__ == "__main__":
