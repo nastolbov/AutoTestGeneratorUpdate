@@ -276,24 +276,21 @@ digraph Generate {{
 '''
 render(gen, "ris_7_generation")
 
-# ============ Рис. 8 — Алгоритм подбора тестовых данных, ГОСТ 19.701-90 ============
+# ============ Рис. 8 — Алгоритм подбора тестовых данных, ГОСТ 19.701-90 (компактный) ============
 data = f'''
 digraph TestData {{
   rankdir=TB; {GOST_HEAD}
-  ranksep=0.38; nodesep=0.40;
+  ranksep=0.42; nodesep=0.45;
 
   {TERM}
   beg [label="Начало"];
   end [label="Конец"];
 
   {DATA}
-  inp  [label="Свойство (атрибут)"];
-  pick [label="Выбор из выпадающего\\nсписка (значение не задаётся)"];
-  dt   [label="Текущая дата / время"];
-  s_str[label="Строка: «Test_<атрибут>»\\n(+ суффикс уникальности)"];
-  s_num[label="Число: случайное 100–999"];
-  s_dat[label="Дата: сегодня"];
-  s_dtm[label="Дата-время: now − 10 мин"];
+  inp    [label="Свойство (атрибут)"];
+  pick   [label="Выбор из выпадающего\\nсписка (значение не задаётся)"];
+  dt     [label="Текущая дата / время"];
+  byType [label="Значение по типу: строка /\\nчисло / дата / дата-время\\n(см. таблицу правил)"];
 
   {PROC}
   bymask [label="Сформировать по маске\\n(цифры, буквы, разделители)"];
@@ -302,21 +299,15 @@ digraph TestData {{
   d1 [label="Справочник/ссылка\\n(Directory/Ref)?"];
   d2 [label="Задана\\nмаска?"];
   d3 [label="Маска похожа\\nна дату/время?"];
-  d4 [label="Тип\\nзначения?"];
 
   beg -> inp -> d1;
-  d1 -> pick [label="да"];
-  d1 -> d2 [label="нет"];
-  d2 -> d3 [label="да"];
-  d3 -> dt [label="да"];
+  d1 -> pick   [label="да"];
+  d1 -> d2     [label="нет"];
+  d2 -> d3     [label="да"];
+  d3 -> dt     [label="да"];
   d3 -> bymask [label="нет"];
-  d2 -> d4 [label="нет"];
-  d4 -> s_str [label="строка"];
-  d4 -> s_num [label="число"];
-  d4 -> s_dat [label="дата"];
-  d4 -> s_dtm [label="дата-время"];
-  pick -> end; dt -> end; bymask -> end;
-  s_str -> end; s_num -> end; s_dat -> end; s_dtm -> end;
+  d2 -> byType [label="нет"];
+  pick -> end; dt -> end; bymask -> end; byType -> end;
 }}
 '''
 render(data, "ris_8_test_data")
@@ -402,4 +393,60 @@ xml_lines = [
 ]
 render_xml_fragment(xml_lines, "ris_3_xml_fragment")
 
-print("Готово: схемы 1.3 по ГОСТ 19.701-90 + фрагмент XML как рисунок")
+# ============ Трёхпанельный браузер объектов E3Core (схема рабочего пространства) ============
+browser = f'''
+digraph Browser {{
+  bgcolor=white; fontname="{FONT}"; node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  br [shape=none, margin=0, label=<
+    <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10">
+      <TR><TD COLSPAN="2" BGCOLOR="#EEEEEE">Главное меню подсистемы (НСИ, пункты ППС, Сервис) и панель инструментов</TD></TR>
+      <TR>
+        <TD WIDTH="230" HEIGHT="180" VALIGN="middle">Дерево объектов<BR/>(загруженные объекты<BR/>и их связи)</TD>
+        <TD WIDTH="330" HEIGHT="90" VALIGN="middle">Список групп свойств<BR/>выбранного объекта</TD>
+      </TR>
+      <TR>
+        <TD WIDTH="230" VALIGN="middle">Окно поиска:<BR/>дерево поисков →<BR/>параметры → результаты</TD>
+        <TD WIDTH="330" HEIGHT="110" VALIGN="middle">Представление группы свойств:<BR/>карточка (атрибут/значение),<BR/>грид (таблица), отчёты</TD>
+      </TR>
+    </TABLE>>];
+}}
+'''
+render(browser, "ris_browser")
+
+# ============ Доменная модель сущностей АИС ГСК ============
+domain = f'''
+digraph Domain {{
+  rankdir=LR; bgcolor=white; fontname="{FONT}"; fontsize=12;
+  node [shape=box, style=filled, fillcolor=white, fontname="{FONT}", fontsize=11, color=black, fontcolor=black];
+  edge [fontname="{FONT}", fontsize=9, color=black, fontcolor=black];
+  nodesep=0.25; ranksep=1.1;
+
+  GSK  [label="ГСК/ОГСК", penwidth=2];
+  CONF [label="Совещание", penwidth=2];
+  HIST [label="История ГСК/ОГСК"];
+  DOCG [label="Документ ГСК/ОГСК"];
+  INV  [label="Приглашённый ГСК"];
+  PART [label="Участник совещания"];
+  AGEN [label="Повестка совещания"];
+  DOCC [label="Документ совещания"];
+
+  node [shape=note];
+  OFF  [label="Должностное лицо"];
+  TYPE [label="Тип ГСК/ОГСК"];
+  DIST [label="Район"];
+  CAUSE[label="Причина смены"];
+
+  // композиция (вкладка-грид / узел дерева) — сплошная линия
+  edge [arrowhead=vee, style=solid];
+  GSK -> HIST; GSK -> DOCG;
+  CONF -> INV; CONF -> PART; CONF -> AGEN; CONF -> DOCC;
+
+  // ссылки на справочники (FK) — пунктир
+  edge [arrowhead=open, style=dashed];
+  GSK -> TYPE; GSK -> DIST; GSK -> CAUSE; GSK -> OFF;
+  CONF -> OFF;
+}}
+'''
+render(domain, "ris_domain")
+
+print("Готово: схемы 1.3 по ГОСТ 19.701-90 + фрагмент XML + браузер E3Core + домен АИС ГСК")
