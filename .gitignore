@@ -6,3 +6,6 @@ generated-tests/
 .vscode/
 __pycache__/
 *.pyc
+
+# Сгенерированные из .docx артефакты (создаются libreoffice при сборке)
+*.pdf
