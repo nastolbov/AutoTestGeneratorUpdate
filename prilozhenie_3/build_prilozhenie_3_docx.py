@@ -5,8 +5,8 @@
 Таблица перечисляет все физические компоненты системы AutoTestGenerator
 (файл сборки pom.xml, ресурс main.fxml и 42 класса Java по пакетам).
 
-Формат соответствует остальным разделам ВКР: Times New Roman, поля 3/1.5/2/2 см,
-таблица — стиль Table Grid, шапка с заливкой, ячейки TNR 12, интервал 1.0.
+Формат: Times New Roman 12 pt, межстрочный интервал 1.0, поля 3/1.5/2/2 см,
+таблица — стиль Table Grid с заливкой шапки.
 Запуск:  python3 prilozhenie_3/build_prilozhenie_3_docx.py
 """
 import os
@@ -210,9 +210,9 @@ COMPONENTS = [
 doc = Document()
 st = doc.styles["Normal"]
 st.font.name = FONT
-st.font.size = Pt(14)
+st.font.size = Pt(12)
 st.element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
-st.paragraph_format.line_spacing = 1.5
+st.paragraph_format.line_spacing = 1.0
 st.paragraph_format.space_after = Pt(0)
 sec = doc.sections[0]
 sec.left_margin = Cm(3)
@@ -283,13 +283,13 @@ def _repeat_header(row):
 # --------------------------------------------------------------------------- #
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-_f(p.add_run("Приложение 3"), 14, bold=True)
+_f(p.add_run("Приложение 3"), 12, bold=True)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(6)
 p.paragraph_format.space_after = Pt(6)
-_f(p.add_run("Спецификация"), 14, bold=True)
+_f(p.add_run("Спецификация"), 12, bold=True)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -297,19 +297,19 @@ p.paragraph_format.first_line_indent = Cm(1.25)
 _f(p.add_run(
     "Настоящее приложение содержит спецификацию на разработанную программную "
     "документацию и программное обеспечение. Спецификация приведена в табл. П3.1."
-), 14)
+), 12)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 p.paragraph_format.space_before = Pt(8)
-_f(p.add_run("Таблица П3.1"), 14)
+_f(p.add_run("Таблица П3.1"), 12)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_after = Pt(4)
 _f(p.add_run(
     "Спецификация на разработанную программную документацию и программное обеспечение"
-), 14)
+), 12)
 
 # --------------------------------------------------------------------------- #
 #  Таблица                                                                     #
