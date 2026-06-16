@@ -535,13 +535,26 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         if (markerField != null) {
             w.writeLine("step(\"fill fields except name\", () -> page.fillAllFieldsExcept(\"" + mfDisplay + "\"));");
+            // Имя вписываем с проверкой и ретраями: если поле осталось пустым, «Готово» создаст пустую
+            // запись, и сервер ответит «уже есть» (пустая уже существует). Жмём «Готово» только когда
+            // уникальное имя реально попало в поле.
+            w.writeLine("boolean nameSet = false;");
+            w.openBlock("for (int attempt = 0; attempt < 3 && !nameSet; attempt++)");
             w.writeLine("step(\"stamp unique name\", () -> page." + fillMethod + "(name));");
+            writeCommitAllEditorsScript(w);
+            w.writeLine("try { Thread.sleep(400); } catch (InterruptedException ignored) {}");
+            w.writeLine("String shownName = readPropertyGridValue(\"" + mfDisplay + "\");");
+            w.writeLine("System.out.println(\"testCreate: поле «" + mfDisplay + "» в форме = '\" + shownName + \"' (ждём '\" + name + \"')\");");
+            w.writeLine("nameSet = shownName != null && shownName.contains(name);");
+            w.closeBlock();
+            w.writeLine("shot(\"filled\");");
+            w.writeLine("assertTrue(nameSet, \"testCreate: не удалось вписать уникальное имя в поле «" + mfDisplay + "» (осталось пустым) — создание отменено, чтобы не плодить пустые дубли\");");
         } else {
             w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+            writeCommitAllEditorsScript(w);
+            w.writeLine("shot(\"filled\");");
         }
-        w.writeLine("shot(\"filled\");");
-        writeCommitAllEditorsScript(w);
-        w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
         w.writeLine("boolean gotovo = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"OK\");");
         w.writeLine("assertTrue(gotovo, \"testCreate: не нашли кнопку 'Готово'/'OK'\");");

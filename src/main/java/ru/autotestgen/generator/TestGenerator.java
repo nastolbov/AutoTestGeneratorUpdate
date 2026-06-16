@@ -3595,6 +3595,29 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // readPropertyGridValue: читает закоммиченное значение поля PropertyGrid (Наименование|Значение)
+        // в активном окне по русскому имени поля. Нужно, чтобы перед «Готово» убедиться, что уникальное
+        // имя реально вписалось (иначе пустое поле → сервер «уже есть»).
+        w.openBlock("protected String readPropertyGridValue(String fieldName)");
+        w.openBlock("try");
+        w.writeLine("Object r = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try{ if(typeof Ext==='undefined') return null; var mgr=Ext.ComponentMgr||Ext.ComponentManager; var all=[];\"");
+        w.writeLine("    + \" if(mgr&&mgr.all){ if(mgr.all.items) all=mgr.all.items; else if(mgr.all.each) mgr.all.each(function(c){all.push(c);}); else for(var k in mgr.all) all.push(mgr.all[k]); }\"");
+        w.writeLine("    + \" var aw=(Ext.WindowMgr&&Ext.WindowMgr.getActive)?Ext.WindowMgr.getActive():null; var ad=(aw&&aw.getEl)?(aw.getEl().dom||aw.getEl()):null;\"");
+        w.writeLine("    + \" for(var i=0;i<all.length;i++){ var c=all[i]; if(!c||!c.rendered||!c.getStore||!c.customEditors) continue; try{ if(ad && !ad.contains(c.getEl().dom)) continue; }catch(e){}\"");
+        w.writeLine("    + \"   var s=c.getStore(); if(!s) continue; for(var j=0;j<s.getCount();j++){ var rec=s.getAt(j); if(!rec||!rec.data) continue;\"");
+        w.writeLine("    + \"     var dn=(rec.data.displayName!=null?String(rec.data.displayName):'').replace(/\\\\s*\\\\*\\\\s*$/,'').trim();\"");
+        w.writeLine("    + \"     var nn=(rec.data.name!=null?String(rec.data.name):'').replace(/\\\\s*\\\\*\\\\s*$/,'').trim();\"");
+        w.writeLine("    + \"     if(dn===arguments[0]||nn===arguments[0]){ return rec.data.value!=null?String(rec.data.value):''; } } }\"");
+        w.writeLine("    + \" return null; }catch(e){ return 'err:'+e.message; }\", fieldName);");
+        w.writeLine("return r == null ? null : String.valueOf(r);");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // selectTreeNodeByText: найти и кликнуть узел дерева, содержащий подстроку (выбор своей записи
         // по уникальному имени для update/delete в справочнике-в-дереве).
         w.openBlock("protected boolean selectTreeNodeByText(String text)");
