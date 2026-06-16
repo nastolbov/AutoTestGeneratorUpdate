@@ -432,9 +432,11 @@ public class TestClassWriter {
     public void writeTreeDictionaryCrudTest(EntityObject entity, AppModel model, Path outputDir,
                                             EntityClassifier.Classification cls) throws IOException {
         EntityObject parent = cls.parentEntity;
-        String entityClassName = Transliterator.toClassName(entity.getName());
-        String testClassName = entityClassName + "Test";
-        String pageClassName = entityClassName + "Page";
+        // Имя тест-класса — по КОНТЕЙНЕРУ «Справочник …» (это пункт меню, через который пользователь
+        // открывает справочник: НСИ → «Справочник причин отмены»). Page-объект — по самой сущности
+        // (его пишет PageObjectWriter.write(entity)).
+        String testClassName = Transliterator.toClassName(parent.getName()) + "Test";
+        String pageClassName = Transliterator.toClassName(entity.getName()) + "Page";
         String packageName = basePackage + ".test";
         Path dir = outputDir.resolve(packageName.replace('.', '/'));
         List<Property> displayProperties = getDisplayProperties(entity);
