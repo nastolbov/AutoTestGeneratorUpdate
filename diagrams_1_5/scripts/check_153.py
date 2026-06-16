@@ -24,15 +24,13 @@ def dot_nodes(path):
 
 nmod = len(MM.MODULES)
 n_lib = sum(1 for m in MM.MODULES if m[3] == "library")
-n_func = nmod - n_lib
 ms = dot_nodes("/tmp/mod_struct.dot")
-ok(ms == n_func, f"дерево модулей: узлов {ms}, ожидалось функциональных {n_func} (без библиотек)")
-# на схеме модульной структуры библиотек быть не должно
+ok(ms == nmod, f"дерево модулей: узлов {ms}, ожидалось {nmod}")
+# на схеме модульной структуры присутствуют все модули, включая библиотеки
 msdot = open("/tmp/mod_struct.dot", encoding="utf-8").read()
 for k in MM.module_keys():
-    if MM.is_library(k):
-        ok(re.search(rf'^\s+{k}\s*\[label=', msdot, re.M) is None,
-           f"модульная структура: библиотека {k} не должна присутствовать на схеме")
+    ok(re.search(rf'^\s+{k}\s*\[label=', msdot, re.M) is not None,
+       f"модульная структура: нет узла {k}")
 cdot = open("/tmp/constantine.dot", encoding="utf-8").read()
 for k in MM.module_keys() + [a[0] for a in MM.DATA_AREAS]:
     ok(re.search(rf'^\s+{k}\s*\[label=', cdot, re.M) is not None,
@@ -71,7 +69,7 @@ if fails:
     print("❌ ПРОВАЛЕНО:", len(fails))
     for f in fails: print("  -", f)
     sys.exit(1)
-print(f"✅ 1.5.3 OK: модулей {nmod} (таблица спецификации==модель); на схеме модульной структуры "
-      f"{n_func} функциональных модулей (без {n_lib} библиотек); карта Константайна содержит все {nmod} "
+print(f"✅ 1.5.3 OK: модулей {nmod} (таблица спецификации == модель == схема модульной структуры, "
+      f"включая {n_lib} библиотек); карта Константайна содержит все {nmod} "
       f"модуля + {len(MM.DATA_AREAS)} области данных; компонентов {len(MM.COMPONENTS)} (диаграмма==таблица); "
       f"связей в сцеплении {len(MM.COUPLING)}")
