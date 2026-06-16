@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Структурная карта Константайна (18 модулей, старая схема) для версии в стиле
 ВКР Сафиуллина. Модуль — прямоугольник, библиотека — двойная рамка, область данных —
-овал. Вызовы — сплошные стрелки, обращение к библиотекам — пунктир (common coupling).
+овал. Все обращения — сплошные стрелки (сцепление по данным).
 Куплеты на рёбрах: ↓○/↑○ — данные (вход/выход), ↑● — управляющий признак.
 Ч/Б, Liberation Serif. Вывод: diagrams_1_5/constantine_18.png."""
 import subprocess, os, sys
@@ -28,8 +28,7 @@ def main():
     edges = []
     for s, d, dd, du, ctrl, _cond in MM.EDGES18:
         lbl = edge_label(dd, du, ctrl)
-        style = ", style=dashed" if MM.is_library(d) else ""
-        edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9{style}];')
+        edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9];')
     for s, d, lbl in MM.DATA_EDGES18:
         edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9];')
 
@@ -39,7 +38,7 @@ def main():
     l1 [label="модуль", shape=box];
     l2 [label="библиотека", shape=box, peripheries=2];
     l3 [label="область\\nданных", shape=ellipse];
-    l4 [label="↓○ ↑○  связь по данным (вход / выход)\\n↓● ↑●  связь по управлению (управляющий флаг)\\n- - -  common coupling (библиотека)", shape=plaintext];
+    l4 [label="↓○ ↑○  связь по данным (вход / выход)\\n↓● ↑●  связь по управлению (управляющий флаг)", shape=plaintext];
     l1 -> l2 [style=invis]; l2 -> l3 [style=invis]; l3 -> l4 [style=invis];
   }'''
 

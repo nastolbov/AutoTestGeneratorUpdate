@@ -70,8 +70,8 @@ COUPLING18 = {
     "EntityParser": "По образцу",
     "SearchParser": "По образцу",
     "PropertyGroupParser": "По образцу",
-    "StaxUtils": "Общее (common)",
-    "XmlNamespaces": "Общее (common)",
+    "StaxUtils": "По данным",
+    "XmlNamespaces": "По данным",
     "EntityClassifier": "По управлению",
     "TestConfig": "По данным",
     "TestGenerator": "По образцу",
@@ -80,8 +80,8 @@ COUPLING18 = {
     "TestDataFactory": "По данным",
     "TestRunner": "По образцу",
     "ReportDao": "По образцу",
-    "JavaFileWriter": "Общее (common)",
-    "Transliterator": "Общее (common)",
+    "JavaFileWriter": "По данным",
+    "Transliterator": "По данным",
 }
 
 # подробная спецификация: ключ -> [(название функции/процедуры, параметры, описание)]

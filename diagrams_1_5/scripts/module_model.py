@@ -171,16 +171,16 @@ COUPLING = [
     ("MainController", "ReportDao", "по образцу", "структура RunResult"),
     ("XmlModelParser", "EntityParser", "по данным", "reader → EntityObject"),
     ("EntityParser", "PropertyGroupParser", "по данным", "reader → PropertyGroup"),
-    ("EntityParser", "StaxUtils", "общее (common)", "reader, имя → значение"),
+    ("EntityParser", "StaxUtils", "по данным", "reader, имя → значение"),
     ("TestGenerator", "EntityClassifier", "по управлению", "вид сущности (PRIMARY/CHILD/REFERENCE)"),
     ("TestGenerator", "PageObjectWriter", "по образцу", "EntityObject, AppModel"),
     ("PageObjectWriter", "TestDataFactory", "по данным", "Property → значение"),
-    ("PageObjectWriter", "JavaFileWriter", "общее (common)", "строки кода"),
-    ("PageObjectWriter", "Transliterator", "общее (common)", "рус. имя → лат. имя"),
+    ("PageObjectWriter", "JavaFileWriter", "по данным", "строки кода"),
+    ("PageObjectWriter", "Transliterator", "по данным", "рус. имя → лат. имя"),
     ("TestRunner", "RunReportWriter", "по образцу", "RunResult"),
     ("ReportDao", "TestRunDao", "по данным", "Connection, RunResult → runId"),
     ("ReportDao", "TestCaseDao", "по данным", "Connection, runId, кейсы"),
-    ("TestRunDao", "DatabaseConnection", "общее (common)", "Connection"),
+    ("TestRunDao", "DatabaseConnection", "по данным", "Connection"),
 ]
 
 # компоненты (диаграмма компонентов): (ключ, имя, тип, версия, назначение)

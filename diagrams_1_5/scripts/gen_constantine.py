@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Структурная карта Константайна (Graphviz): модуль (прямоугольник),
-библиотека (двойная рамка), область данных (овал). Вызовы — сплошные стрелки,
-обращение к библиотекам — пунктир (common coupling). Куплеты подписаны на рёбрах
+библиотека (двойная рамка), область данных (овал). Все обращения — сплошные
+стрелки (сцепление по данным). Куплеты подписаны на рёбрах
 с направлением (↓ — передача в вызываемый модуль, ↑ — возврат) и видом связи
 (○ — по данным, ● — по управлению). Ч/Б, Liberation Serif."""
 import subprocess, os, sys
@@ -30,9 +30,7 @@ def main():
     edges = []
     for s, d, dd, du, ctrl, _cond in MM.EDGES:
         lbl = edge_label(dd, du, ctrl)
-        # обращение к библиотеке — пунктир (common coupling)
-        style = ", style=dashed" if MM.is_library(d) else ""
-        edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9{style}];')
+        edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9];')
     for s, d, lbl in MM.DATA_EDGES:
         edges.append(f'  {s} -> {d} [label="{lbl}", fontsize=9];')
 
@@ -42,7 +40,7 @@ def main():
     l1 [label="модуль", shape=box];
     l2 [label="библиотека", shape=box, peripheries=2];
     l3 [label="область\\nданных", shape=ellipse];
-    l4 [label="↓○ ↑○  связь по данным (вход / выход)\\n↓● ↑●  связь по управлению (управляющий флаг)\\n- - -  common coupling (библиотека)", shape=plaintext];
+    l4 [label="↓○ ↑○  связь по данным (вход / выход)\\n↓● ↑●  связь по управлению (управляющий флаг)", shape=plaintext];
     l1 -> l2 [style=invis]; l2 -> l3 [style=invis]; l3 -> l4 [style=invis];
   }'''
 
