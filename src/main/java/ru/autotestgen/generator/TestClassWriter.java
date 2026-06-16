@@ -421,6 +421,163 @@ public class TestClassWriter {
         w.writeToFile(dir, testClassName + ".java");
     }
 
+    /**
+     * Справочник-в-дереве (новый тип, подсистема «Афиша мероприятий»): сущность вроде «Причина отмены»
+     * с собственной карточкой и операциями I/U/D, лежащая под пустым контейнером-меню «Справочник …».
+     * Навигация — через пункт меню контейнера. CRUD:
+     *   create — ПКМ по узлу «Справочник …» → подменю «<Сущность>» → «Добавить» → модалка → «Готово»;
+     *   update — выбрать запись узла дерева → правый property-grid → «Редактирование → Сохранить Изменения»;
+     *   delete — выбрать запись → «Редактирование → Удалить».
+     */
+    public void writeTreeDictionaryCrudTest(EntityObject entity, AppModel model, Path outputDir,
+                                            EntityClassifier.Classification cls) throws IOException {
+        EntityObject parent = cls.parentEntity;
+        String entityClassName = Transliterator.toClassName(entity.getName());
+        String testClassName = entityClassName + "Test";
+        String pageClassName = entityClassName + "Page";
+        String packageName = basePackage + ".test";
+        Path dir = outputDir.resolve(packageName.replace('.', '/'));
+        List<Property> displayProperties = getDisplayProperties(entity);
+
+        JavaFileWriter w = new JavaFileWriter();
+        w.writeLine("package " + packageName + ";");
+        w.writeLine();
+        w.writeLine("import org.junit.jupiter.api.*;");
+        w.writeLine("import org.openqa.selenium.WebDriver;");
+        w.writeLine("import org.openqa.selenium.WebElement;");
+        w.writeLine("import org.openqa.selenium.By;");
+        w.writeLine("import static org.junit.jupiter.api.Assertions.*;");
+        w.writeLine("import " + basePackage + ".BaseTest;");
+        w.writeLine("import " + basePackage + ".page." + pageClassName + ";");
+        w.writeLine();
+        w.writeLine("@TestMethodOrder(MethodOrderer.OrderAnnotation.class)");
+        w.openBlock("public class " + testClassName + " extends BaseTest");
+        w.writeLine();
+        w.writeLine("private " + pageClassName + " page;");
+        w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName().replace("\"", "\\\"") + "\";");
+        w.writeLine("private static final String CONTAINER_NAME = \"" + parent.getName().replace("\"", "\\\"") + "\";");
+        w.writeLine("private static final String CONTAINER_FEATURE = \"" + (parent.getFeatureName() == null ? "" : parent.getFeatureName()) + "\";");
+        w.writeLine();
+        w.writeLine("@Override");
+        w.openBlock("protected String entityName()");
+        w.writeLine("return CONTAINER_NAME;");
+        w.closeBlock();
+        w.writeLine();
+
+        // setUp: открываем контейнер «Справочник …» через его пункт меню (прямой клик, без формы поиска).
+        w.writeLine("@BeforeEach");
+        w.openBlock("void setUp()");
+        w.writeLine("resetState();");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("cardOpenAttempted = false;");
+        w.writeLine("addDialogFailed = false;");
+        w.writeLine("navigateToEntity(CONTAINER_NAME, CONTAINER_FEATURE, false);");
+        w.writeLine("assumeNavigated();");
+        w.writeLine("page = new " + pageClassName + "(driver);");
+        w.closeBlock();
+        w.writeLine();
+        w.writeLine("@AfterEach");
+        w.openBlock("void captureFinalShot(TestInfo testInfo)");
+        w.writeLine("shot(\"END\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // Тест 1: поля карточки выбранной записи.
+        int total = 0;
+        for (Property p : displayProperties) if (!isSystemField(p)) total++;
+        w.writeLine("@Test");
+        w.writeLine("@Order(1)");
+        w.writeLine("@DisplayName(\"Fields present in dictionary record card\")");
+        w.openBlock("void testFieldsPresent()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
+        w.writeLine("Assumptions.assumeTrue(rec != null, \"Не нашли запись справочника '\" + ENTITY_NAME + \" - …' в дереве\");");
+        w.writeLine("shot(\"record_selected\");");
+        w.writeLine("int found = 0;");
+        for (Property p : displayProperties) {
+            if (isSystemField(p)) continue;
+            w.openBlock("if (page.isFieldDisplayed(\"" + p.getName().replace("\"", "\\\"") + "\", \"" + p.getAttrName() + "\"))");
+            w.writeLine("found++;");
+            w.closeBlock();
+        }
+        w.writeLine("System.out.println(\"Dictionary card fields: \" + found + \" of " + total + "\");");
+        w.writeLine("assertTrue(found > 0, \"В карточке записи справочника не найдено ни одного поля\");");
+        w.closeBlock();
+        w.writeLine();
+
+        // Тест 3: создание через ПКМ по контейнеру → подменю → «Добавить» → модалка → «Готово».
+        w.writeLine("@Test");
+        w.writeLine("@Order(3)");
+        w.writeLine("@DisplayName(\"Create via tree context menu (Готово)\")");
+        w.openBlock("void testCreate()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("boolean addClicked = step(\"ПКМ по контейнеру → '\" + ENTITY_NAME + \"' → Добавить\", () -> addViaTreeContextMenu(CONTAINER_NAME, ENTITY_NAME));");
+        w.writeLine("assertTrue(addClicked, \"testCreate: не удалось открыть 'Добавить' через ПКМ по узлу '\" + CONTAINER_NAME + \"'\");");
+        w.writeLine("boolean addFormOpen = waitForAddForm();");
+        w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
+        w.writeLine("assertTrue(addFormOpen, \"testCreate: модальная карточка не открылась после 'Добавить'\");");
+        w.writeLine("shot(\"dialog_opened\");");
+        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        w.writeLine("shot(\"filled\");");
+        writeCommitAllEditorsScript(w);
+        w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
+        w.writeLine("boolean gotovo = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
+        w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"OK\");");
+        w.writeLine("assertTrue(gotovo, \"testCreate: не нашли кнопку сохранения карточки (Готово/Сохранить/OK)\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_create\");");
+        writeServerErrorCheck(w, "testCreate (dictionary)");
+        w.closeBlock();
+        w.writeLine();
+
+        // Тест 4: изменение выбранной записи → «Редактирование → Сохранить Изменения».
+        w.writeLine("@Test");
+        w.writeLine("@Order(4)");
+        w.writeLine("@DisplayName(\"Update dictionary record (Сохранить Изменения)\")");
+        w.openBlock("void testUpdate()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
+        w.writeLine("Assumptions.assumeTrue(rec != null, \"testUpdate: не нашли запись справочника для изменения\");");
+        w.writeLine("shot(\"record_selected\");");
+        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        writeCommitAllEditorsScript(w);
+        w.writeLine("try { Thread.sleep(600); } catch (InterruptedException ignored) {}");
+        w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
+        w.writeLine("if (!saved) saved = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(saved, \"testUpdate: не удалось сохранить изменения\");");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_update\");");
+        writeServerErrorCheck(w, "testUpdate (dictionary)");
+        w.closeBlock();
+        w.writeLine();
+
+        // Тест 5: удаление выбранной записи → «Редактирование → Удалить».
+        w.writeLine("@Test");
+        w.writeLine("@Order(5)");
+        w.writeLine("@DisplayName(\"Delete dictionary record (Удалить)\")");
+        w.openBlock("void testDelete()");
+        w.writeLine("shot(\"start\");");
+        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
+        w.writeLine("Assumptions.assumeTrue(rec != null, \"testDelete: не нашли запись справочника для удаления\");");
+        w.writeLine("shot(\"record_selected\");");
+        w.writeLine("boolean del = step(\"Редактирование → Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
+        w.writeLine("if (!del) del = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
+        w.writeLine("assertTrue(del, \"testDelete: не удалось нажать 'Удалить'\");");
+        w.writeLine("acceptAlertIfPresent();");
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_delete\");");
+        writeServerErrorCheck(w, "testDelete (dictionary)");
+        w.closeBlock();
+        w.writeLine();
+
+        w.closeBlock(); // конец класса
+        w.writeToFile(dir, testClassName + ".java");
+    }
+
     private void writeTreeNodeFieldsTest(JavaFileWriter w, List<Property> properties, String nodeName) {
         int total = 0;
         for (Property p : properties) {

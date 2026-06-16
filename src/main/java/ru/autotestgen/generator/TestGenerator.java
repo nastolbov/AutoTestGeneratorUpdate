@@ -87,10 +87,18 @@ public class TestGenerator {
                     pageWriter.write(entity, srcDir);
                     testWriter.writeChildTest(entity, model, srcDir, cls);
                 } else if (cls.parentEntity != null) {
-                    // дочерний узел дерева (addFromTree=1, например, Повестка совещания) — открывается
-                    // через карточку родителя и раскрытие узла дерева, а не из главного меню.
                     pageWriter.write(entity, srcDir);
-                    testWriter.writeTreeChildTest(entity, model, srcDir, cls);
+                    if (entity.hasCrudOperations() && cls.parentEntity.getPropertyGroups().isEmpty()) {
+                        // Справочник-в-дереве (новый тип): родитель — пустой контейнер-меню
+                        // «Справочник …», сама сущность имеет карточку и I/U/D. CRUD через ПКМ
+                        // по узлу-контейнеру → подменю сущности → «Добавить» (модалка с «Готово»),
+                        // изменение/удаление — «Редактирование → Сохранить Изменения / Удалить».
+                        testWriter.writeTreeDictionaryCrudTest(entity, model, srcDir, cls);
+                    } else {
+                        // дочерний узел дерева (addFromTree=1, например, Повестка совещания) — открывается
+                        // через карточку родителя и раскрытие узла дерева, а не из главного меню.
+                        testWriter.writeTreeChildTest(entity, model, srcDir, cls);
+                    }
                 }
             } else {
                 ref++;
@@ -3488,7 +3496,105 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // waitForDialog/waitForDialogClose: заменяют слепые Thread.sleep вокруг работы с модалками.
+        // ===== Справочник-в-дереве (новый тип): ПКМ по узлу-контейнеру → подменю сущности → «Добавить».
+        // Для справочников вида «Справочник причин отмены» → «Причина отмены» → «Добавить» (модалка с «Готово»).
+        w.openBlock("protected boolean addViaTreeContextMenu(String containerNode, String entitySubmenu)");
+        w.openBlock("try");
+        w.writeLine("WebElement node = findTreeNodeByText(containerNode);");
+        w.openBlock("if (node == null)");
+        w.writeLine("System.out.println(\"addViaTreeContextMenu: tree node not found: \" + containerNode);");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).contextClick(node).perform();");
+        w.writeLine("Thread.sleep(700);");
+        w.writeLine("WebElement sub = findVisibleMenuItem(entitySubmenu);");
+        w.openBlock("if (sub == null)");
+        w.writeLine("System.out.println(\"addViaTreeContextMenu: context submenu not found: \" + entitySubmenu);");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("new Actions(driver).moveToElement(sub).perform();");
+        w.writeLine("Thread.sleep(600);");
+        w.writeLine("WebElement add = findVisibleMenuItem(\"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\");");
+        w.openBlock("if (add == null)");
+        w.writeLine("System.out.println(\"addViaTreeContextMenu: 'Добавить' not found in submenu\");");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("tryClickAllWays(add);");
+        w.writeLine("Thread.sleep(900);");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("System.out.println(\"addViaTreeContextMenu error: \" + e.getMessage());");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // findTreeNodeByText: первый видимый узел левого дерева, чей текст содержит подстроку.
+        w.openBlock("protected WebElement findTreeNodeByText(String text)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> nodes = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.),'\" + text + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.),'\" + text + \"')]]\"));");
+        w.openBlock("for (WebElement n : nodes)");
+        w.writeLine("try { if (n.isDisplayed()) return n; } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // findVisibleMenuItem: первый видимый пункт ExtJS-меню (.x-menu-item) с заданной подписью.
+        w.openBlock("protected WebElement findVisibleMenuItem(String text)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> items = driver.findElements(By.xpath(");
+        w.writeLine("    \"//*[contains(@class,'x-menu-item-text')][contains(normalize-space(.),'\" + text + \"')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-menu-item')][contains(normalize-space(.),'\" + text + \"')]\"));");
+        w.openBlock("for (WebElement it : items)");
+        w.writeLine("try { if (it.isDisplayed()) return it; } catch (Exception ignored) {}");
+        w.closeBlock();
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // selectTreeRecordByPrefix: выбрать (клик) первую запись-узел дерева вида «<префикс> - …».
+        w.openBlock("protected WebElement selectTreeRecordByPrefix(String prefix)");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> nodes = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.),'\" + prefix + \" -')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.),'\" + prefix + \" -')]]\"));");
+        w.openBlock("for (WebElement n : nodes)");
+        w.openBlock("try");
+        w.openBlock("if (n.isDisplayed())");
+        w.writeLine("tryClickAllWays(n);");
+        w.writeLine("Thread.sleep(500);");
+        w.writeLine("return n;");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return null;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // С кэшем на класс: если первый вызов waitForDialog истёк по таймауту, ставим
         // addDialogFailed=true, и последующие вызовы сразу возвращают false. Экономит ~8с на каждый
         // CRUD-тест после первого провала.
