@@ -532,6 +532,7 @@ public class TestClassWriter {
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("assertTrue(addFormOpen, \"testCreate: модальная карточка не открылась после 'Добавить'\");");
         w.writeLine("shot(\"dialog_opened\");");
+        w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         if (markerField != null) {
             w.writeLine("step(\"fill fields except name\", () -> page.fillAllFieldsExcept(\"" + mfDisplay + "\"));");
             w.writeLine("step(\"stamp unique name\", () -> page." + fillMethod + "(name));");
@@ -544,12 +545,17 @@ public class TestClassWriter {
         w.writeLine("boolean gotovo = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
         w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"OK\");");
         w.writeLine("assertTrue(gotovo, \"testCreate: не нашли кнопку 'Готово'/'OK'\");");
-        w.writeLine("confirmDialogYes();");
-        w.writeLine("try { Thread.sleep(1800); } catch (InterruptedException ignored) {}");
-        w.writeLine("shot(\"after_create\");");
-        // Ловим error-попап («Введенное значение уже есть в справочнике», «Необходимо заполнить …» и т.п.).
+        w.writeLine("try { Thread.sleep(1200); } catch (InterruptedException ignored) {}");
+        w.writeLine("shot(\"after_gotovo\");");
+        // Сначала ловим error-попап («Введенное значение уже есть в справочнике» / «Необходимо заполнить …»):
+        // он висит поверх карточки с кнопкой OK; делаем это ДО confirmDialogYes, чтобы его не потерять.
         writeServerErrorCheck(w, "testCreate (dictionary)");
-        // Запись должна появиться в дереве по уникальному имени — иначе создание не прошло.
+        w.writeLine("confirmDialogYes();");
+        w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
+        // Перезаходим в справочник — дерево перечитывается, и новая запись появляется в нём.
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("navigateToEntity(CONTAINER_NAME, CONTAINER_FEATURE, false);");
+        w.writeLine("shot(\"after_create\");");
         w.writeLine("boolean appeared = selectTreeNodeByText(name);");
         w.openBlock("if (appeared)");
         w.writeLine("createdName = name;");
