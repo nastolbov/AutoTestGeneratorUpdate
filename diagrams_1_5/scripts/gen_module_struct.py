@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Модульная структура (Graphviz): дерево вызовов/использования функциональных модулей.
-Ч/Б, Liberation Serif."""
+"""Модульная структура (Graphviz): дерево вызовов функциональных модулей системы.
+Повторно используемые библиотеки на схему не выносятся (показаны на карте
+Константайна) — отображаются только функциональные модули. Ч/Б, Liberation Serif."""
 import subprocess, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import module_model as MM
@@ -11,10 +12,12 @@ FONT = "Liberation Serif"
 
 def main():
     nodes = []
-    for k, name, pkg, kind, _ in MM.MODULES:
-        peri = ", peripheries=2" if kind == "library" else ""
-        nodes.append(f'  {k} [label="{name}\\n({pkg})", shape=box, style=filled, fillcolor=white{peri}];')
-    edges = [f'  {s} -> {d};' for s, d, *_ in MM.EDGES]
+    for k, name, pkg, kind, *_ in MM.MODULES:
+        if MM.is_library(k):
+            continue
+        nodes.append(f'  {k} [label="{name}", shape=box, style=filled, fillcolor=white];')
+    edges = [f'  {s} -> {d};' for s, d, *_ in MM.EDGES
+             if not MM.is_library(s) and not MM.is_library(d)]
     dot = f'''digraph modstruct {{
   bgcolor=white; rankdir=TB; nodesep=0.35; ranksep=0.6; fontname="{FONT}";
   node [fontname="{FONT}", fontsize=12, color=black, fontcolor=black];

@@ -23,8 +23,16 @@ def dot_nodes(path):
     return len(re.findall(r'^\s+\w+\s*\[label=', s, re.M))
 
 nmod = len(MM.MODULES)
+n_lib = sum(1 for m in MM.MODULES if m[3] == "library")
+n_func = nmod - n_lib
 ms = dot_nodes("/tmp/mod_struct.dot")
-ok(ms == nmod, f"дерево модулей: узлов {ms}, модулей {nmod}")
+ok(ms == n_func, f"дерево модулей: узлов {ms}, ожидалось функциональных {n_func} (без библиотек)")
+# на схеме модульной структуры библиотек быть не должно
+msdot = open("/tmp/mod_struct.dot", encoding="utf-8").read()
+for k in MM.module_keys():
+    if MM.is_library(k):
+        ok(re.search(rf'^\s+{k}\s*\[label=', msdot, re.M) is None,
+           f"модульная структура: библиотека {k} не должна присутствовать на схеме")
 cdot = open("/tmp/constantine.dot", encoding="utf-8").read()
 for k in MM.module_keys() + [a[0] for a in MM.DATA_AREAS]:
     ok(re.search(rf'^\s+{k}\s*\[label=', cdot, re.M) is not None,
@@ -33,7 +41,9 @@ cn = dot_nodes("/tmp/constantine.dot")
 cc = dot_nodes("/tmp/components.dot")
 ok(cc == len(MM.COMPONENTS), f"компоненты: узлов {cc}, в модели {len(MM.COMPONENTS)}")
 
-# таблицы docx
+# таблицы docx (сопоставление по подписи без учёта регистра)
+KEYS = {"спецификация модулей": "Спецификация модулей", "связность модулей": "Связность модулей",
+        "сцепление модулей": "Сцепление модулей", "описание компонентов": "Описание компонентов"}
 d = Document(DOCX); last = ""; tabs = {}
 for ch in d.element.body.iterchildren():
     tg = ch.tag.split("}")[-1]
@@ -42,8 +52,9 @@ for ch in d.element.body.iterchildren():
         if t: last = t
     elif tg == "tbl":
         nd = len(Table(ch, d).rows) - 1
-        for key in ("Спецификация модулей", "Связность модулей", "Сцепление модулей", "Описание компонентов"):
-            if key in last: tabs[key] = nd
+        low = last.lower()
+        for key, canon in KEYS.items():
+            if key in low: tabs[canon] = nd
         last = ""
 ok(tabs.get("Спецификация модулей") == nmod, f"табл. спецификации: {tabs.get('Спецификация модулей')} ≠ {nmod}")
 ok(tabs.get("Связность модулей") == nmod, f"табл. связности: {tabs.get('Связность модулей')} ≠ {nmod}")
@@ -60,5 +71,7 @@ if fails:
     print("❌ ПРОВАЛЕНО:", len(fails))
     for f in fails: print("  -", f)
     sys.exit(1)
-print(f"✅ 1.5.3 OK: модулей {nmod} (дерево==таблица==модель); компонентов {len(MM.COMPONENTS)} "
-      f"(диаграмма==таблица); карта Константайна {cn} узлов; связей в сцеплении {len(MM.COUPLING)}")
+print(f"✅ 1.5.3 OK: модулей {nmod} (таблица спецификации==модель); на схеме модульной структуры "
+      f"{n_func} функциональных модулей (без {n_lib} библиотек); карта Константайна содержит все {nmod} "
+      f"модуля + {len(MM.DATA_AREAS)} области данных; компонентов {len(MM.COMPONENTS)} (диаграмма==таблица); "
+      f"связей в сцеплении {len(MM.COUPLING)}")
