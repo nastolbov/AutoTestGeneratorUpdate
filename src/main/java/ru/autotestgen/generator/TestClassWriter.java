@@ -456,6 +456,9 @@ public class TestClassWriter {
         w.openBlock("public class " + testClassName + " extends BaseTest");
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");
+        // Имя своей записи, созданной в testCreate; переиспользуется в testUpdate/testDelete,
+        // чтобы править и удалять ИМЕННО её, не трогая существующие данные справочника.
+        w.writeLine("private static String createdName;");
         w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName().replace("\"", "\\\"") + "\";");
         w.writeLine("private static final String CONTAINER_NAME = \"" + parent.getName().replace("\"", "\\\"") + "\";");
         w.writeLine("private static final String CONTAINER_FEATURE = \"" + (parent.getFeatureName() == null ? "" : parent.getFeatureName()) + "\";");
@@ -507,43 +510,71 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine();
 
-        // Тест 3: создание через ПКМ по контейнеру → подменю → «Добавить» → модалка → «Готово».
+        // Строковое поле (Наименование), которым задаём уникальное имя записи.
+        Property markerField = displayProperties.stream()
+                .filter(p -> p.getAttrType() == AttrType.STRING && !isSystemField(p)
+                        && !"Directory".equals(p.getStereoType()) && !"Ref".equals(p.getStereoType()))
+                .findFirst().orElse(null);
+        String fillMethod = markerField != null ? "fill" + Transliterator.toClassName(markerField.getAttrName()) : null;
+        String mfDisplay = markerField != null ? markerField.getName().replace("\\", "\\\\").replace("\"", "\\\"") : null;
+
+        // Тест 3: создаём СВОЮ запись с уникальным именем (ПКМ → Добавить → модалка → «Готово»).
+        // Успех = запись реально появилась в дереве И нет error-попапа («уже есть» и т.п.).
         w.writeLine("@Test");
         w.writeLine("@Order(3)");
         w.writeLine("@DisplayName(\"Create via tree context menu (Готово)\")");
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"start\");");
+        w.writeLine("String name = \"AT\" + System.nanoTime();");
         w.writeLine("boolean addClicked = step(\"ПКМ по контейнеру → '\" + ENTITY_NAME + \"' → Добавить\", () -> addViaTreeContextMenu(CONTAINER_NAME, ENTITY_NAME));");
         w.writeLine("assertTrue(addClicked, \"testCreate: не удалось открыть 'Добавить' через ПКМ по узлу '\" + CONTAINER_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("assertTrue(addFormOpen, \"testCreate: модальная карточка не открылась после 'Добавить'\");");
         w.writeLine("shot(\"dialog_opened\");");
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        if (markerField != null) {
+            w.writeLine("step(\"fill fields except name\", () -> page.fillAllFieldsExcept(\"" + mfDisplay + "\"));");
+            w.writeLine("step(\"stamp unique name\", () -> page." + fillMethod + "(name));");
+        } else {
+            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        }
         w.writeLine("shot(\"filled\");");
         writeCommitAllEditorsScript(w);
         w.writeLine("try { Thread.sleep(800); } catch (InterruptedException ignored) {}");
         w.writeLine("boolean gotovo = step(\"click Готово\", () -> clickButtonByText(\"\\u0413\\u043e\\u0442\\u043e\\u0432\\u043e\"));");
-        w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c\");");
         w.writeLine("if (!gotovo) gotovo = clickButtonByText(\"OK\");");
-        w.writeLine("assertTrue(gotovo, \"testCreate: не нашли кнопку сохранения карточки (Готово/Сохранить/OK)\");");
+        w.writeLine("assertTrue(gotovo, \"testCreate: не нашли кнопку 'Готово'/'OK'\");");
         w.writeLine("confirmDialogYes();");
-        w.writeLine("try { Thread.sleep(2000); } catch (InterruptedException ignored) {}");
+        w.writeLine("try { Thread.sleep(1800); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_create\");");
+        // Ловим error-попап («Введенное значение уже есть в справочнике», «Необходимо заполнить …» и т.п.).
         writeServerErrorCheck(w, "testCreate (dictionary)");
+        // Запись должна появиться в дереве по уникальному имени — иначе создание не прошло.
+        w.writeLine("boolean appeared = selectTreeNodeByText(name);");
+        w.openBlock("if (appeared)");
+        w.writeLine("createdName = name;");
+        w.writeLine("System.out.println(\"testCreate: создана запись '\" + name + \"'\");");
+        w.closeBlock();
+        w.writeLine("assertTrue(appeared, \"testCreate: запись '\" + name + \"' не появилась в дереве после создания (создание не сохранилось)\");");
         w.closeBlock();
         w.writeLine();
 
-        // Тест 4: изменение выбранной записи → «Редактирование → Сохранить Изменения».
+        // Тест 4: правим ИМЕННО свою созданную запись → новое уникальное имя → «Сохранить Изменения».
         w.writeLine("@Test");
         w.writeLine("@Order(4)");
-        w.writeLine("@DisplayName(\"Update dictionary record (Сохранить Изменения)\")");
+        w.writeLine("@DisplayName(\"Update own created record (Сохранить Изменения)\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
-        w.writeLine("Assumptions.assumeTrue(rec != null, \"testUpdate: не нашли запись справочника для изменения\");");
+        w.writeLine("Assumptions.assumeTrue(createdName != null, \"testUpdate: нет своей записи — testCreate не прошёл\");");
+        w.writeLine("boolean sel = selectTreeNodeByText(createdName);");
+        w.writeLine("assertTrue(sel, \"testUpdate: не нашли свою запись '\" + createdName + \"' в дереве\");");
         w.writeLine("shot(\"record_selected\");");
-        w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        w.writeLine("String newName = \"AT\" + System.nanoTime();");
+        if (markerField != null) {
+            w.writeLine("step(\"change name\", () -> page." + fillMethod + "(newName));");
+        } else {
+            w.writeLine("step(\"fill all fields\", () -> page.fillAllFields());");
+        }
         writeCommitAllEditorsScript(w);
         w.writeLine("try { Thread.sleep(600); } catch (InterruptedException ignored) {}");
         w.writeLine("boolean saved = step(\"Редактирование → Сохранить Изменения\", () -> clickEditDropdownAction(\"\\u0421\\u043e\\u0445\\u0440\\u0430\\u043d\\u0438\\u0442\\u044c \\u0418\\u0437\\u043c\\u0435\\u043d\\u0435\\u043d\\u0438\\u044f\"));");
@@ -553,17 +584,26 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_update\");");
         writeServerErrorCheck(w, "testUpdate (dictionary)");
+        if (markerField != null) {
+            // Новое имя должно появиться в дереве; запоминаем его для testDelete.
+            w.writeLine("boolean renamed = selectTreeNodeByText(newName);");
+            w.openBlock("if (renamed)");
+            w.writeLine("createdName = newName;");
+            w.closeBlock();
+            w.writeLine("assertTrue(renamed, \"testUpdate: запись с новым именем '\" + newName + \"' не найдена после сохранения\");");
+        }
         w.closeBlock();
         w.writeLine();
 
-        // Тест 5: удаление выбранной записи → «Редактирование → Удалить».
+        // Тест 5: удаляем ИМЕННО свою запись → «Редактирование → Удалить» → «Да». Без доп. проверок.
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
-        w.writeLine("@DisplayName(\"Delete dictionary record (Удалить)\")");
+        w.writeLine("@DisplayName(\"Delete own created record (Удалить)\")");
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
-        w.writeLine("Assumptions.assumeTrue(rec != null, \"testDelete: не нашли запись справочника для удаления\");");
+        w.writeLine("Assumptions.assumeTrue(createdName != null, \"testDelete: нет своей записи — testCreate не прошёл\");");
+        w.writeLine("boolean sel = selectTreeNodeByText(createdName);");
+        w.writeLine("assertTrue(sel, \"testDelete: не нашли свою запись '\" + createdName + \"' для удаления\");");
         w.writeLine("shot(\"record_selected\");");
         w.writeLine("boolean del = step(\"Редактирование → Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
         w.writeLine("if (!del) del = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");
@@ -573,6 +613,7 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(1500); } catch (InterruptedException ignored) {}");
         w.writeLine("shot(\"after_delete\");");
         writeServerErrorCheck(w, "testDelete (dictionary)");
+        w.writeLine("createdName = null;");
         w.closeBlock();
         w.writeLine();
 
@@ -1517,7 +1558,7 @@ public class TestClassWriter {
     /** Генерирует проверку, проваливающую тест, если виден серверный диалог «Ошибка» (напр. SP trunc(date)). */
     private void writeServerErrorCheck(JavaFileWriter w, String label) {
         w.writeLine("String srvErr = (String) ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
-        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var wn=ws[i]; if (wn.offsetWidth<=0) continue; var t=(wn.innerText||''); if (t.indexOf('\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410')>=0 || t.toLowerCase().indexOf('trunc')>=0 || t.indexOf('SP_')>=0) return t.replace(/\\s+/g,' ').substring(0,300); } return ''; } catch(e){ return ''; }\");");
+        w.writeLine("    \"try { var ws=document.querySelectorAll('.x-window'); for (var i=0;i<ws.length;i++){ var wn=ws[i]; if (wn.offsetWidth<=0) continue; var t=(wn.innerText||''); if (t.indexOf('\\u041e\\u0428\\u0418\\u0411\\u041a\\u0410')>=0 || t.toLowerCase().indexOf('trunc')>=0 || t.indexOf('SP_')>=0 || t.indexOf('\\u0443\\u0436\\u0435 \\u0435\\u0441\\u0442\\u044c')>=0 || t.indexOf('\\u041d\\u0435\\u043e\\u0431\\u0445\\u043e\\u0434\\u0438\\u043c\\u043e \\u0437\\u0430\\u043f\\u043e\\u043b\\u043d\\u0438\\u0442\\u044c')>=0 || t.indexOf('\\u043d\\u0435\\u0432\\u043e\\u0437\\u043c\\u043e\\u0436\\u043d\\u043e')>=0) return t.replace(/\\s+/g,' ').substring(0,300); } return ''; } catch(e){ return ''; }\");");
         w.openBlock("if (srvErr != null && !srvErr.isEmpty())");
         w.writeLine("shot(\"server_error\");");
         w.writeLine("fail(\"" + label + ": сервер отклонил операцию: \" + srvErr);");

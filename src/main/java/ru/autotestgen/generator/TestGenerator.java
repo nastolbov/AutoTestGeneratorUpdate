@@ -3595,6 +3595,20 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // selectTreeNodeByText: найти и кликнуть узел дерева, содержащий подстроку (выбор своей записи
+        // по уникальному имени для update/delete в справочнике-в-дереве).
+        w.openBlock("protected boolean selectTreeNodeByText(String text)");
+        w.writeLine("WebElement n = findTreeNodeByText(text);");
+        w.openBlock("if (n == null)");
+        w.writeLine("System.out.println(\"selectTreeNodeByText: node not found: \" + text);");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.writeLine("tryClickAllWays(n);");
+        w.writeLine("try { Thread.sleep(500); } catch (InterruptedException ignored) {}");
+        w.writeLine("return true;");
+        w.closeBlock();
+        w.writeLine();
+
         // С кэшем на класс: если первый вызов waitForDialog истёк по таймауту, ставим
         // addDialogFailed=true, и последующие вызовы сразу возвращают false. Экономит ~8с на каждый
         // CRUD-тест после первого провала.
