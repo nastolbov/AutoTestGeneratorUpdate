@@ -729,7 +729,8 @@ public class TestGenerator {
         w.openBlock("protected void menuAction(String entityName, String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"НСИ\", \"Отчёты\", \"Сервис\"};");
+        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
+        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"НСИ\", \"Отчёты\", \"Сервис\");");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -961,11 +962,39 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // menuBarButtonLabels: подписи всех кнопок верхнего меню системы (Файл/<Подсистема>/Отчёты/
+        // НСИ/Сервис/…). Навигация перебирает их ВСЕ и в каждом выпадающем меню ищет сущность/справочник.
+        // Имя кнопки подсистемы (напр. «Афиша») не совпадает с заголовком окна («Афиша мероприятий»),
+        // поэтому статический список не годится — собираем динамически с самой страницы.
+        w.openBlock("private java.util.List<String> menuBarButtonLabels()");
+        w.writeLine("java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();");
+        w.openBlock("try");
+        w.writeLine("List<WebElement> btns = driver.findElements(By.xpath(\"//button[contains(@class,'x-btn-text')]\"));");
+        w.openBlock("for (WebElement b : btns)");
+        w.openBlock("try");
+        w.writeLine("if (!b.isDisplayed()) continue;");
+        w.writeLine("String t = b.getText() == null ? \"\" : b.getText().trim();");
+        w.writeLine("if (t.isEmpty() || t.length() > 40) continue;");
+        w.writeLine("names.add(t);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("return new java.util.ArrayList<>(names);");
+        w.closeBlock();
+        w.writeLine();
+
         // Навигация E3Core: каскадные меню ExtJS с рекурсивным спуском по подменю
         w.openBlock("private void navigateE3Core(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
+        w.openBlock("if (menuButtons.isEmpty())");
+        w.writeLine("menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
+        w.closeBlock();
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -1019,7 +1048,8 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
+        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -3443,7 +3473,8 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("String[] menuButtons = {TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"};");
+        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
+        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
