@@ -823,7 +823,7 @@ public class TestGenerator {
         w.openBlock("if (node == null)");
         w.writeLine("return false;");
         w.closeBlock();
-        w.writeLine("System.out.println(\"dblClickTreeNode: '\" + node.getText().trim() + \"'\");");
+        w.writeLine("System.out.println(\"activateSearchTreeNode: '\" + node.getText().trim() + \"'\");");
         w.writeLine("WebElement target = node;");
         w.openBlock("try");
         w.writeLine("WebElement a = node.findElement(By.xpath(\"./ancestor-or-self::a[contains(@class,'x-tree-node-anchor')][1]\"));");
@@ -831,17 +831,34 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        // 1) ОДИНОЧНЫЙ клик: в этой сборке выделение листа поиска сразу грузит форму параметров справа.
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(target).click().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // 2) Двойной клик (для систем, где форма открывается по double-click, напр. «по параметрам»).
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(target).doubleClick().perform();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // 3) JS-события (mousedown/up/click/dblclick) — если обычные клики перехвачены.
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"var e=arguments[0]; ['mousedown','mouseup','click','dblclick'].forEach(function(t){ try{ e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window})); }catch(x){} });\", node);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.writeLine("Thread.sleep(900);");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
