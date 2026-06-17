@@ -233,6 +233,11 @@ public class MainController {
         for (EntityObject entity : currentModel.getEntities()) {
             EntityClassifier.Classification cls = EntityClassifier.classify(entity, currentModel);
             if (cls.kind == EntityKind.PRIMARY) {
+                // Контейнер-список (например «Мероприятия») отдельным классом не тестируется — его CRUD
+                // покрывает карточка-сущность («Мероприятие»), поэтому в дереве его не показываем.
+                if (entity.getGuid() != null && dictHostGuids.contains(entity.getGuid())) {
+                    continue;
+                }
                 TreeItem<EntityNode> item = new TreeItem<>(
                         new EntityNode(label(entity), STYLE_PRIMARY, "PRIMARY — отдельный тест-класс. " + cls.reason));
                 if (entity.getGuid() != null) primaryByGuid.put(entity.getGuid(), item);
