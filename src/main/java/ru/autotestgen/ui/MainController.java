@@ -222,9 +222,9 @@ public class MainController {
         // (по их дочерней сущности-узлу с операциями). Такой контейнер — пункт меню, а не «без тестов».
         java.util.Set<String> dictHostGuids = new java.util.HashSet<>();
         for (EntityObject e : currentModel.getEntities()) {
-            EntityClassifier.Classification c = EntityClassifier.classify(e, currentModel);
-            if (isDictionaryCrudChild(e, c) && c.parentEntity.getGuid() != null) {
-                dictHostGuids.add(c.parentEntity.getGuid());
+            if (EntityClassifier.isTreeDictionaryCrud(e, currentModel)) {
+                EntityObject p = EntityClassifier.classify(e, currentModel).parentEntity;
+                if (p != null && p.getGuid() != null) dictHostGuids.add(p.getGuid());
             }
         }
 
@@ -254,12 +254,12 @@ public class MainController {
         //    PRIMARY/не найден — показываем ребёнка отдельным узлом в группе «будут протестированы».
         for (EntityObject child : children) {
             EntityClassifier.Classification cls = EntityClassifier.classify(child, currentModel);
-            // Справочник-в-дереве: отдельный CRUD тест-класс, названный по контейнеру «Справочник …».
-            if (isDictionaryCrudChild(child, cls)) {
+            // Справочник/карточка-в-дереве: отдельный CRUD тест-класс (create/update/delete своей записи).
+            if (EntityClassifier.isTreeDictionaryCrud(child, currentModel)) {
                 tested.getChildren().add(new TreeItem<>(new EntityNode(
-                        label(cls.parentEntity) + " (справочник, CRUD)", STYLE_PRIMARY,
-                        "Отдельный тест-класс по контейнеру «" + cls.parentEntity.getName()
-                                + "» (create/update/delete своей записи). " + cls.reason)));
+                        label(child) + " (через дерево, CRUD)", STYLE_PRIMARY,
+                        "Отдельный тест-класс. Добавление ПКМ по контейнеру «" + cls.parentEntity.getName()
+                                + "» → «Добавить» (карточка с «Готово»), затем изменение/удаление своей записи. " + cls.reason)));
                 primaryCount++;
                 continue;
             }
@@ -301,17 +301,6 @@ public class MainController {
     }
 
     /** Подпись сущности в дереве: имя + [CRUD] + (N полей) — как было в плоском списке. */
-    /**
-     * Справочник-в-дереве с собственным CRUD: сущность-узел (addFromTree, без grid-вкладки),
-     * имеющая операции I/U/D, чей родитель — пустой контейнер «Справочник …». Для неё генерируется
-     * отдельный тест-класс (writeTreeDictionaryCrudTest), названный по контейнеру. Зеркалит логику
-     * диспетчера в TestGenerator, чтобы дерево в UI совпадало с реально генерируемыми тестами.
-     */
-    private static boolean isDictionaryCrudChild(EntityObject e, EntityClassifier.Classification cls) {
-        return cls.kind == EntityKind.CHILD && cls.parentEntity != null && cls.parentGrid == null
-                && e.hasCrudOperations() && cls.parentEntity.getPropertyGroups().isEmpty();
-    }
-
     private static String label(EntityObject entity) {
         String info = entity.getName();
         if (entity.hasCrudOperations()) info += " [CRUD]";

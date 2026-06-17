@@ -71,12 +71,27 @@ public class TestGenerator {
         TestClassWriter testWriter = new TestClassWriter(basePackage, config.getTestLevel());
         StringBuilder csv = new StringBuilder("kind,entity,reason\n");
         int primary = 0, child = 0, ref = 0;
+        // GUID контейнеров (PRIMARY-списков вроде «Мероприятия»), чья карточка-узел тестируется
+        // отдельным tree-CRUD классом. Сам контейнер отдельным PRIMARY-тестом не генерируем —
+        // его CRUD покрывает карточка (например «Мероприятие»), а навигация к списку нестабильна.
+        java.util.Set<String> treeCrudHostGuids = new java.util.HashSet<>();
+        for (EntityObject e : model.getEntities()) {
+            if (EntityClassifier.isTreeDictionaryCrud(e, model)) {
+                EntityObject p = EntityClassifier.classify(e, model).parentEntity;
+                if (p != null && p.getGuid() != null) treeCrudHostGuids.add(p.getGuid());
+            }
+        }
         for (EntityObject entity : model.getEntities()) {
             EntityClassifier.Classification cls = EntityClassifier.classify(entity, model);
             csv.append(cls.kind).append(",")
                     .append(csvEscape(entity.getName())).append(",")
                     .append(csvEscape(cls.reason)).append("\n");
+            boolean isTreeCrud = EntityClassifier.isTreeDictionaryCrud(entity, model);
             if (cls.kind == EntityKind.PRIMARY) {
+                if (entity.getGuid() != null && treeCrudHostGuids.contains(entity.getGuid())) {
+                    // контейнер-список — пропускаем, его карточку тестирует tree-CRUD класс
+                    continue;
+                }
                 primary++;
                 pageWriter.write(entity, srcDir);
                 testWriter.write(entity, model, srcDir, null);
@@ -88,15 +103,13 @@ public class TestGenerator {
                     testWriter.writeChildTest(entity, model, srcDir, cls);
                 } else if (cls.parentEntity != null) {
                     pageWriter.write(entity, srcDir);
-                    if (entity.hasCrudOperations() && cls.parentEntity.getPropertyGroups().isEmpty()) {
-                        // Справочник-в-дереве (новый тип): родитель — пустой контейнер-меню
-                        // «Справочник …», сама сущность имеет карточку и I/U/D. CRUD через ПКМ
-                        // по узлу-контейнеру → подменю сущности → «Добавить» (модалка с «Готово»),
-                        // изменение/удаление — «Редактирование → Сохранить Изменения / Удалить».
+                    if (isTreeCrud) {
+                        // Справочник/карточка-в-дереве (новый тип): CRUD через ПКМ по узлу-контейнеру →
+                        // подменю → «Добавить» (карточка с «Готово»); изменение/удаление — выбор записи
+                        // → «Редактирование → Сохранить Изменения / Удалить».
                         testWriter.writeTreeDictionaryCrudTest(entity, model, srcDir, cls);
                     } else {
-                        // дочерний узел дерева (addFromTree=1, например, Повестка совещания) — открывается
-                        // через карточку родителя и раскрытие узла дерева, а не из главного меню.
+                        // дочерний узел дерева внутри карточки родителя (например, Повестка совещания).
                         testWriter.writeTreeChildTest(entity, model, srcDir, cls);
                     }
                 }

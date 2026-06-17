@@ -432,10 +432,28 @@ public class TestClassWriter {
     public void writeTreeDictionaryCrudTest(EntityObject entity, AppModel model, Path outputDir,
                                             EntityClassifier.Classification cls) throws IOException {
         EntityObject parent = cls.parentEntity;
-        // Имя тест-класса — по КОНТЕЙНЕРУ «Справочник …» (это пункт меню, через который пользователь
-        // открывает справочник: НСИ → «Справочник причин отмены»). Page-объект — по самой сущности
-        // (его пишет PageObjectWriter.write(entity)).
-        String testClassName = Transliterator.toClassName(parent.getName()) + "Test";
+        // Подпись добавления (role_A_caption ассоциации родитель→сущность): для справочников совпадает
+        // с именем сущности («Причина отмены»), для «Мероприятия» это «Добавить мероприятие». Она же —
+        // префикс записей-узлов в дереве («<подпись> - …») и подпись подменю ПКМ.
+        String caption = entity.getName();
+        for (var a : parent.getAssociations()) {
+            if (entity.getGuid() != null && entity.getGuid().equals(a.getAssociateItemGuid())
+                    && a.getRoleACaption() != null && !a.getRoleACaption().trim().isEmpty()) {
+                caption = a.getRoleACaption().trim();
+                break;
+            }
+        }
+        // Пункт меню для открытия дерева: имя формы контейнера, если есть (Мероприятия → «Все мероприятия»),
+        // иначе имя контейнера (пустой «Справочник …»).
+        String navName = (parent.getFormView() != null && parent.getFormView().getName() != null
+                && !parent.getFormView().getName().isEmpty())
+                ? parent.getFormView().getName() : parent.getName();
+        // Имя тест-класса: по контейнеру, если он — чистый справочник без своей формы
+        // (SpravochnikPrichinOtmenyTest), иначе по сущности-карточке (MeropriyatieTest), чтобы не
+        // конфликтовать с классом контейнера.
+        String testClassName = parent.getPropertyGroups().isEmpty()
+                ? Transliterator.toClassName(parent.getName()) + "Test"
+                : Transliterator.toClassName(entity.getName()) + "Test";
         String pageClassName = Transliterator.toClassName(entity.getName()) + "Page";
         String packageName = basePackage + ".test";
         Path dir = outputDir.resolve(packageName.replace('.', '/'));
@@ -456,27 +474,30 @@ public class TestClassWriter {
         w.openBlock("public class " + testClassName + " extends BaseTest");
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");
-        // Имя своей записи, созданной в testCreate; переиспользуется в testUpdate/testDelete,
-        // чтобы править и удалять ИМЕННО её, не трогая существующие данные справочника.
+        // Имя своей записи, созданной в testCreate; переиспользуется в testUpdate/testDelete.
         w.writeLine("private static String createdName;");
         w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName().replace("\"", "\\\"") + "\";");
-        w.writeLine("private static final String CONTAINER_NAME = \"" + parent.getName().replace("\"", "\\\"") + "\";");
-        w.writeLine("private static final String CONTAINER_FEATURE = \"" + (parent.getFeatureName() == null ? "" : parent.getFeatureName()) + "\";");
+        // NODE_NAME — узел-контейнер в дереве, по которому делаем ПКМ; CAPTION — подменю/префикс записей;
+        // NAV_NAME — пункт меню для открытия дерева.
+        w.writeLine("private static final String NODE_NAME = \"" + parent.getName().replace("\"", "\\\"") + "\";");
+        w.writeLine("private static final String CAPTION = \"" + caption.replace("\"", "\\\"") + "\";");
+        w.writeLine("private static final String NAV_NAME = \"" + navName.replace("\"", "\\\"") + "\";");
+        w.writeLine("private static final String NAV_FEATURE = \"" + (parent.getFeatureName() == null ? "" : parent.getFeatureName()) + "\";");
         w.writeLine();
         w.writeLine("@Override");
         w.openBlock("protected String entityName()");
-        w.writeLine("return CONTAINER_NAME;");
+        w.writeLine("return NAV_NAME;");
         w.closeBlock();
         w.writeLine();
 
-        // setUp: открываем контейнер «Справочник …» через его пункт меню (прямой клик, без формы поиска).
+        // setUp: открываем дерево через пункт меню контейнера (прямой клик, без формы поиска).
         w.writeLine("@BeforeEach");
         w.openBlock("void setUp()");
         w.writeLine("resetState();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
         w.writeLine("addDialogFailed = false;");
-        w.writeLine("navigateToEntity(CONTAINER_NAME, CONTAINER_FEATURE, false);");
+        w.writeLine("navigateToEntity(NAV_NAME, NAV_FEATURE, false);");
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");
         w.closeBlock();
@@ -495,8 +516,8 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Fields present in dictionary record card\")");
         w.openBlock("void testFieldsPresent()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("WebElement rec = selectTreeRecordByPrefix(ENTITY_NAME);");
-        w.writeLine("Assumptions.assumeTrue(rec != null, \"Не нашли запись справочника '\" + ENTITY_NAME + \" - …' в дереве\");");
+        w.writeLine("WebElement rec = selectTreeRecordByPrefix(CAPTION);");
+        w.writeLine("Assumptions.assumeTrue(rec != null, \"Не нашли запись '\" + CAPTION + \" - …' в дереве\");");
         w.writeLine("shot(\"record_selected\");");
         w.writeLine("int found = 0;");
         for (Property p : displayProperties) {
@@ -526,8 +547,8 @@ public class TestClassWriter {
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"start\");");
         w.writeLine("String name = \"AT\" + System.nanoTime();");
-        w.writeLine("boolean addClicked = step(\"ПКМ по контейнеру → '\" + ENTITY_NAME + \"' → Добавить\", () -> addViaTreeContextMenu(CONTAINER_NAME, ENTITY_NAME));");
-        w.writeLine("assertTrue(addClicked, \"testCreate: не удалось открыть 'Добавить' через ПКМ по узлу '\" + CONTAINER_NAME + \"'\");");
+        w.writeLine("boolean addClicked = step(\"ПКМ по '\" + NODE_NAME + \"' → '\" + CAPTION + \"' → Добавить\", () -> addViaTreeContextMenu(NODE_NAME, CAPTION));");
+        w.writeLine("assertTrue(addClicked, \"testCreate: не удалось открыть 'Добавить' через ПКМ по узлу '\" + NODE_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
         w.writeLine("if (!addFormOpen) dumpCardDiagnostics();");
         w.writeLine("assertTrue(addFormOpen, \"testCreate: модальная карточка не открылась после 'Добавить'\");");
@@ -567,7 +588,7 @@ public class TestClassWriter {
         w.writeLine("try { Thread.sleep(1000); } catch (InterruptedException ignored) {}");
         // Перезаходим в справочник — дерево перечитывается, и новая запись появляется в нём.
         w.writeLine("navigationAttempted = false;");
-        w.writeLine("navigateToEntity(CONTAINER_NAME, CONTAINER_FEATURE, false);");
+        w.writeLine("navigateToEntity(NAV_NAME, NAV_FEATURE, false);");
         w.writeLine("shot(\"after_create\");");
         w.writeLine("boolean appeared = selectTreeNodeByText(name);");
         w.openBlock("if (appeared)");
@@ -581,12 +602,18 @@ public class TestClassWriter {
         // Тест 4: правим ИМЕННО свою созданную запись → новое уникальное имя → «Сохранить Изменения».
         w.writeLine("@Test");
         w.writeLine("@Order(4)");
-        w.writeLine("@DisplayName(\"Update own created record (Сохранить Изменения)\")");
+        w.writeLine("@DisplayName(\"Update record (Сохранить Изменения)\")");
         w.openBlock("void testUpdate()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("Assumptions.assumeTrue(createdName != null, \"testUpdate: нет своей записи — testCreate не прошёл\");");
-        w.writeLine("boolean sel = selectTreeNodeByText(createdName);");
-        w.writeLine("assertTrue(sel, \"testUpdate: не нашли свою запись '\" + createdName + \"' в дереве\");");
+        // Правим свою созданную запись; если её нет (create не прошёл) — любую существующую запись.
+        w.writeLine("boolean sel;");
+        w.openBlock("if (createdName != null)");
+        w.writeLine("sel = selectTreeNodeByText(createdName);");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("sel = selectTreeRecordByPrefix(CAPTION) != null;");
+        w.closeBlock();
+        w.writeLine("assertTrue(sel, \"testUpdate: не нашли запись для изменения (ни своей, ни существующей)\");");
         w.writeLine("shot(\"record_selected\");");
         w.writeLine("String newName = \"AT\" + System.nanoTime();");
         if (markerField != null) {
@@ -617,12 +644,18 @@ public class TestClassWriter {
         // Тест 5: удаляем ИМЕННО свою запись → «Редактирование → Удалить» → «Да». Без доп. проверок.
         w.writeLine("@Test");
         w.writeLine("@Order(5)");
-        w.writeLine("@DisplayName(\"Delete own created record (Удалить)\")");
+        w.writeLine("@DisplayName(\"Delete record (Удалить)\")");
         w.openBlock("void testDelete()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("Assumptions.assumeTrue(createdName != null, \"testDelete: нет своей записи — testCreate не прошёл\");");
-        w.writeLine("boolean sel = selectTreeNodeByText(createdName);");
-        w.writeLine("assertTrue(sel, \"testDelete: не нашли свою запись '\" + createdName + \"' для удаления\");");
+        // Удаляем свою запись; если её нет (create не прошёл) — любую существующую запись.
+        w.writeLine("boolean sel;");
+        w.openBlock("if (createdName != null)");
+        w.writeLine("sel = selectTreeNodeByText(createdName);");
+        w.closeBlock();
+        w.openBlock("else");
+        w.writeLine("sel = selectTreeRecordByPrefix(CAPTION) != null;");
+        w.closeBlock();
+        w.writeLine("assertTrue(sel, \"testDelete: не нашли запись для удаления (ни своей, ни существующей)\");");
         w.writeLine("shot(\"record_selected\");");
         w.writeLine("boolean del = step(\"Редактирование → Удалить\", () -> clickEditDropdownAction(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\"));");
         w.writeLine("if (!del) del = clickButtonByText(\"\\u0423\\u0434\\u0430\\u043b\\u0438\\u0442\\u044c\");");

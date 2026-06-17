@@ -66,6 +66,39 @@ public final class EntityClassifier {
         return new Classification(EntityKind.PRIMARY, "has menu entry, CRUD and own searches");
     }
 
+    /**
+     * Справочник/карточка-в-дереве с собственным CRUD (новый тип, подсистема «Афиша мероприятий»):
+     * сущность-узел дерева (addFromTree, без grid-вкладки) со своими операциями I/U/D, открываемая
+     * через контейнер-меню и добавляемая ПКМ по узлу-контейнеру → подменю → «Добавить» (карточка с
+     * «Готово»). Сюда попадают:
+     *   • справочники под пустым контейнером «Справочник …» (у контейнера нет своей формы);
+     *   • карточка «Мероприятие» под списком-контейнером «Мероприятия» — их формы смотрят на одну и ту
+     *     же таблицу (список = обёртка над карточкой).
+     * НЕ попадают под-коллекции вроде «Повестка совещания» внутри карточки «Совещание» — у них таблица
+     * отличается от родителя, и открываются они иначе (через карточку родителя), поэтому остаются на
+     * field-only пути writeTreeChildTest.
+     */
+    public static boolean isTreeDictionaryCrud(EntityObject entity, AppModel model) {
+        Classification cls = classify(entity, model);
+        if (cls.kind != EntityKind.CHILD || cls.parentEntity == null || cls.parentGrid != null) return false;
+        if (!entity.hasCrudOperations()) return false;
+        EntityObject parent = cls.parentEntity;
+        if (parent.getPropertyGroups().isEmpty()) return true;       // пустой контейнер «Справочник …»
+        String pt = formViewTable(parent);
+        String et = formViewTable(entity);
+        return pt != null && et != null && pt.equalsIgnoreCase(et);   // список-контейнер над той же таблицей
+    }
+
+    /** Первое непустое table_name среди колонок формы (FormView) сущности. */
+    private static String formViewTable(EntityObject e) {
+        PropertyGroup fv = e.getFormView();
+        if (fv == null) return null;
+        for (Property p : fv.getProperties()) {
+            if (p.getTableName() != null && !p.getTableName().isEmpty()) return p.getTableName();
+        }
+        return null;
+    }
+
     private static Classification findParentGrid(EntityObject entity, AppModel model) {
         if (entity.hasCrudOperations()) return null;
         for (EntityObject other : model.getEntities()) {
