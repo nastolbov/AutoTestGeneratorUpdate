@@ -1,0 +1,11 @@
+target/
+generated-tests/
+*.class
+.idea/
+*.iml
+.vscode/
+__pycache__/
+*.pyc
+
+# Сгенерированные из .docx артефакты (создаются libreoffice при сборке)
+*.pdf
