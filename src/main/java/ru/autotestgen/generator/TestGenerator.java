@@ -732,8 +732,7 @@ public class TestGenerator {
         w.openBlock("protected void menuAction(String entityName, String actionName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
-        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"НСИ\", \"Отчёты\", \"Сервис\");");
+        w.writeLine("java.util.List<String> menuButtons = orderedMenuButtons();");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -1073,6 +1072,22 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // orderedMenuButtons: список кнопок меню с запомненной кнопкой (cachedMenuButton) ПЕРВОЙ —
+        // чтобы не перебирать все кнопки на каждой навигации (раньше это удваивало время прогона).
+        w.openBlock("protected java.util.List<String> orderedMenuButtons()");
+        w.writeLine("java.util.List<String> list = menuBarButtonLabels();");
+        w.openBlock("if (list.isEmpty())");
+        w.writeLine("list = new java.util.ArrayList<>(java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"));");
+        w.closeBlock();
+        w.openBlock("if (cachedMenuButton != null && list.contains(cachedMenuButton))");
+        w.writeLine("list = new java.util.ArrayList<>(list);");
+        w.writeLine("list.remove(cachedMenuButton);");
+        w.writeLine("list.add(0, cachedMenuButton);");
+        w.closeBlock();
+        w.writeLine("return list;");
+        w.closeBlock();
+        w.writeLine();
+
         // Навигация E3Core: каскадные меню ExtJS с рекурсивным спуском по подменю
         w.openBlock("private void navigateE3Core(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
@@ -1141,8 +1156,7 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
-        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
+        w.writeLine("java.util.List<String> menuButtons = orderedMenuButtons();");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
@@ -1150,6 +1164,7 @@ public class TestGenerator {
         w.writeLine("Thread.sleep(300);");
         // Добавить = "Добавить"
         w.openBlock("if (descendMenu(entityName, \"\\u0414\\u043e\\u0431\\u0430\\u0432\\u0438\\u0442\\u044c\", 3, new java.util.HashSet<>()))");
+        w.writeLine("cachedMenuButton = menuName;");
         w.writeLine("return true;");
         w.closeBlock();
         w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
@@ -3566,8 +3581,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
-        w.writeLine("if (menuButtons.isEmpty()) menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
+        w.writeLine("java.util.List<String> menuButtons = orderedMenuButtons();");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
