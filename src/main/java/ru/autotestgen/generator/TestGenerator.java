@@ -815,33 +815,41 @@ public class TestGenerator {
         w.openBlock("protected void openParamSearchInTree()");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Ждём появления узла дерева до 4с.
+        // Ждём появления узла дерева поисков до 5с и выбираем ЛИСТ поиска универсально (имя поиска
+        // зависит от системы: «по параметрам» / «Поиск мероприятия» / …).
         w.writeLine("WebElement node = null;");
-        w.writeLine("long deadline = System.currentTimeMillis() + 4000;");
-        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline && node == null)");
         w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
-        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]\"");
-        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]]\"));");
+        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')]\"));");
+        w.writeLine("java.util.List<WebElement> visible = new java.util.ArrayList<>();");
         w.openBlock("for (WebElement h : hits)");
-        w.openBlock("try");
-        w.openBlock("if (h.isDisplayed())");
-        w.writeLine("node = h;");
-        w.writeLine("break;");
+        w.writeLine("try { if (h.isDisplayed() && h.getText() != null && !h.getText().trim().isEmpty()) visible.add(h); } catch (Exception ignored) {}");
+        w.closeBlock();
+        // 1) узел «… по параметрам …» (как в части систем)
+        w.openBlock("for (WebElement h : visible)");
+        w.writeLine("try { if (h.getText().toLowerCase().contains(\"\\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\")) { node = h; break; } } catch (Exception ignored) {}");
+        w.closeBlock();
+        // 2) иначе — ПОСЛЕДНИЙ узел, содержащий «поиск» (лист-поиск, напр. «Поиск мероприятия»; идёт
+        //    после группы «Поиск мероприятий» в дереве).
+        w.openBlock("if (node == null)");
+        w.openBlock("for (WebElement h : visible)");
+        w.writeLine("try { if (h.getText().toLowerCase().contains(\"\\u043f\\u043e\\u0438\\u0441\\u043a\")) node = h; } catch (Exception ignored) {}");
         w.closeBlock();
         w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
-        w.closeBlock();
-        w.openBlock("if (node != null)");
-        w.writeLine("break;");
-        w.closeBlock();
-        w.writeLine("Thread.sleep(250);");
+        // 3) иначе — последний узел дерева.
+        w.openBlock("if (node == null && !visible.isEmpty())");
+        w.writeLine("node = visible.get(visible.size() - 1);");
         w.closeBlock();
         w.openBlock("if (node == null)");
-        w.writeLine("System.out.println(\"openParamSearchInTree: tree node '\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c' not found within 4s — search window may not be open\");");
+        w.writeLine("Thread.sleep(250);");
+        w.closeBlock();
+        w.closeBlock();
+        w.openBlock("if (node == null)");
+        w.writeLine("System.out.println(\"openParamSearchInTree: узел дерева поисков не найден за 5с — окно поиска не открыто\");");
         w.writeLine("return;");
         w.closeBlock();
-        w.writeLine("System.out.println(\"openParamSearchInTree: double-clicking 'по параметрам'\");");
+        w.writeLine("System.out.println(\"openParamSearchInTree: двойной клик по узлу поиска '\" + node.getText().trim() + \"'\");");
         w.openBlock("try");
         w.writeLine("new Actions(driver).moveToElement(node).doubleClick().perform();");
         w.closeBlock();
