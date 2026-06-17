@@ -838,7 +838,7 @@ public class TestGenerator {
         w.writeLine("    + \" try{ if(target.getUI&&target.getUI().getEl){ var el=target.getUI().getEl(); var dom=el&&el.dom?el.dom:el; if(dom){ ['mousedown','mouseup','click','dblclick'].forEach(function(tp){ try{ dom.dispatchEvent(new MouseEvent(tp,{bubbles:true,cancelable:true,view:window})); }catch(x){} }); } } }catch(e){}\"");
         w.writeLine("    + \" return 'clicked:'+(target.text||'?'); }catch(e){ return 'err:'+e.message; }\", containsLower);");
         w.writeLine("System.out.println(\"dblClickTreeNode[ext]: \" + js);");
-        w.writeLine("Thread.sleep(1000);");
+        w.writeLine("Thread.sleep(500);");
         w.openBlock("if (findVisibleSearchButton() != null)");
         w.writeLine("return true;");
         w.closeBlock();
@@ -864,7 +864,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(900);");
+        w.writeLine("Thread.sleep(350);");
         w.openBlock("if (findVisibleSearchButton() != null)");
         w.writeLine("return true;");
         w.closeBlock();
@@ -874,7 +874,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(900);");
+        w.writeLine("Thread.sleep(350);");
         w.openBlock("if (findVisibleSearchButton() != null)");
         w.writeLine("return true;");
         w.closeBlock();
@@ -885,7 +885,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(900);");
+        w.writeLine("Thread.sleep(350);");
         w.openBlock("if (findVisibleSearchButton() != null)");
         w.writeLine("return true;");
         w.closeBlock();
@@ -895,7 +895,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(900);");
+        w.writeLine("Thread.sleep(350);");
         w.openBlock("if (findVisibleSearchButton() != null)");
         w.writeLine("return true;");
         w.closeBlock();
@@ -905,7 +905,7 @@ public class TestGenerator {
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(900);");
+        w.writeLine("Thread.sleep(350);");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -928,16 +928,43 @@ public class TestGenerator {
         w.writeLine("if (!driver.findElements(By.xpath(\"//span[contains(@class,'x-tree-node-text')]\")).isEmpty()) break;");
         w.writeLine("Thread.sleep(250);");
         w.closeBlock();
-        // Шаг 1: если узел «… по параметрам …» уже виден (как в части систем) — двойной клик по нему.
+        // ШАГ A — быстрый проверенный путь (GSK): узел «по параметрам» виден сразу, открываем его
+        // ДВОЙНЫМ кликом (Actions, затем JS-double-click как фолбэк). Если форма параметров появилась
+        // (кнопка «Выполнить поиск») — выходим. Это возвращает GSK прежние ~2с без перебора стратегий.
+        w.writeLine("List<WebElement> ppNodes = driver.findElements(By.xpath(");
+        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')][contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]\"");
+        w.writeLine("    + \" | //a[contains(@class,'x-tree-node-anchor')][.//span[contains(normalize-space(.),'\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c')]]\"));");
+        w.openBlock("for (WebElement pn : ppNodes)");
+        w.openBlock("try");
+        w.openBlock("if (!pn.isDisplayed())");
+        w.writeLine("continue;");
+        w.closeBlock();
+        w.writeLine("try { new Actions(driver).moveToElement(pn).doubleClick().perform(); } catch (Exception ignored) {}");
+        w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("try { ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", pn); } catch (Exception ignored) {}");
+        w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return;");
+        w.closeBlock();
+        w.writeLine("break;");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        // ШАГ B — универсальный путь (Афиша и пр.): через dblClickTreeNode (ExtJS/клики/Enter) и
+        // двухшаговый заход «поиск» → «по параметрам», если форма ещё не открылась.
+        w.openBlock("if (findVisibleSearchButton() == null)");
         w.writeLine("dblClickTreeNode(\"\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c\");");
-        w.writeLine("Thread.sleep(1000);");
-        // Шаг 2: если форма параметров (кнопка «Выполнить поиск») не появилась — сперва «проваливаемся»
-        // в сам лист-поиск (напр. «Поиск мероприятия»), затем в раскрывшийся узел «по параметрам».
+        w.writeLine("Thread.sleep(600);");
         w.openBlock("if (findVisibleSearchButton() == null)");
         w.writeLine("dblClickTreeNode(\"\\u043f\\u043e\\u0438\\u0441\\u043a\");");
-        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("Thread.sleep(800);");
         w.writeLine("dblClickTreeNode(\"\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c\");");
-        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("Thread.sleep(800);");
+        w.closeBlock();
         w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
@@ -1075,12 +1102,24 @@ public class TestGenerator {
         // orderedMenuButtons: список кнопок меню с запомненной кнопкой (cachedMenuButton) ПЕРВОЙ —
         // чтобы не перебирать все кнопки на каждой навигации (раньше это удваивало время прогона).
         w.openBlock("protected java.util.List<String> orderedMenuButtons()");
-        w.writeLine("java.util.List<String> list = menuBarButtonLabels();");
+        w.writeLine("java.util.List<String> list = new java.util.ArrayList<>(menuBarButtonLabels());");
         w.openBlock("if (list.isEmpty())");
         w.writeLine("list = new java.util.ArrayList<>(java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\"));");
         w.closeBlock();
+        // Приоритет кнопки, связанной с именем подсистемы: для GSK кнопка = SUBSYSTEM_NAME (точное
+        // совпадение), для Афиши «Афиша» ⊂ «Афиша мероприятий». Это убирает лишние клики по «Файл/
+        // Справка» на ПЕРВОЙ навигации (до того как сработает cachedMenuButton).
+        w.writeLine("String sub = TestData.SUBSYSTEM_NAME == null ? \"\" : TestData.SUBSYSTEM_NAME.toLowerCase().trim();");
+        w.openBlock("if (!sub.isEmpty())");
+        w.openBlock("for (int i = list.size() - 1; i >= 0; i--)");
+        w.writeLine("String b = list.get(i) == null ? \"\" : list.get(i).toLowerCase().trim();");
+        w.openBlock("if (!b.isEmpty() && (b.equals(sub) || sub.contains(b) || b.contains(sub)))");
+        w.writeLine("list.add(0, list.remove(i));");
+        w.closeBlock();
+        w.closeBlock();
+        w.closeBlock();
+        // Запомненная кнопка (cachedMenuButton) — самой первой.
         w.openBlock("if (cachedMenuButton != null && list.contains(cachedMenuButton))");
-        w.writeLine("list = new java.util.ArrayList<>(list);");
         w.writeLine("list.remove(cachedMenuButton);");
         w.writeLine("list.add(0, cachedMenuButton);");
         w.closeBlock();
@@ -1092,16 +1131,7 @@ public class TestGenerator {
         w.openBlock("private void navigateE3Core(String entityName)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        w.writeLine("java.util.List<String> menuButtons = menuBarButtonLabels();");
-        w.openBlock("if (menuButtons.isEmpty())");
-        w.writeLine("menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
-        w.closeBlock();
-        // Если уже знаем кнопку, под которой нашлась сущность, — пробуем её первой (экономит перебор).
-        w.openBlock("if (cachedMenuButton != null && menuButtons.contains(cachedMenuButton))");
-        w.writeLine("menuButtons = new java.util.ArrayList<>(menuButtons);");
-        w.writeLine("menuButtons.remove(cachedMenuButton);");
-        w.writeLine("menuButtons.add(0, cachedMenuButton);");
-        w.closeBlock();
+        w.writeLine("java.util.List<String> menuButtons = orderedMenuButtons();");
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
