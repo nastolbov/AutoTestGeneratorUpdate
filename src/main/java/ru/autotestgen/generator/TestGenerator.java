@@ -849,19 +849,40 @@ public class TestGenerator {
         w.writeLine("System.out.println(\"openParamSearchInTree: узел дерева поисков не найден за 5с — окно поиска не открыто\");");
         w.writeLine("return;");
         w.closeBlock();
-        w.writeLine("System.out.println(\"openParamSearchInTree: двойной клик по узлу поиска '\" + node.getText().trim() + \"'\");");
+        w.writeLine("System.out.println(\"openParamSearchInTree: открываем поиск, узел '\" + node.getText().trim() + \"'\");");
+        // Кликаем по кликабельному предку-узлу (anchor), а не только по тексту. Пробуем по очереди:
+        // Actions double-click → JS-события (mousedown/up/click/dblclick) → одиночный клик. После
+        // каждого шага проверяем, не появилась ли форма параметров (кнопка «Выполнить поиск»).
+        w.writeLine("WebElement clickTarget = node;");
         w.openBlock("try");
-        w.writeLine("new Actions(driver).moveToElement(node).doubleClick().perform();");
+        w.writeLine("WebElement anchor = node.findElement(By.xpath(\"./ancestor-or-self::a[contains(@class,'x-tree-node-anchor')][1]\"));");
+        w.writeLine("if (anchor != null) clickTarget = anchor;");
         w.closeBlock();
-        w.openBlock("catch (Exception eDbl)");
-        w.writeLine("System.out.println(\"  double-click failed: \" + eDbl.getClass().getSimpleName() + \" — falling back to JS click\");");
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
         w.openBlock("try");
-        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(\"arguments[0].click(); arguments[0].click();\", node);");
+        w.writeLine("new Actions(driver).moveToElement(clickTarget).doubleClick().perform();");
         w.closeBlock();
-        w.openBlock("catch (Exception ignored2)");
+        w.openBlock("catch (Exception ignored)");
         w.closeBlock();
+        w.writeLine("Thread.sleep(1200);");
+        w.openBlock("if (findVisibleSearchButton() == null)");
+        w.openBlock("try");
+        w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"var e=arguments[0]; ['mousedown','mouseup','click','dblclick'].forEach(function(t){ try{ e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window})); }catch(x){} });\", node);");
         w.closeBlock();
-        w.writeLine("Thread.sleep(1500);");
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(1200);");
+        w.closeBlock();
+        w.openBlock("if (findVisibleSearchButton() == null)");
+        w.openBlock("try");
+        w.writeLine("clickTarget.click();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(1200);");
+        w.closeBlock();
         w.closeBlock();
         w.openBlock("catch (Exception e)");
         w.writeLine("System.out.println(\"openParamSearchInTree failed: \" + e.getMessage());");
