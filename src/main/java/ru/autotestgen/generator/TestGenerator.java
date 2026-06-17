@@ -3631,6 +3631,28 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
+        // closeOpenModals: закрывает любые оставшиеся поверх дерева модалки/попапы (error «OK»,
+        // карточка «Отмена»/«Назад»/«Закрыть», затем ESC). Нужно в @AfterEach и в начале setUp:
+        // если create упал с попапом «уже есть», карточка остаётся открытой и блокирует навигацию
+        // следующего теста. Универсально, без привязки к подсистеме.
+        w.openBlock("protected void closeOpenModals()");
+        w.openBlock("try");
+        w.writeLine("for (int i = 0; i < 3; i++)");
+        w.openBlock("");
+        w.writeLine("boolean acted = false;");
+        w.writeLine("if (clickButtonByText(\"OK\")) { acted = true; Thread.sleep(250); }");
+        w.writeLine("if (clickButtonByText(\"\\u041e\\u0442\\u043c\\u0435\\u043d\\u0430\")) { acted = true; Thread.sleep(250); }");
+        w.writeLine("if (clickButtonByText(\"\\u0417\\u0430\\u043a\\u0440\\u044b\\u0442\\u044c\")) { acted = true; Thread.sleep(250); }");
+        w.writeLine("if (!acted) break;");
+        w.closeBlock();
+        w.writeLine("driver.findElement(By.tagName(\"body\")).sendKeys(org.openqa.selenium.Keys.ESCAPE);");
+        w.writeLine("Thread.sleep(200);");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
         // selectTreeNodeByText: найти и кликнуть узел дерева, содержащий подстроку (выбор своей записи
         // по уникальному имени для update/delete в справочнике-в-дереве).
         w.openBlock("protected boolean selectTreeNodeByText(String text)");

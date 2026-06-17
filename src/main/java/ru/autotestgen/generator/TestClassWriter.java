@@ -494,16 +494,30 @@ public class TestClassWriter {
         w.writeLine("@BeforeEach");
         w.openBlock("void setUp()");
         w.writeLine("resetState();");
+        // Закрываем оставшуюся открытой карточку/попап от предыдущего теста (иначе модалка перехватит навигацию).
+        w.writeLine("closeOpenModals();");
         w.writeLine("navigationAttempted = false;");
         w.writeLine("cardOpenAttempted = false;");
         w.writeLine("addDialogFailed = false;");
+        // Навигация с фолбэком: форма контейнера → имя контейнера → имя сущности (разные системы кладут
+        // пункт открытия дерева по-разному: «Все мероприятия» / «Мероприятия» / «Справочник …»).
         w.writeLine("navigateToEntity(NAV_NAME, NAV_FEATURE, false);");
+        w.openBlock("if (!navigationOk)");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("navigateToEntity(NODE_NAME, NAV_FEATURE, false);");
+        w.closeBlock();
+        w.openBlock("if (!navigationOk)");
+        w.writeLine("navigationAttempted = false;");
+        w.writeLine("navigateToEntity(ENTITY_NAME, NAV_FEATURE, false);");
+        w.closeBlock();
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");
         w.closeBlock();
         w.writeLine();
         w.writeLine("@AfterEach");
         w.openBlock("void captureFinalShot(TestInfo testInfo)");
+        // Закрываем модалку/попап после теста, чтобы следующий тест стартовал с чистого дерева.
+        w.writeLine("closeOpenModals();");
         w.writeLine("shot(\"END\");");
         w.closeBlock();
         w.writeLine();
@@ -546,7 +560,9 @@ public class TestClassWriter {
         w.writeLine("@DisplayName(\"Create via tree context menu (Готово)\")");
         w.openBlock("void testCreate()");
         w.writeLine("shot(\"start\");");
-        w.writeLine("String name = \"AT\" + System.nanoTime();");
+        // Уникальное имя: UUID (а не nanoTime) — у nanoTime близкие старшие цифры, и при коротком
+        // поле/усечении соседние прогоны давали дубль «уже есть». UUID случаен и устойчив к усечению.
+        w.writeLine("String name = \"AT\" + java.util.UUID.randomUUID().toString().replace(\"-\", \"\").substring(0, 8);");
         w.writeLine("boolean addClicked = step(\"ПКМ по '\" + NODE_NAME + \"' → '\" + CAPTION + \"' → Добавить\", () -> addViaTreeContextMenu(NODE_NAME, CAPTION));");
         w.writeLine("assertTrue(addClicked, \"testCreate: не удалось открыть 'Добавить' через ПКМ по узлу '\" + NODE_NAME + \"'\");");
         w.writeLine("boolean addFormOpen = waitForAddForm();");
@@ -615,7 +631,7 @@ public class TestClassWriter {
         w.closeBlock();
         w.writeLine("assertTrue(sel, \"testUpdate: не нашли запись для изменения (ни своей, ни существующей)\");");
         w.writeLine("shot(\"record_selected\");");
-        w.writeLine("String newName = \"AT\" + System.nanoTime();");
+        w.writeLine("String newName = \"AT\" + java.util.UUID.randomUUID().toString().replace(\"-\", \"\").substring(0, 8);");
         if (markerField != null) {
             w.writeLine("step(\"change name\", () -> page." + fillMethod + "(newName));");
         } else {
