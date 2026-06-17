@@ -815,6 +815,31 @@ public class TestGenerator {
         w.openBlock("protected boolean dblClickTreeNode(String containsLower)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
+        // Стратегия 0 (ExtJS API): находим узел дерева по подстроке текста и инициируем его клик/выбор
+        // через сам ExtJS — у ExtJS3-дерева обработчик загрузки формы поиска висит на событии узла,
+        // и DOM-клики мимо него не срабатывают. Предпочитаем ЛИСТ (сам поиск, напр. «Поиск мероприятия»).
+        w.writeLine("Object js = ((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
+        w.writeLine("    \"try{ if(typeof Ext==='undefined') return 'no-ext'; var want=arguments[0];\"");
+        w.writeLine("    + \" var trees=[]; var all=(Ext.ComponentMgr&&Ext.ComponentMgr.all)?Ext.ComponentMgr.all:null;\"");
+        w.writeLine("    + \" if(all){ var items=[]; if(all.each){all.each(function(c){items.push(c);});} else {items=all.items||[];}\"");
+        w.writeLine("    + \"   for(var i=0;i<items.length;i++){var c=items[i]; try{ if(c&&c.getXType&&c.getXType()==='treepanel'&&c.rendered&&c.getRootNode) trees.push(c);}catch(e){}}}\"");
+        w.writeLine("    + \" var target=null, ttree=null;\"");
+        w.writeLine("    + \" function scan(leafOnly){ for(var t=0;t<trees.length;t++){ var tr=trees[t]; var root=tr.getRootNode(); if(!root) continue;\"");
+        w.writeLine("    + \"   root.cascade(function(n){ try{ var tx=(n.text||'').toLowerCase(); var isLeaf=(n.isLeaf?n.isLeaf():(n.leaf===true)); if(tx.indexOf(want)>=0 && (!leafOnly||isLeaf)){ target=n; ttree=tr; } }catch(e){} }); } }\"");
+        w.writeLine("    + \" scan(true); if(!target) scan(false);\"");
+        w.writeLine("    + \" if(!target) return 'no-node';\"");
+        w.writeLine("    + \" try{ if(ttree.getSelectionModel) ttree.getSelectionModel().select(target); }catch(e){}\"");
+        w.writeLine("    + \" try{ if(target.select) target.select(); }catch(e){}\"");
+        w.writeLine("    + \" try{ ttree.fireEvent('click', target); }catch(e){}\"");
+        w.writeLine("    + \" try{ target.fireEvent('click', target); }catch(e){}\"");
+        w.writeLine("    + \" try{ ttree.fireEvent('dblclick', target); }catch(e){}\"");
+        w.writeLine("    + \" try{ if(target.getUI&&target.getUI().getEl){ var el=target.getUI().getEl(); var dom=el&&el.dom?el.dom:el; if(dom){ ['mousedown','mouseup','click','dblclick'].forEach(function(tp){ try{ dom.dispatchEvent(new MouseEvent(tp,{bubbles:true,cancelable:true,view:window})); }catch(x){} }); } } }catch(e){}\"");
+        w.writeLine("    + \" return 'clicked:'+(target.text||'?'); }catch(e){ return 'err:'+e.message; }\", containsLower);");
+        w.writeLine("System.out.println(\"dblClickTreeNode[ext]: \" + js);");
+        w.writeLine("Thread.sleep(1000);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return true;");
+        w.closeBlock();
         w.writeLine("WebElement node = null;");
         w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(\"//span[contains(@class,'x-tree-node-text')]\"));");
         w.openBlock("for (WebElement h : hits)");
