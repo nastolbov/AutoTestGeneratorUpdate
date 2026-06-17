@@ -80,6 +80,11 @@ public class TestGenerator {
                 EntityObject p = EntityClassifier.classify(e, model).parentEntity;
                 if (p != null && p.getGuid() != null) treeCrudHostGuids.add(p.getGuid());
             }
+            // Контейнер-список (например «Мероприятия»): его карточка-сущность («Мероприятие»)
+            // тестируется как обычный способ 1 через меню контейнера, поэтому сам контейнер
+            // отдельным PRIMARY-классом не генерируем.
+            EntityObject lh = EntityClassifier.listContainerMenuHost(e, model);
+            if (lh != null && lh.getGuid() != null) treeCrudHostGuids.add(lh.getGuid());
         }
         for (EntityObject entity : model.getEntities()) {
             EntityClassifier.Classification cls = EntityClassifier.classify(entity, model);
@@ -103,11 +108,15 @@ public class TestGenerator {
                     testWriter.writeChildTest(entity, model, srcDir, cls);
                 } else if (cls.parentEntity != null) {
                     pageWriter.write(entity, srcDir);
+                    EntityObject listHost = EntityClassifier.listContainerMenuHost(entity, model);
                     if (isTreeCrud) {
-                        // Справочник/карточка-в-дереве (новый тип): CRUD через ПКМ по узлу-контейнеру →
-                        // подменю → «Добавить» (карточка с «Готово»); изменение/удаление — выбор записи
-                        // → «Редактирование → Сохранить Изменения / Удалить».
+                        // Справочник-в-дереве (пустой контейнер): CRUD через ПКМ по узлу → подменю →
+                        // «Добавить» (карточка с «Готово»); изменение/удаление — выбор записи.
                         testWriter.writeTreeDictionaryCrudTest(entity, model, srcDir, cls);
+                    } else if (listHost != null) {
+                        // Карточка под списком-контейнером («Мероприятие» под «Мероприятия»): обычный
+                        // способ 1, но пункт меню (Добавить/Найти) — имя контейнера.
+                        testWriter.write(entity, model, srcDir, null, listHost.getName());
                     } else {
                         // дочерний узел дерева внутри карточки родителя (например, Повестка совещания).
                         testWriter.writeTreeChildTest(entity, model, srcDir, cls);

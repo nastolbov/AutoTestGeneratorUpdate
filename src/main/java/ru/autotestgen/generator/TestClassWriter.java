@@ -31,10 +31,21 @@ public class TestClassWriter {
     }
 
     public void write(EntityObject entity, AppModel model, Path outputDir) throws IOException {
-        write(entity, model, outputDir, null);
+        write(entity, model, outputDir, null, null);
     }
 
     public void write(EntityObject entity, AppModel model, Path outputDir, String disabledReason) throws IOException {
+        write(entity, model, outputDir, disabledReason, null);
+    }
+
+    /**
+     * @param menuName пункт меню для навигации/добавления (Добавить/Найти). Обычно = имя сущности,
+     *   но для карточки под списком-контейнером (например «Мероприятие» под «Мероприятия») это имя
+     *   контейнера, т.к. в меню запись добавляется/ищется через него.
+     */
+    public void write(EntityObject entity, AppModel model, Path outputDir, String disabledReason,
+                      String menuName) throws IOException {
+        String navMenuName = (menuName != null && !menuName.isEmpty()) ? menuName : entity.getName();
         String entityClassName = Transliterator.toClassName(entity.getName());
         String testClassName = entityClassName + "Test";
         String pageClassName = entityClassName + "Page";
@@ -113,7 +124,10 @@ public class TestClassWriter {
         w.openBlock("public class " + testClassName + " extends BaseTest");
         w.writeLine();
         w.writeLine("private " + pageClassName + " page;");
-        w.writeLine("private static final String ENTITY_NAME = \"" + entity.getName() + "\";");
+        // ENTITY_NAME — это пункт меню для навигации/добавления (entityName(), navigateToEntity,
+        // addViaMenu). Для карточки под списком-контейнером он равен имени контейнера, а поля карточки
+        // сверяет page-объект по их подписям, поэтому навигация и проверка полей не конфликтуют.
+        w.writeLine("private static final String ENTITY_NAME = \"" + navMenuName.replace("\"", "\\\"") + "\";");
         w.writeLine("private static final String FEATURE_NAME = \"" + entity.getFeatureName() + "\";");
         w.writeLine();
 
@@ -142,7 +156,7 @@ public class TestClassWriter {
             // клики по меню и ломает навигацию. Жмём «Да» (закрыть/сбросить), прежде чем навигировать.
             w.writeLine("confirmDialogYes();");
         }
-        w.writeLine("navigateToEntity(\"" + entity.getName() + "\", \"" + entity.getFeatureName() + "\", " + hasOwnSearchForm + ");");
+        w.writeLine("navigateToEntity(ENTITY_NAME, FEATURE_NAME, " + hasOwnSearchForm + ");");
         w.writeLine("assumeNavigated();");
         w.writeLine("page = new " + pageClassName + "(driver);");
         w.closeBlock();

@@ -226,6 +226,8 @@ public class MainController {
                 EntityObject p = EntityClassifier.classify(e, currentModel).parentEntity;
                 if (p != null && p.getGuid() != null) dictHostGuids.add(p.getGuid());
             }
+            EntityObject lh = EntityClassifier.listContainerMenuHost(e, currentModel);
+            if (lh != null && lh.getGuid() != null) dictHostGuids.add(lh.getGuid());
         }
 
         for (EntityObject entity : currentModel.getEntities()) {
@@ -254,12 +256,22 @@ public class MainController {
         //    PRIMARY/не найден — показываем ребёнка отдельным узлом в группе «будут протестированы».
         for (EntityObject child : children) {
             EntityClassifier.Classification cls = EntityClassifier.classify(child, currentModel);
-            // Справочник/карточка-в-дереве: отдельный CRUD тест-класс (create/update/delete своей записи).
+            // Справочник-в-дереве: отдельный CRUD тест-класс (create/update/delete своей записи).
             if (EntityClassifier.isTreeDictionaryCrud(child, currentModel)) {
                 tested.getChildren().add(new TreeItem<>(new EntityNode(
                         label(child) + " (через дерево, CRUD)", STYLE_PRIMARY,
                         "Отдельный тест-класс. Добавление ПКМ по контейнеру «" + cls.parentEntity.getName()
                                 + "» → «Добавить» (карточка с «Готово»), затем изменение/удаление своей записи. " + cls.reason)));
+                primaryCount++;
+                continue;
+            }
+            // Карточка под списком-контейнером («Мероприятие» под «Мероприятия») — обычный способ 1.
+            EntityObject listHost = EntityClassifier.listContainerMenuHost(child, currentModel);
+            if (listHost != null) {
+                tested.getChildren().add(new TreeItem<>(new EntityNode(
+                        label(child) + " (способ 1, меню «" + listHost.getName() + "»)", STYLE_PRIMARY,
+                        "Отдельный тест-класс (способ 1): Добавить/Найти через пункт меню «" + listHost.getName()
+                                + "». " + cls.reason)));
                 primaryCount++;
                 continue;
             }

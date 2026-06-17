@@ -82,11 +82,25 @@ public final class EntityClassifier {
         Classification cls = classify(entity, model);
         if (cls.kind != EntityKind.CHILD || cls.parentEntity == null || cls.parentGrid != null) return false;
         if (!entity.hasCrudOperations()) return false;
+        // Только ПУСТОЙ контейнер «Справочник …» (нет своей формы) — добавление через ПКМ по узлу дерева.
+        return cls.parentEntity.getPropertyGroups().isEmpty();
+    }
+
+    /**
+     * Случай «Мероприятие под Мероприятия»: карточка-сущность с CRUD под списком-контейнером, у которого
+     * ЕСТЬ своя форма на ТОЙ ЖЕ таблице. Это обычная type-1 сущность (две кнопки Добавить/Найти в меню),
+     * просто пункт меню — это контейнер-список. Возвращает контейнер (пункт меню) или null.
+     * Отличается от справочника (пустой контейнер → ПКМ) и от под-коллекции «Повестка» (другая таблица).
+     */
+    public static EntityObject listContainerMenuHost(EntityObject entity, AppModel model) {
+        Classification cls = classify(entity, model);
+        if (cls.kind != EntityKind.CHILD || cls.parentEntity == null || cls.parentGrid != null) return null;
+        if (!entity.hasCrudOperations()) return null;
         EntityObject parent = cls.parentEntity;
-        if (parent.getPropertyGroups().isEmpty()) return true;       // пустой контейнер «Справочник …»
+        if (parent.getPropertyGroups().isEmpty()) return null;        // пустой контейнер = справочник (ПКМ)
         String pt = formViewTable(parent);
         String et = formViewTable(entity);
-        return pt != null && et != null && pt.equalsIgnoreCase(et);   // список-контейнер над той же таблицей
+        return (pt != null && et != null && pt.equalsIgnoreCase(et)) ? parent : null;
     }
 
     /** Первое непустое table_name среди колонок формы (FormView) сущности. */
