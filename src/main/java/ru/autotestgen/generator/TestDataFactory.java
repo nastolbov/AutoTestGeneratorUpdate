@@ -108,6 +108,30 @@ public class TestDataFactory {
         return sb.toString();
     }
 
+    /**
+     * Значение, которое реально НАБИРАЮТ в masked-поле (Ext-маска сама подставляет литералы-разделители).
+     * Для дат/дат-времени возвращаем отформатированное значение (разделители совпадают с вводом).
+     * Для прочих масок (например "99ч99мин") возвращаем только символы плейсхолдеров — иначе ввод
+     * литералов ('ч','м','и','н') ломает маску и поле остаётся пустым ("__ч__мин"). Универсально для
+     * масок любых новых систем.
+     */
+    public static String maskTypingValue(String mask) {
+        if (mask == null || mask.isEmpty()) return "";
+        if (looksLikeDateMask(mask) || looksLikeDateTimeMask(mask)) return generateFromMask(mask);
+        StringBuilder sb = new StringBuilder();
+        int digitCounter = 1;
+        for (int i = 0; i < mask.length(); i++) {
+            char c = mask.charAt(i);
+            if (isDigitMaskChar(c)) {
+                sb.append((digitCounter++) % 10);
+            } else if (isLetterMaskChar(c) || isAnyMaskChar(c)) {
+                sb.append((char) ('A' + (i % 26)));
+            }
+            // литералы (ч, м, и, н, -, /, .) НЕ набираем — маска подставит их сама
+        }
+        return sb.toString();
+    }
+
     /** Плейсхолдер маски для позиции цифры. */
     static boolean isDigitMaskChar(char c) {
         return c == '9' || c == '0' || c == '#';

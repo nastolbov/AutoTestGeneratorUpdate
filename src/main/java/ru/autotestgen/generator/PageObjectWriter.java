@@ -830,6 +830,9 @@ public class PageObjectWriter {
                 w.writeLine(methodName + "(null);");
             } else if (prop.getAttrType() == AttrType.STRING && (prop.getMask() == null || prop.getMask().isEmpty())) {
                 w.writeLine(methodName + "(\"" + value + "_\" + __uniq);");
+            } else if (prop.getMask() != null && !prop.getMask().isEmpty()) {
+                // masked-поле: набираем только символы плейсхолдеров (маска подставит ч/мин/разделители)
+                w.writeLine(methodName + "(\"" + TestDataFactory.maskTypingValue(prop.getMask()) + "\");");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
@@ -861,6 +864,9 @@ public class PageObjectWriter {
                 w.writeLine(methodName + "(null);");
             } else if (prop.getAttrType() == AttrType.STRING && (prop.getMask() == null || prop.getMask().isEmpty())) {
                 w.writeLine(methodName + "(\"" + value + "_\" + __uniq);");
+            } else if (prop.getMask() != null && !prop.getMask().isEmpty()) {
+                // masked-поле: набираем только символы плейсхолдеров (маска подставит ч/мин/разделители)
+                w.writeLine(methodName + "(\"" + TestDataFactory.maskTypingValue(prop.getMask()) + "\");");
             } else {
                 w.writeLine(methodName + "(\"" + value + "\");");
             }
