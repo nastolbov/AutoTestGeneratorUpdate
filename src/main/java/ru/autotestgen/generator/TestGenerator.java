@@ -884,6 +884,26 @@ public class TestGenerator {
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // 4) Клавиатура: выделяем узел и жмём Enter — активация листа-поиска (переход «на вторую вкладку»).
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(target).click().pause(java.time.Duration.ofMillis(300)).sendKeys(org.openqa.selenium.Keys.ENTER).perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(900);");
+        w.openBlock("if (findVisibleSearchButton() != null)");
+        w.writeLine("return true;");
+        w.closeBlock();
+        // 5) Двойной клик по самому тексту узла (а не по anchor).
+        w.openBlock("try");
+        w.writeLine("new Actions(driver).moveToElement(node).doubleClick().perform();");
+        w.closeBlock();
+        w.openBlock("catch (Exception ignored)");
+        w.closeBlock();
+        w.writeLine("Thread.sleep(900);");
         w.writeLine("return true;");
         w.closeBlock();
         w.openBlock("catch (Exception e)");
