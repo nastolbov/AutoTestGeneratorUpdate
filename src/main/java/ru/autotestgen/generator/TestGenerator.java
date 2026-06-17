@@ -809,78 +809,70 @@ public class TestGenerator {
         w.closeBlock();
         w.writeLine();
 
-        // openParamSearchInTree: после открытия окна «Дерево поисков» делает двойной клик по узлу
-        // «по параметрам», чтобы справа отрисовалась форма параметров. Если двойной клик
-        // проигнорирован, откатывается на одиночный клик через JS.
-        w.openBlock("protected void openParamSearchInTree()");
+        // dblClickTreeNode: находит ПОСЛЕДНИЙ видимый узел дерева, чей текст (в нижнем регистре)
+        // содержит подстроку, и надёжно «проваливается» в него: клик по anchor + Actions double-click
+        // + JS-события mousedown/up/click/dblclick. Возвращает true, если узел найден.
+        w.openBlock("protected boolean dblClickTreeNode(String containsLower)");
         w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofMillis(300));");
         w.openBlock("try");
-        // Ждём появления узла дерева поисков до 5с и выбираем ЛИСТ поиска универсально (имя поиска
-        // зависит от системы: «по параметрам» / «Поиск мероприятия» / …).
         w.writeLine("WebElement node = null;");
-        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
-        w.openBlock("while (System.currentTimeMillis() < deadline && node == null)");
-        w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(");
-        w.writeLine("    \"//span[contains(@class,'x-tree-node-text')]\"));");
-        w.writeLine("java.util.List<WebElement> visible = new java.util.ArrayList<>();");
+        w.writeLine("List<WebElement> hits = driver.findElements(By.xpath(\"//span[contains(@class,'x-tree-node-text')]\"));");
         w.openBlock("for (WebElement h : hits)");
-        w.writeLine("try { if (h.isDisplayed() && h.getText() != null && !h.getText().trim().isEmpty()) visible.add(h); } catch (Exception ignored) {}");
-        w.closeBlock();
-        // 1) узел «… по параметрам …» (как в части систем)
-        w.openBlock("for (WebElement h : visible)");
-        w.writeLine("try { if (h.getText().toLowerCase().contains(\"\\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\")) { node = h; break; } } catch (Exception ignored) {}");
-        w.closeBlock();
-        // 2) иначе — ПОСЛЕДНИЙ узел, содержащий «поиск» (лист-поиск, напр. «Поиск мероприятия»; идёт
-        //    после группы «Поиск мероприятий» в дереве).
-        w.openBlock("if (node == null)");
-        w.openBlock("for (WebElement h : visible)");
-        w.writeLine("try { if (h.getText().toLowerCase().contains(\"\\u043f\\u043e\\u0438\\u0441\\u043a\")) node = h; } catch (Exception ignored) {}");
-        w.closeBlock();
-        w.closeBlock();
-        // 3) иначе — последний узел дерева.
-        w.openBlock("if (node == null && !visible.isEmpty())");
-        w.writeLine("node = visible.get(visible.size() - 1);");
+        w.writeLine("try { if (h.isDisplayed() && h.getText() != null && h.getText().toLowerCase().contains(containsLower)) node = h; } catch (Exception ignored) {}");
         w.closeBlock();
         w.openBlock("if (node == null)");
-        w.writeLine("Thread.sleep(250);");
+        w.writeLine("return false;");
         w.closeBlock();
-        w.closeBlock();
-        w.openBlock("if (node == null)");
-        w.writeLine("System.out.println(\"openParamSearchInTree: узел дерева поисков не найден за 5с — окно поиска не открыто\");");
-        w.writeLine("return;");
-        w.closeBlock();
-        w.writeLine("System.out.println(\"openParamSearchInTree: открываем поиск, узел '\" + node.getText().trim() + \"'\");");
-        // Кликаем по кликабельному предку-узлу (anchor), а не только по тексту. Пробуем по очереди:
-        // Actions double-click → JS-события (mousedown/up/click/dblclick) → одиночный клик. После
-        // каждого шага проверяем, не появилась ли форма параметров (кнопка «Выполнить поиск»).
-        w.writeLine("WebElement clickTarget = node;");
+        w.writeLine("System.out.println(\"dblClickTreeNode: '\" + node.getText().trim() + \"'\");");
+        w.writeLine("WebElement target = node;");
         w.openBlock("try");
-        w.writeLine("WebElement anchor = node.findElement(By.xpath(\"./ancestor-or-self::a[contains(@class,'x-tree-node-anchor')][1]\"));");
-        w.writeLine("if (anchor != null) clickTarget = anchor;");
+        w.writeLine("WebElement a = node.findElement(By.xpath(\"./ancestor-or-self::a[contains(@class,'x-tree-node-anchor')][1]\"));");
+        w.writeLine("if (a != null) target = a;");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
         w.openBlock("try");
-        w.writeLine("new Actions(driver).moveToElement(clickTarget).doubleClick().perform();");
+        w.writeLine("new Actions(driver).moveToElement(target).doubleClick().perform();");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(1200);");
-        w.openBlock("if (findVisibleSearchButton() == null)");
         w.openBlock("try");
         w.writeLine("((org.openqa.selenium.JavascriptExecutor) driver).executeScript(");
         w.writeLine("    \"var e=arguments[0]; ['mousedown','mouseup','click','dblclick'].forEach(function(t){ try{ e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window})); }catch(x){} });\", node);");
         w.closeBlock();
         w.openBlock("catch (Exception ignored)");
         w.closeBlock();
-        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("return true;");
         w.closeBlock();
-        w.openBlock("if (findVisibleSearchButton() == null)");
+        w.openBlock("catch (Exception e)");
+        w.writeLine("return false;");
+        w.closeBlock();
+        w.openBlock("finally");
+        w.writeLine("driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));");
+        w.closeBlock();
+        w.closeBlock();
+        w.writeLine();
+
+        // openParamSearchInTree: после открытия окна «Дерево поисков» делает двойной клик по узлу
+        // «по параметрам», чтобы справа отрисовалась форма параметров. Если двойной клик
+        // проигнорирован, откатывается на одиночный клик через JS.
+        w.openBlock("protected void openParamSearchInTree()");
         w.openBlock("try");
-        w.writeLine("clickTarget.click();");
+        // Ждём появления дерева поисков (до 5с).
+        w.writeLine("long deadline = System.currentTimeMillis() + 5000;");
+        w.openBlock("while (System.currentTimeMillis() < deadline)");
+        w.writeLine("if (!driver.findElements(By.xpath(\"//span[contains(@class,'x-tree-node-text')]\")).isEmpty()) break;");
+        w.writeLine("Thread.sleep(250);");
         w.closeBlock();
-        w.openBlock("catch (Exception ignored)");
-        w.closeBlock();
+        // Шаг 1: если узел «… по параметрам …» уже виден (как в части систем) — двойной клик по нему.
+        w.writeLine("dblClickTreeNode(\"\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c\");");
+        w.writeLine("Thread.sleep(1000);");
+        // Шаг 2: если форма параметров (кнопка «Выполнить поиск») не появилась — сперва «проваливаемся»
+        // в сам лист-поиск (напр. «Поиск мероприятия»), затем в раскрывшийся узел «по параметрам».
+        w.openBlock("if (findVisibleSearchButton() == null)");
+        w.writeLine("dblClickTreeNode(\"\\u043f\\u043e\\u0438\\u0441\\u043a\");");
+        w.writeLine("Thread.sleep(1200);");
+        w.writeLine("dblClickTreeNode(\"\\u043f\\u043e \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0430\\u043c\");");
         w.writeLine("Thread.sleep(1200);");
         w.closeBlock();
         w.closeBlock();
