@@ -695,6 +695,9 @@ public class TestGenerator {
         // первой попытки остальные методы не повторяют 10-секундный поиск по меню.
         w.writeLine("protected boolean navigationAttempted = false;");
         w.writeLine("protected boolean cachedNavigationOk = false;");
+        // Кэш кнопки верхнего меню, под которой нашлась сущность (на весь прогон). Чтобы не перебирать
+        // все кнопки (Файл/Афиша/НСИ/…) на каждой навигации — пробуем сначала запомненную.
+        w.writeLine("protected static String cachedMenuButton = null;");
         // Кэш открытия карточки: после неудачной первой попытки openRecordCard следующие
         // testGrid* в этом классе пропускают перебор из 5 стратегий (по ~30-50с каждая).
         w.writeLine("protected boolean cardOpenAttempted = false;");
@@ -1078,12 +1081,19 @@ public class TestGenerator {
         w.openBlock("if (menuButtons.isEmpty())");
         w.writeLine("menuButtons = java.util.Arrays.asList(TestData.SUBSYSTEM_NAME, \"\\u041d\\u0421\\u0418\", \"\\u041e\\u0442\\u0447\\u0451\\u0442\\u044b\", \"\\u0421\\u0435\\u0440\\u0432\\u0438\\u0441\");");
         w.closeBlock();
+        // Если уже знаем кнопку, под которой нашлась сущность, — пробуем её первой (экономит перебор).
+        w.openBlock("if (cachedMenuButton != null && menuButtons.contains(cachedMenuButton))");
+        w.writeLine("menuButtons = new java.util.ArrayList<>(menuButtons);");
+        w.writeLine("menuButtons.remove(cachedMenuButton);");
+        w.writeLine("menuButtons.add(0, cachedMenuButton);");
+        w.closeBlock();
         w.openBlock("for (String menuName : menuButtons)");
         w.openBlock("try");
         w.writeLine("WebElement menuBtn = driver.findElement(By.xpath(\"//button[contains(@class, 'x-btn-text')][contains(text(), '\" + menuName + \"')]\"));");
         w.writeLine("menuBtn.click();");
         w.writeLine("Thread.sleep(300);");
         w.openBlock("if (descendMenu(entityName, \"\\u041d\\u0430\\u0439\\u0442\\u0438\", 3, new java.util.HashSet<>()))");
+        w.writeLine("cachedMenuButton = menuName;");
         w.writeLine("navigationOk = true;");
         w.writeLine("return;");
         w.closeBlock();
