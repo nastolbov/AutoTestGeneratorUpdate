@@ -79,8 +79,15 @@ public class TestRunner {
         }
         boolean useBundled = mavenBin != null;
 
+        // Если встроенного Maven нет — ищем системный. Просто имя "mvn" работает только когда
+        // mvn есть в PATH; но GUI-приложение (запуск двойным кликом по jar/.app) на macOS
+        // получает урезанный PATH без Homebrew (/opt/homebrew/bin) — отсюда "Cannot run program mvn".
+        // Поэтому пытаемся найти абсолютный путь: по MAVEN_HOME/M2_HOME, по типичным каталогам,
+        // и через логин-шелл (which/where).
+        String mvnCommand = useBundled ? mavenBin.toString() : resolveSystemMaven(mvnExe, isWindows);
+
         List<String> cmd = new ArrayList<>();
-        cmd.add(useBundled ? mavenBin.toString() : mvnExe);
+        cmd.add(mvnCommand);
         cmd.add("test");
         if (testFilter != null && !testFilter.isBlank()) {
             cmd.add("-Dtest=" + testFilter);
@@ -104,14 +111,17 @@ public class TestRunner {
         pb.redirectErrorStream(true);
         pb.directory(projectDir.toFile());
 
-        if (useBundled) {
-            // mvn ищет JDK через JAVA_HOME. Среда выполнения приложения (java.home) — полный JDK,
-            // его и используем; пути к java/mvn кладём в начало PATH дочернего процесса.
+        // mvn ищет JDK через JAVA_HOME, а сам mvn — через PATH. У GUI-приложения окружение урезанное,
+        // поэтому и для встроенного, и для системного Maven кладём JAVA_HOME (= java.home, это полный JDK)
+        // и добавляем каталоги java/mvn в начало PATH дочернего процесса.
+        {
             String javaHome = System.getProperty("java.home");
             var env = pb.environment();
             env.put("JAVA_HOME", javaHome);
             String sep = isWindows ? ";" : ":";
-            String extraPath = Path.of(javaHome).resolve("bin") + sep + mavenBin.getParent();
+            Path mvnDir = useBundled ? mavenBin.getParent() : Path.of(mvnCommand).getParent();
+            StringBuilder extraPath = new StringBuilder(Path.of(javaHome).resolve("bin").toString());
+            if (mvnDir != null) extraPath.append(sep).append(mvnDir);
             // На Windows переменная PATH может называться Path — ищем без учёта регистра.
             String pathKey = env.keySet().stream()
                     .filter(k -> k.equalsIgnoreCase("PATH")).findFirst().orElse("PATH");
@@ -178,6 +188,60 @@ public class TestRunner {
         }
 
         return result;
+    }
+
+    /**
+     * Находит абсолютный путь к исполняемому Maven для системной установки (когда встроенного нет).
+     * GUI-приложение на macOS наследует урезанный PATH без Homebrew, поэтому голое "mvn" не находится.
+     * Порядок поиска: MAVEN_HOME/M2_HOME → типичные каталоги → which/where через логин-шелл.
+     * Если ничего не нашли — возвращаем голое имя (вдруг PATH всё-таки содержит mvn).
+     */
+    private String resolveSystemMaven(String mvnExe, boolean isWindows) {
+        // 1) Переменные окружения MAVEN_HOME / M2_HOME.
+        for (String envName : new String[]{"MAVEN_HOME", "M2_HOME"}) {
+            String home = System.getenv(envName);
+            if (home != null && !home.isBlank()) {
+                Path cand = Path.of(home).resolve("bin").resolve(mvnExe);
+                if (Files.exists(cand)) return cand.toString();
+            }
+        }
+        // 2) Типичные места установки.
+        List<String> candidates = new ArrayList<>();
+        if (isWindows) {
+            candidates.add("C:\\Program Files\\Apache\\maven\\bin\\mvn.cmd");
+            candidates.add("C:\\apache-maven\\bin\\mvn.cmd");
+        } else {
+            candidates.add("/opt/homebrew/bin/mvn");      // Apple Silicon Homebrew
+            candidates.add("/usr/local/bin/mvn");          // Intel Homebrew / ручная установка
+            candidates.add("/opt/local/bin/mvn");          // MacPorts
+            candidates.add("/usr/bin/mvn");                // системный пакет (Linux)
+            String userHome = System.getProperty("user.home", "");
+            if (!userHome.isBlank()) {
+                candidates.add(userHome + "/.sdkman/candidates/maven/current/bin/mvn");
+            }
+        }
+        for (String c : candidates) {
+            if (Files.exists(Path.of(c))) return c;
+        }
+        // 3) Спрашиваем у логин-шелла (он знает полный PATH пользователя).
+        try {
+            List<String> lookup = isWindows
+                    ? List.of("where", "mvn")
+                    : List.of("/bin/sh", "-lc", "command -v mvn");
+            Process p = new ProcessBuilder(lookup).redirectErrorStream(true).start();
+            String found;
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                found = br.readLine();
+            }
+            p.waitFor(5, TimeUnit.SECONDS);
+            if (found != null && !found.isBlank() && Files.exists(Path.of(found.trim()))) {
+                return found.trim();
+            }
+        } catch (IOException | InterruptedException ignored) {
+            // не нашли — упадём на голое имя ниже
+        }
+        // 4) Последняя надежда — вдруг PATH всё-таки содержит mvn.
+        return mvnExe;
     }
 
     /** Сопоставляет PNG из target/screenshots/ с тест-кейсами по соглашению об именах файлов. */
