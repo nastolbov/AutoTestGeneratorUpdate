@@ -32,20 +32,17 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- Нативные библиотеки JavaFX для Windows и macOS, чтобы один "толстый" jar
-             запускался на любой ОС. Linux-вариант Maven подтягивает автоматически
-             (без classifier) по платформе сборки. -->
+        <!-- Нативные библиотеки JavaFX для Windows и macOS Apple Silicon (arm64),
+             чтобы один "толстый" jar запускался и там, и там. Linux-вариант Maven
+             подтягивает автоматически (без classifier) по платформе сборки.
+             ВАЖНО: Intel-mac ('mac') НЕ добавляем — его .dylib имеют те же имена,
+             что у 'mac-aarch64', и в одном jar они конфликтуют (побеждает один файл).
+             Для Apple Silicon нужен именно 'mac-aarch64'. -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
             <classifier>win</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-            <version>${javafx.version}</version>
-            <classifier>mac</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
