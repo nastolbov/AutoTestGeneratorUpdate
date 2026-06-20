@@ -4,3 +4,5 @@ generated-tests/
 .idea/
 *.iml
 .vscode/
+
+dependency-reduced-pom.xml

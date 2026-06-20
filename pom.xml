@@ -32,6 +32,28 @@
             <version>${javafx.version}</version>
         </dependency>
 
+        <!-- Нативные библиотеки JavaFX для Windows и macOS, чтобы один "толстый" jar
+             запускался на любой ОС. Linux-вариант Maven подтягивает автоматически
+             (без classifier) по платформе сборки. -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>win</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac-aarch64</classifier>
+        </dependency>
+
         <!-- SQLite JDBC -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -71,6 +93,43 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <!-- Собирает один исполняемый "толстый" jar со всеми библиотеками внутри.
+                 Запуск: java -jar target/autotestgenerator-1.0.0.jar
+                 Точка входа — Launcher (НЕ наследует Application), иначе JavaFX
+                 из обычного classpath падает с "JavaFX runtime components are missing". -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>ru.autotestgen.ui.Launcher</mainClass>
+                                </transformer>
+                                <!-- Склеивает service-файлы (нужно JavaFX и JDBC-драйверу SQLite). -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
