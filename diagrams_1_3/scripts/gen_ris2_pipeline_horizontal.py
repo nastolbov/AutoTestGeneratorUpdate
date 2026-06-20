@@ -12,44 +12,38 @@ from PIL import Image
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 FONT = "Liberation Serif"
 
-# узел: (id, label, shape, x, y)
+# узел: (id, label, shape, x, y). Все блоки — одного размера (fixedsize).
 NODES = [
-    ("in1", "XML-модель метаданных\\nE3Core", "parallelogram", 0, 2.2),
-    ("p1",  "1. Разбор XML\\n(потоковый, StAX)", "box", 3.0, 2.2),
-    ("d1",  "Модель\\nметаданных", "parallelogram", 6.0, 2.2),
-    ("p2",  "2. Классификация\\nсущностей", "box", 9.0, 2.2),
-    ("p3",  "3. Генерация\\nтестового проекта", "box", 12.0, 2.2),
-    ("d2",  "Тестовый проект\\n(Page Object + тесты)", "parallelogram", 12.0, 0.0),
+    ("in1", "XML-модель\\nметаданных E3Core", "parallelogram", 0, 2.4),
+    ("p1",  "1. Разбор XML\\n(потоковый, StAX)", "box", 3.0, 2.4),
+    ("d1",  "Модель\\nметаданных", "parallelogram", 6.0, 2.4),
+    ("p2",  "2. Классификация\\nсущностей", "box", 9.0, 2.4),
+    ("p3",  "3. Генерация\\nтестового проекта", "box", 12.0, 2.4),
+    ("d2",  "Тестовый проект\\n(Page Object, тесты)", "parallelogram", 12.0, 0.0),
     ("p4",  "4. Запуск тестов\\n(Maven Surefire)", "box", 9.0, 0.0),
     ("d3",  "Отчёты Surefire\\n(XML)", "parallelogram", 6.0, 0.0),
     ("p5",  "5. Анализ\\nрезультатов", "box", 3.0, 0.0),
     ("out", "Сводка и отчёты\\n(HTML, CSV)", "parallelogram", 0, 0.0),
-    ("par", "Параметры запуска:\\nадрес сайта, учётные\\nданные, каталог", "parallelogram", 10.5, 3.7),
-    ("db",  "База отчётов\\n(SQLite)", "cylinder", 3.0, -1.7),
+    ("par", "Параметры запуска\\n(адрес, логин, каталог)", "parallelogram", 12.0, 4.2),
 ]
 EDGES = [
     ("in1", "p1", ""), ("p1", "d1", ""), ("d1", "p2", ""), ("p2", "p3", ""),
     ("p3", "d2", ""),  # переход на нижний ряд
     ("d2", "p4", ""), ("p4", "d3", ""), ("d3", "p5", ""), ("p5", "out", ""),
-    ("par", "p3", "dashed"), ("par", "p4", "dashed"),
-    ("p5", "db", "save"),
+    ("par", "p3", ""),  # единый вход параметров запуска — до генерации
 ]
 
 ns = []
 for nid, label, shape, x, y in NODES:
-    ns.append(f'{nid} [label="{label}", shape={shape}, style=filled, fillcolor=white, pos="{x},{y}!"];')
+    ns.append(f'{nid} [label="{label}", shape={shape}, style=filled, fillcolor=white, '
+              f'fixedsize=true, width=2.8, height=1.0, pos="{x},{y}!"];')
 es = []
 for s, d, kind in EDGES:
-    if kind == "dashed":
-        es.append(f'{s} -> {d} [style=dashed];')
-    elif kind == "save":
-        es.append(f'{s} -> {d} [label="сохранение", fontsize=9];')
-    else:
-        es.append(f'{s} -> {d};')
+    es.append(f'{s} -> {d} [style=dashed];' if kind == "dashed" else f'{s} -> {d};')
 
 dot = f'''digraph Pipeline {{
   layout=neato; bgcolor=white; fontname="{FONT}"; splines=true; overlap=false; sep="+6";
-  node [fontname="{FONT}", fontsize=12, color=black, fontcolor=black, penwidth=1.2, margin="0.16,0.10"];
+  node [fontname="{FONT}", fontsize=11, color=black, fontcolor=black, penwidth=1.2];
   edge [fontname="{FONT}", fontsize=11, color=black, fontcolor=black, arrowhead=normal, penwidth=1.1];
 {chr(10).join(ns)}
 {chr(10).join(es)}
