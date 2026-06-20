@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")"
 
-JAR="target/autotestgenerator-1.0.0.jar"
+JAR="target/AutoTestGenerator.jar"
 
 echo "=== 1/3. Проверяю, собран ли jar ==="
 if [ ! -f "$JAR" ]; then
@@ -23,7 +23,7 @@ jpackage \
   --type app-image \
   --name AutoTestGenerator \
   --input build-app \
-  --main-jar autotestgenerator-1.0.0.jar \
+  --main-jar AutoTestGenerator.jar \
   --main-class ru.autotestgen.ui.Launcher \
   --dest dist
 

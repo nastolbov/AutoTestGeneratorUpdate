@@ -22,8 +22,8 @@ cd /d "%ROOT%"
 
 rem Если собран "толстый" jar — запускаем его напрямую (быстро, без пересборки).
 rem Иначе откатываемся на mvn javafx:run (соберёт и запустит из исходников).
-if exist "%ROOT%target\autotestgenerator-1.0.0.jar" (
-    call java -jar "%ROOT%target\autotestgenerator-1.0.0.jar"
+if exist "%ROOT%target\AutoTestGenerator.jar" (
+    call java -jar "%ROOT%target\AutoTestGenerator.jar"
 ) else (
     call mvn -q javafx:run
 )

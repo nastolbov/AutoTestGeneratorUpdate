@@ -36,6 +36,6 @@ if not "%errorlevel%"=="0" (
 
 echo.
 echo === Шаг 4. Запускаю программу ===
-start "" javaw -jar "%ROOT%target\autotestgenerator-1.0.0.jar"
+start "" javaw -jar "%ROOT%target\AutoTestGenerator.jar"
 
 echo Готово. Окно программы скоро откроется.

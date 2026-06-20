@@ -60,6 +60,8 @@
     </dependencies>
 
     <build>
+        <!-- Имя итогового jar: AutoTestGenerator.jar (без версии в названии). -->
+        <finalName>AutoTestGenerator</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
