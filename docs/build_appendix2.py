@@ -19,9 +19,9 @@ JAVA_BASE = os.path.join(ROOT, "src/main/java/ru/autotestgen")
 FXML = os.path.join(ROOT, "src/main/resources/fxml/main.fxml")
 
 # --- параметры верстки ---
-WRAP_WIDTH  = 58          # символов в строке кода (узкая колонка → перенос короче)
-FIRST_BLOCK = 116         # строк кода на 1-й странице листинга (≈58 на колонку, под вступление)
-CONT_BLOCK  = 128         # строк кода на странице-продолжении (≈64 на колонку)
+WRAP_WIDTH  = 56          # символов в строке кода (узкая колонка → перенос короче)
+FIRST_BLOCK = 140         # строк кода на 1-й странице листинга (≈70 на колонку; заполняем страницу)
+CONT_BLOCK  = 144         # строк кода на странице-продолжении (≈72 на колонку)
 RED_LINE = Emu(269875)    # красная строка как в РПЗ
 COL_W = Inches(3.15)      # ширина одной колонки кода
 
@@ -165,9 +165,13 @@ for idx, path in enumerate(all_files, start=1):
             WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
     for bi, block in enumerate(blocks):
         if bi > 0:
-            big_par("Продолжение рис. %s" % num, WD_ALIGN_PARAGRAPH.RIGHT, page_break=True)
+            # на странице-продолжении: «Рис. П2.N Продолжение» (сначала номер, потом слово)
+            big_par("Рис. %s Продолжение" % num, WD_ALIGN_PARAGRAPH.RIGHT, page_break=True)
         code_two_columns(block)
-    big_par("Рис. %s. Текст %s %s" % (num, kind_word(fname), fname), WD_ALIGN_PARAGRAPH.CENTER)
+        if bi == 0:
+            # полная подпись — сразу после первого фрагмента кода
+            big_par("Рис. %s. Текст %s %s" % (num, kind_word(fname), fname),
+                    WD_ALIGN_PARAGRAPH.CENTER)
     enter_14()   # ровно 1 Enter (14pt/1.5) между рисунками, без разрыва страницы
 
 doc.save(OUT)
