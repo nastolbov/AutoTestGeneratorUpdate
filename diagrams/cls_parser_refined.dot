@@ -10,11 +10,11 @@ digraph cls_parser_refined {
     SP  [label="SearchParser"];
     SU  [label="StaxUtils"];
     XN  [label="XmlNamespaces"];
-    XMP -> EP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    XMP -> SP  [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    EP  -> PGP [arrowtail=diamond, dir=back, taillabel="1", headlabel="1"];
-    EP  -> SU; PGP -> SU; SP -> SU;
-    EP  -> XN; PGP -> XN; SP -> XN;
+    XMP -> EP  [arrowtail=diamond, dir=back, label="содержит"];
+    XMP -> SP  [arrowtail=diamond, dir=back, label="содержит"];
+    EP  -> PGP [arrowtail=diamond, dir=back, label="содержит"];
+    EP  -> SU [label="использует"]; PGP -> SU [label="использует"]; SP -> SU [label="использует"];
+    EP  -> XN [label="использует"]; PGP -> XN [label="использует"]; SP -> XN [label="использует"];
     { rank=same; XMP; }
     { rank=same; EP; SP; }
     { rank=same; PGP; }

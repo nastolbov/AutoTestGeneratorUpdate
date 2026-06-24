@@ -11,12 +11,13 @@ digraph cls_generator_refined {
     TDF [label="TestDataFactory"];
     TR  [label="TestRunner"];
     RRW [label="RunReportWriter"];
-    TG -> TC [arrowtail=odiamond, dir=back, taillabel="1", headlabel="1"];
-    TG -> POW [taillabel="1", headlabel="*"];
-    TG -> TCW [taillabel="1", headlabel="*"];
-    TG -> TDF; POW -> TDF; TCW -> TDF;
+    TG -> TC [arrowtail=odiamond, dir=back, label="содержит"];
+    TG -> POW [label="использует"];
+    TG -> TCW [label="использует"];
+    POW -> TDF [label="использует"]; TCW -> TDF [label="использует"];
+    TR -> RRW [label="использует"];
     { rank=same; TC; TG; }
-    { rank=same; POW; TCW; TR; RRW; }
-    { rank=same; TDF; }
+    { rank=same; POW; TCW; TR; }
+    { rank=same; TDF; RRW; }
 
 }

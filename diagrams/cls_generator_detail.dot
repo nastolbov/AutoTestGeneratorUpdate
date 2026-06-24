@@ -117,7 +117,8 @@ digraph GD {
 - formatDuration(ms: long): static String\l\
 }"];
 
-    TG -> TC [arrowtail=odiamond, dir=back];
-    TG -> POW; TG -> TCW; TG -> TDF;
-    POW -> TDF; TCW -> TDF;
+    TG -> TC [arrowtail=odiamond, dir=back, label="содержит"];
+    TG -> POW [label="использует"]; TG -> TCW [label="использует"];
+    POW -> TDF [label="использует"]; TCW -> TDF [label="использует"];
+    TR -> RRW [label="использует"];
 }

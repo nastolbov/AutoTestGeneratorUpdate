@@ -47,9 +47,9 @@ digraph PD {
 |\
 }"];
 
-    XMP -> EP  [arrowtail=diamond, dir=back];
-    XMP -> SP  [arrowtail=diamond, dir=back];
-    EP  -> PGP [arrowtail=diamond, dir=back];
-    EP  -> SU; PGP -> SU; SP -> SU;
-    EP  -> XN; PGP -> XN; SP -> XN;
+    XMP -> EP  [arrowtail=diamond, dir=back, label="содержит"];
+    XMP -> SP  [arrowtail=diamond, dir=back, label="содержит"];
+    EP  -> PGP [arrowtail=diamond, dir=back, label="содержит"];
+    EP  -> SU [label="использует"]; PGP -> SU [label="использует"]; SP -> SU [label="использует"];
+    EP  -> XN [label="использует"]; PGP -> XN [label="использует"]; SP -> XN [label="использует"];
 }
