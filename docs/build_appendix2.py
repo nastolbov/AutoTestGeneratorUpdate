@@ -212,17 +212,19 @@ for idx, path in enumerate(all_files, start=1):
     # вступление (1 колонка)
     big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
             WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
+    # многостраничный листинг: подпись «Рис. П2.N. Текст…» — на ПЕРВОЙ странице (перед кодом),
+    # дальше на продолжении только «Рис. П2.N Продолжение» (колонтитул).
+    if is_long:
+        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
     # код в 2 колонки + колонтитул продолжения
     sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
     set_continuation_header(sec, "Рис. %s Продолжение" % num)
-    if is_long:
-        set_caption_footer(sec, caption)   # подпись внизу первой (переносимой) страницы
     for ln in lines:
         code_line(ln)
     # назад в 1 колонку
     sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
     if not is_long:
-        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)   # короткий — подпись в теле
+        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)   # короткий — подпись после кода
     enter_14()
 
 doc.save(OUT)
