@@ -156,6 +156,16 @@ def clear_header(sec):
     f.is_linked_to_previous = False
     clear_para(f.paragraphs[0])
 
+def set_all_pages_header(sec, text):
+    """Колонтитул «Продолжение» на ВСЕХ страницах секции (остаток кода — все страницы продолжение)."""
+    sec.different_first_page_header_footer = False
+    f = sec.footer; f.is_linked_to_previous = False; clear_para(f.paragraphs[0])
+    h = sec.header
+    h.is_linked_to_previous = False
+    p = h.paragraphs[0]; clear_para(p)
+    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    r = p.add_run(text); r.font.name = "Times New Roman"; r.font.size = Pt(12)
+
 def set_caption_footer(sec, text):
     """Подпись внизу ПЕРВОЙ страницы листинга (многостраничный случай).
     Вызывать ПОСЛЕ set_continuation_header (там колонтитулы уже отвязаны)."""
@@ -198,10 +208,12 @@ def code_line(text):
 big_par("Приложение 2", WD_ALIGN_PARAGRAPH.RIGHT)
 big_par("Текст программы", WD_ALIGN_PARAGRAPH.CENTER, indent=True)
 
-# Непрерывный поток без разрывов страниц. Многостраничные листинги (>130 строк):
-# подпись «Рис. П2.N. Текст…» — в колонтитуле НИЗА первой страницы (первое появление кода),
-# на продолжении сверху — «Рис. П2.N Продолжение». Короткие — подпись в теле после кода.
-LONG_THRESHOLD = 130
+# Непрерывный поток без разрывов страниц. Многостраничный листинг (>130 строк): первая страница
+# кода — отдельный 2-кол блок (≈146 строк, заполняет страницу), СРАЗУ ПОД НИМ подпись
+# «Рис. П2.N. Текст…», остаток кода продолжается дальше с колонтитулом «Рис. П2.N Продолжение».
+# Короткий листинг — код, затем подпись под ним.
+LONG_THRESHOLD = 150
+FIRST_PAGE_LINES = 150
 
 for idx, path in enumerate(all_files, start=1):
     fname = os.path.basename(path)
@@ -209,22 +221,30 @@ for idx, path in enumerate(all_files, start=1):
     lines = read_code_lines(path)
     caption = "Рис. %s. Текст %s %s" % (num, kind_word(fname), fname)
     is_long = len(lines) > LONG_THRESHOLD
-    # вступление (1 колонка)
     big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
             WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
-    # многостраничный листинг: подпись «Рис. П2.N. Текст…» — на ПЕРВОЙ странице (перед кодом),
-    # дальше на продолжении только «Рис. П2.N Продолжение» (колонтитул).
     if is_long:
+        first, rest = lines[:FIRST_PAGE_LINES], lines[FIRST_PAGE_LINES:]
+        # первая страница кода (2 колонки, без колонтитула)
+        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2); clear_header(sec)
+        for ln in first:
+            code_line(ln)
+        # подпись ПОД кодом первой страницы
+        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
         big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
-    # код в 2 колонки + колонтитул продолжения
-    sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
-    set_continuation_header(sec, "Рис. %s Продолжение" % num)
-    for ln in lines:
-        code_line(ln)
-    # назад в 1 колонку
-    sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
-    if not is_long:
-        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)   # короткий — подпись после кода
+        # остаток кода — с колонтитулом продолжения
+        if rest:
+            sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
+            set_all_pages_header(sec, "Рис. %s Продолжение" % num)
+            for ln in rest:
+                code_line(ln)
+            sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
+    else:
+        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2); clear_header(sec)
+        for ln in lines:
+            code_line(ln)
+        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
+        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
     enter_14()
 
 doc.save(OUT)
