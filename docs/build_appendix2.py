@@ -205,6 +205,42 @@ def code_line(text):
     rpr = r._element.get_or_add_rPr(); rf = rpr.get_or_add_rFonts()
     rf.set(qn("w:ascii"), "Times New Roman"); rf.set(qn("w:hAnsi"), "Times New Roman")
 
+from docx.shared import Inches
+COL_W = Inches(3.15)
+
+def set_cell_margins(cell, l=40, r=40):
+    tcPr = cell._tc.get_or_add_tcPr()
+    m = OxmlElement("w:tcMar")
+    for tag, val in (("top", 0), ("start", l), ("bottom", 0), ("end", r)):
+        e = OxmlElement("w:" + tag); e.set(qn("w:w"), str(val)); e.set(qn("w:type"), "dxa"); m.append(e)
+    tcPr.append(m)
+
+def fill_code_cell(cell, lines):
+    p = cell.paragraphs[0]
+    pf = p.paragraph_format
+    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY; pf.line_spacing = Pt(CODE_LH_PT)
+    pf.space_after = Pt(0); pf.space_before = Pt(0)
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    run = p.add_run(); run.font.name = "Times New Roman"; run.font.size = Pt(8)
+    rpr = run._element.get_or_add_rPr(); rf = rpr.get_or_add_rFonts()
+    rf.set(qn("w:ascii"), "Times New Roman"); rf.set(qn("w:hAnsi"), "Times New Roman")
+    for i, ln in enumerate(lines):
+        if i > 0:
+            run.add_break()
+        run.add_text(ln if ln != "" else " ")
+
+def code_table(lines):
+    """Код первой страницы в невидимой 2-кол таблице (точная высота, не балансируется)."""
+    half = (len(lines) + 1) // 2
+    left, right = lines[:half], lines[half:]
+    table = doc.add_table(rows=1, cols=2)
+    table.autofit = False; table.allow_autofit = False
+    table.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+    for i, content in enumerate((left, right)):
+        c = table.cell(0, i); c.width = COL_W; set_cell_margins(c)
+        if content:
+            fill_code_cell(c, content)
+
 big_par("Приложение 2", WD_ALIGN_PARAGRAPH.RIGHT)
 big_par("Текст программы", WD_ALIGN_PARAGRAPH.CENTER, indent=True)
 
@@ -212,40 +248,47 @@ big_par("Текст программы", WD_ALIGN_PARAGRAPH.CENTER, indent=True)
 # кода — отдельный 2-кол блок (≈146 строк, заполняет страницу), СРАЗУ ПОД НИМ подпись
 # «Рис. П2.N. Текст…», остаток кода продолжается дальше с колонтитулом «Рис. П2.N Продолжение».
 # Короткий листинг — код, затем подпись под ним.
-LONG_THRESHOLD = 150
-FIRST_PAGE_LINES = 150
+# Многостраничный листинг (>152 строк): первая страница кода — в невидимой 2-кол таблице
+# (точная высота, начинается с новой страницы → влезает целиком), СРАЗУ ПОД НЕЙ подпись
+# «Рис. П2.N. Текст…» на той же странице; остаток кода — на след. странице с колонтитулом
+# «Рис. П2.N Продолжение». Короткие — текут подряд, подпись после кода (без разрывов).
+LONG_THRESHOLD = 152
+FIRST_PAGE_LINES = 148
 
+prev_long = False
 for idx, path in enumerate(all_files, start=1):
     fname = os.path.basename(path)
     num = "П2.%d" % idx
     lines = read_code_lines(path)
     caption = "Рис. %s. Текст %s %s" % (num, kind_word(fname), fname)
     is_long = len(lines) > LONG_THRESHOLD
-    big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
-            WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
     if is_long:
         first, rest = lines[:FIRST_PAGE_LINES], lines[FIRST_PAGE_LINES:]
-        # первая страница кода (2 колонки, без колонтитула)
-        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2); clear_header(sec)
-        for ln in first:
-            code_line(ln)
-        # подпись ПОД кодом первой страницы
-        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
-        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
-        # остаток кода — с колонтитулом продолжения
+        # крупный листинг — с новой страницы (чтобы таблица первой страницы влезла целиком)
+        if idx > 1:
+            sec = doc.add_section(WD_SECTION.NEW_PAGE); setup_section(sec, 1); clear_header(sec)
+        big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
+                WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
+        code_table(first)                                   # код первой страницы (точная высота)
+        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)         # подпись ПОД кодом, та же страница
         if rest:
-            sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
+            sec = doc.add_section(WD_SECTION.NEW_PAGE); setup_section(sec, 2)
             set_all_pages_header(sec, "Рис. %s Продолжение" % num)
             for ln in rest:
                 code_line(ln)
-            sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
     else:
+        # короткий листинг — после крупного начинается с новой страницы
+        if idx > 1 and prev_long:
+            sec = doc.add_section(WD_SECTION.NEW_PAGE); setup_section(sec, 1); clear_header(sec)
+        big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
+                WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
         sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2); clear_header(sec)
         for ln in lines:
             code_line(ln)
         sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
         big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
-    enter_14()
+        enter_14()
+    prev_long = is_long
 
 doc.save(OUT)
 print("Сохранено:", OUT, "| файлов:", len(all_files))
