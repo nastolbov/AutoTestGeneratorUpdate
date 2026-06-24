@@ -2,7 +2,7 @@ digraph GD {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.5;
     node [fontname="Liberation Serif", fontsize=9, shape=record, style=filled, fillcolor=white];
-    edge [color=black, arrowsize=0.9];
+    edge [color=black, fontname="Liberation Serif", fontsize=9, arrowsize=0.9];
 
     TC [label="{TestConfig|\
 - baseUrl: String\l\
@@ -14,106 +14,74 @@ digraph GD {
 - siteType: String\l\
 - subsystemName: String\l\
 - testLevel: String\l\
-- smokeAllSubsystems: boolean\l\
 |\
-+ get/set для каждого из 10 полей\l\
++ геттеры и сеттеры всех полей\l\
 }"];
 
     TG [label="{TestGenerator|\
-- config: final TestConfig\l\
+- config: TestConfig\l\
 |\
 + TestGenerator(config: TestConfig)\l\
 + generate(model: AppModel): void\l\
-- csvEscape(s: String): static String\l\
 - generatePom(outputDir: Path): void\l\
 - generateJUnitConfig(outputDir: Path): void\l\
-- generateSharedDriver(srcDir, basePackage): void\l\
-- generateBaseTest(srcDir, basePackage): void\l\
-- generateTestData(srcDir, basePackage): void\l\
-- generateSubsystemsSmokeTest(srcDir, basePackage): void\l\
+- generateSharedDriver(srcDir: Path, basePackage: String): void\l\
+- generateBaseTest(srcDir: Path, basePackage: String): void\l\
+- generateTestData(srcDir: Path, basePackage: String): void\l\
 }"];
 
     POW [label="{PageObjectWriter|\
-- basePackage: final String\l\
+- basePackage: String\l\
 |\
 + PageObjectWriter(basePackage: String)\l\
 + write(entity: EntityObject, outputDir: Path): void\l\
-+ getFieldValue(driver, fieldName): String\l\
-+ checkAllFieldsPresent(driver, fields): boolean\l\
-+ fieldHasError(driver, fieldName): boolean\l\
-+ hasValidationErrors(driver): boolean\l\
-+ isFieldDisplayed(driver, fieldName): boolean\l\
-+ getTableRowCount(driver, tableId): int\l\
-+ clearForm(driver): void\l\
-+ fillAllFields(driver, values): void\l\
-+ fillRequiredFields(driver, values): void\l\
-- getDisplayProperties(entity): List\<Property\>\l\
-- isSystemField(prop): boolean\l\
-- dumpDropdownDiagnostic(...): void\l\
-- fillFKViaDropdown(...): void\l\
-- fillPropertyGridField(...): void\l\
-- writeCheckFieldsPresentMethod(w, properties): void\l\
-- writeFilAllRequiredMethod(w, properties): void\l\
-- writeFillAllFieldsMethod(w, properties): void\l\
-- writeInputMethod(w, prop): void\l\
-- writeModifierMethod(w, mod): void\l\
+- writeInputMethod(w: JavaFileWriter, prop: Property): void\l\
 }"];
 
     TCW [label="{TestClassWriter|\
-- basePackage: final String\l\
-- testLevel: final String\l\
+- basePackage: String\l\
+- testLevel: String\l\
 |\
-+ TestClassWriter(basePackage, testLevel)\l\
-+ write(entity, model, outputDir): void\l\
-+ write(entity, model, outputDir, disabledReason): void\l\
-+ writeChildTest(entity, model, outputDir, ...): void\l\
-- isBasicOrFull(): boolean\l\
-- isFull(): boolean\l\
-- writeCreateTest, writeCreateWithOnlyRequiredTest,\l\
-\ \ writeUpdateTest, writeDeleteTest,\l\
-\ \ writeLogicalEditTest, writeArchiveTest\l\
-- writeFieldsPresentTest, writeRequiredFieldValidationTest,\l\
-\ \ writePartialValidationTest\l\
-- writeSearchTest, writeSearchEmptyResultTest, writeGridTest\l\
-- writeChildGridColumnsTest, writeChildCreateTest,\l\
-\ \ writeChildUpdateTest, writeChildDeleteTest\l\
-- hasModifier, getDisplayProperties, isSystemField,\l\
-\ \ isFkOnlySearch, isSystemFieldByName\l\
++ TestClassWriter(basePackage: String, testLevel: String)\l\
++ write(entity: EntityObject, model: AppModel, outputDir: Path): void\l\
+- writeFieldsPresentTest(w: JavaFileWriter, properties: List): void\l\
+- writeRequiredFieldValidationTest(w: JavaFileWriter, required: List): void\l\
+- writeCreateTest(w: JavaFileWriter): void\l\
+- writeUpdateTest(w: JavaFileWriter, properties: List): void\l\
+- writeDeleteTest(w: JavaFileWriter): void\l\
+- writeSearchTest(w: JavaFileWriter): void\l\
+- writeGridTest(w: JavaFileWriter): void\l\
 }"];
 
     TDF [label="{TestDataFactory|\
-- DATE_FORMAT, DATE_TIME_FORMAT: static final DateTimeFormatter\l\
-- MSK: static final ZoneId\l\
+- DATE_FORMAT: static DateTimeFormatter\l\
+- RND: static Random\l\
 |\
-+ generateValue(prop: Property): static String\l\
-+ generateSearchParamValue(p): static String\l\
++ generateValue(property: Property): static String\l\
++ generateSearchParamValue(param: SearchParam): static String\l\
 + generateFromMask(mask: String): static String\l\
-+ generateValueExpression(prop): static String\l\
-- nowMskMinus10(): static String\l\
-- todayMsk(): static String\l\
-- looksLikeDateMask(mask): static boolean\l\
-- looksLikeDateTimeMask(mask): static boolean\l\
++ generateValueExpression(property: Property): static String\l\
 }"];
 
     TR [label="{TestRunner|\
 - lastMavenOutput: String\l\
 |\
-+ run(projectDir, xmlFileName, baseUrl): TestRunResult\l\
-+ run(..., lineConsumer): TestRunResult\l\
-+ run(..., testFilter): TestRunResult\l\
-+ run(..., testFilter, fastMode): TestRunResult\l\
++ run(projectDir: Path, xmlFileName: String, baseUrl: String): TestRunResult\l\
++ run(..., lineConsumer: Consumer\<String\>): TestRunResult\l\
 + getLastMavenOutput(): String\l\
+- parseSurefireReports(reportsDir: Path, runResult: TestRunResult): void\l\
+- parseIntAttr(reader: XMLStreamReader, name: String): int\l\
+- parseDoubleAttr(reader: XMLStreamReader, name: String): double\l\
 }"];
 
     RRW [label="{RunReportWriter|\
-- TS: static final DateTimeFormatter\l\
 |\
 + write(htmlPath: Path, result: TestRunResult): void\l\
 + writeCsv(csvPath: Path, result: TestRunResult): void\l\
 - csv(v: String): static String\l\
 - esc(s: String): static String\l\
 - shortName(cls: String): static String\l\
-- extractStepLabel(filename): static String\l\
+- extractStepLabel(filename: String): static String\l\
 - formatDuration(ms: long): static String\l\
 }"];
 

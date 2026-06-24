@@ -2,7 +2,7 @@ digraph PD {
     rankdir=TB; fontname="Liberation Serif";
     nodesep=0.6;
     node [fontname="Liberation Serif", fontsize=10, shape=record, style=filled, fillcolor=white];
-    edge [color=black, arrowsize=0.9];
+    edge [color=black, fontname="Liberation Serif", fontsize=10, arrowsize=0.9];
 
     XMP [label="{XmlModelParser|\
 - entityParser: final EntityParser\l\
@@ -16,28 +16,30 @@ digraph PD {
     EP [label="{EntityParser|\
 - pgParser: final PropertyGroupParser\l\
 |\
-+ parseObject(reader): EntityObject\l\
-- parseAssociation(reader): Association\l\
++ EntityParser()\l\
++ EntityParser(PropertyGroupParser)\l\
++ parseObject(reader: XMLStreamReader): EntityObject\l\
+- parseAssociation(reader: XMLStreamReader): Association\l\
 }"];
 
     PGP [label="{PropertyGroupParser|\
 |\
-+ parsePropertyGroup(reader): PropertyGroup\l\
-- parseProperty(reader): Property\l\
-- parseOperation(reader): Operation\l\
++ parsePropertyGroup(reader: XMLStreamReader): PropertyGroup\l\
+- parseProperty(reader: XMLStreamReader): Property\l\
+- parseOperation(reader: XMLStreamReader): Operation\l\
 }"];
 
     SP [label="{SearchParser|\
 |\
-+ parseSearches(reader): List\<Search\>\l\
-- parseSingleSearch(reader): Search\l\
++ parseSearches(reader: XMLStreamReader): List\<Search\>\l\
+- parseSingleSearch(reader: XMLStreamReader): Search\l\
 }"];
 
     SU [label="{StaxUtils|\
 |\
-+ attr(reader, name): static String\l\
-+ parseInt(value): static int\l\
-+ skipToEnd(reader): static void\l\
++ attr(reader: XMLStreamReader, name: String): static String\l\
++ parseInt(value: String): static int\l\
++ skipToEnd(reader: XMLStreamReader): static void\l\
 }"];
 
     XN [label="{XmlNamespaces|\
