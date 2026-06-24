@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: generated.test.UchastnikSoveshchaniyaTest
--------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 79.15 s -- in generated.test.UchastnikSoveshchaniyaTest
