@@ -20,8 +20,9 @@ FXML = os.path.join(ROOT, "src/main/resources/fxml/main.fxml")
 
 # --- параметры верстки ---
 WRAP_WIDTH  = 56          # символов в строке кода (узкая колонка → перенос короче)
-FIRST_BLOCK = 140         # строк кода на 1-й странице листинга (≈70 на колонку; заполняем страницу)
-CONT_BLOCK  = 144         # строк кода на странице-продолжении (≈72 на колонку)
+CODE_LH_PT  = 9           # ТОЧНЫЙ межстрочный интервал кода (pt) → высота строки детерминирована
+FIRST_BLOCK = 144         # строк кода на 1-й странице листинга (72 на колонку; под вступление+подпись)
+CONT_BLOCK  = 152         # строк кода на странице-продолжении (76 на колонку)
 RED_LINE = Emu(269875)    # красная строка как в РПЗ
 COL_W = Inches(3.15)      # ширина одной колонки кода
 
@@ -112,7 +113,8 @@ def fill_code(cell, lines):
     """Заполняет ячейку кодом: TNR 8pt, одинарный, влево, без отступа."""
     p = cell.paragraphs[0]
     pf = p.paragraph_format
-    pf.line_spacing = 1.0; pf.space_after = Pt(0); pf.space_before = Pt(0)
+    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY; pf.line_spacing = Pt(CODE_LH_PT)
+    pf.space_after = Pt(0); pf.space_before = Pt(0)
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     run = p.add_run()
     run.font.name = "Times New Roman"; run.font.size = Pt(8)
