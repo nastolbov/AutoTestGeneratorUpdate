@@ -133,11 +133,12 @@ def clear_para(p):
         r._element.getparent().remove(r._element)
 
 def set_continuation_header(sec, text):
-    """На первой странице секции колонтитула нет, на следующих — text (справа)."""
+    """На первой странице секции колонтитула нет, на следующих — text (справа).
+    Все четыре колонтитула отвязываем от предыдущей секции (иначе наследуются)."""
     sec.different_first_page_header_footer = True
-    fph = sec.first_page_header
-    fph.is_linked_to_previous = False
-    clear_para(fph.paragraphs[0])
+    fph = sec.first_page_header; fph.is_linked_to_previous = False; clear_para(fph.paragraphs[0])
+    ff = sec.first_page_footer;  ff.is_linked_to_previous = False;  clear_para(ff.paragraphs[0])
+    f = sec.footer;              f.is_linked_to_previous = False;   clear_para(f.paragraphs[0])
     h = sec.header
     h.is_linked_to_previous = False
     p = h.paragraphs[0]
@@ -151,6 +152,17 @@ def clear_header(sec):
     h = sec.header
     h.is_linked_to_previous = False
     clear_para(h.paragraphs[0])
+    f = sec.footer
+    f.is_linked_to_previous = False
+    clear_para(f.paragraphs[0])
+
+def set_caption_footer(sec, text):
+    """Подпись внизу ПЕРВОЙ страницы листинга (многостраничный случай).
+    Вызывать ПОСЛЕ set_continuation_header (там колонтитулы уже отвязаны)."""
+    p = sec.first_page_footer.paragraphs[0]
+    clear_para(p)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = p.add_run(text); r.font.name = "Times New Roman"; r.font.size = Pt(14)
 
 setup_section(doc.sections[0], 1)
 clear_header(doc.sections[0])
@@ -186,21 +198,32 @@ def code_line(text):
 big_par("Приложение 2", WD_ALIGN_PARAGRAPH.RIGHT)
 big_par("Текст программы", WD_ALIGN_PARAGRAPH.CENTER, indent=True)
 
+# Порог: листинги длиннее помещения на одной странице (≈150 строк в 2 колонки)
+# считаем многостраничными — для них подпись ставим внизу первой страницы (footer).
+MULTI_THRESHOLD = 180
+
 for idx, path in enumerate(all_files, start=1):
     fname = os.path.basename(path)
     num = "П2.%d" % idx
     lines = read_code_lines(path)
+    caption = "Рис. %s. Текст %s %s" % (num, kind_word(fname), fname)
+    multipage = len(lines) > MULTI_THRESHOLD
     # вступление (1 колонка)
     big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
             WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
     # код в 2 колонки + колонтитул продолжения
     sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
     set_continuation_header(sec, "Рис. %s Продолжение" % num)
+    if multipage:
+        # подпись — внизу первой (переносимой) страницы листинга
+        set_caption_footer(sec, caption)
     for ln in lines:
         code_line(ln)
-    # назад в 1 колонку для подписи
+    # назад в 1 колонку
     sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
-    big_par("Рис. %s. Текст %s %s" % (num, kind_word(fname), fname), WD_ALIGN_PARAGRAPH.CENTER)
+    if not multipage:
+        # короткий листинг — подпись сразу после кода
+        big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
     enter_14()
 
 doc.save(OUT)
