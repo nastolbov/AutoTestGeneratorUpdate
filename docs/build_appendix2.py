@@ -198,33 +198,47 @@ def code_line(text):
 big_par("Приложение 2", WD_ALIGN_PARAGRAPH.RIGHT)
 big_par("Текст программы", WD_ALIGN_PARAGRAPH.CENTER, indent=True)
 
-# Порог: листинги длиннее помещения на одной странице (≈150 строк в 2 колонки)
-# считаем многостраничными — для них подпись ставим внизу первой страницы (footer).
-MULTI_THRESHOLD = 180
+# «Длинные» листинги (заполняют почти всю страницу и/или переносятся) начинаем с новой
+# страницы: тогда колонки 2-кол секции заполняются сверху вниз без балансировки (нет пробела),
+# а подпись «Рис. П2.N. Текст…» кладём в колонтитул НИЗА первой страницы; на продолжении —
+# «Рис. П2.N Продолжение» сверху. Короткие — текут подряд, подпись сразу после кода.
+LONG_THRESHOLD = 130
 
+prev_long = False
 for idx, path in enumerate(all_files, start=1):
     fname = os.path.basename(path)
     num = "П2.%d" % idx
     lines = read_code_lines(path)
     caption = "Рис. %s. Текст %s %s" % (num, kind_word(fname), fname)
-    multipage = len(lines) > MULTI_THRESHOLD
-    # вступление (1 колонка)
+    is_long = len(lines) > LONG_THRESHOLD
+    # секция вступления: длинный листинг (и любой после длинного) — с новой страницы
+    if idx == 1:
+        intro_sec = doc.sections[0]
+    else:
+        brk = WD_SECTION.NEW_PAGE if (is_long or prev_long) else WD_SECTION.CONTINUOUS
+        intro_sec = doc.add_section(brk); setup_section(intro_sec, 1); clear_header(intro_sec)
     big_par("На рис. %s представлен текст %s %s." % (num, kind_word(fname), fname),
             WD_ALIGN_PARAGRAPH.JUSTIFY, indent=True)
     # код в 2 колонки + колонтитул продолжения
     sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 2)
     set_continuation_header(sec, "Рис. %s Продолжение" % num)
-    if multipage:
-        # подпись — внизу первой (переносимой) страницы листинга
-        set_caption_footer(sec, caption)
+    if is_long:
+        set_caption_footer(sec, caption)   # подпись внизу первой страницы
     for ln in lines:
         code_line(ln)
-    # назад в 1 колонку
-    sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
-    if not multipage:
+    if not is_long:
         # короткий листинг — подпись сразу после кода
+        sec = doc.add_section(WD_SECTION.CONTINUOUS); setup_section(sec, 1); clear_header(sec)
         big_par(caption, WD_ALIGN_PARAGRAPH.CENTER)
-    enter_14()
+        enter_14()
+    # для длинного: завершающую секцию не добавляем — следующий лист начнётся с новой
+    # страницы (NEW_PAGE), и 2-кол секция кода закончится без балансировки.
+    prev_long = is_long
+
+# если последний листинг длинный — закроем его 2-кол секцию разрывом на новую страницу,
+# чтобы Word не балансировал последнюю страницу.
+if prev_long:
+    sec = doc.add_section(WD_SECTION.NEW_PAGE); setup_section(sec, 1); clear_header(sec)
 
 doc.save(OUT)
 print("Сохранено:", OUT, "| файлов:", len(all_files))
